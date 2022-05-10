@@ -1,11 +1,12 @@
 #include "parameters.h"
 #include "leads_self_energy.h"
+#include "dmft.h"
+#include "interacting_gf.h"
 #include <iostream>
 #include <vector>
 #include <x86_64-linux-gnu/mpich/mpi.h>
 #include <eigen3/Eigen/Dense>
-#include "dmft.h"
-#include "interacting_gf.h"
+
 
 
 void get_spin_occupation(Parameters &parameters, std::vector<dcomp> &gf_lesser_up,
@@ -20,6 +21,75 @@ void get_spin_occupation(Parameters &parameters, std::vector<dcomp> &gf_lesser_u
     spin_down = 1.0 / (2.0 * M_PI) * result_down;
 }
 
+
+void get_difference(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local_up,
+                double &difference){
+    static int n = parameters.chain_length * parameters.chain_length * parameters.steps;
+    static std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+    double difference = -std::numeric_limits<double>::infinity(), real_difference, imag_difference;
+    for (int r = 0; r < parameters.steps; r++) {
+        for(int i = 0; i < parameters.chain_length; i++){
+            for(int j = 0; j < parameters.chain_length; j++){
+                real_difference = abs(gf_local_up.at(r)(i, j).real() - old_green_function.at(r)(i, j).real());
+                imag_difference = abs(gf_local_up.at(r)(i, j).imag() - old_green_function.at(r)(i, j).imag());
+                difference = std::max(difference, std::max(real_difference, imag_difference));
+                old_green_function.at(r)(i, j) = gf_local_up.at(r)(i, j);
+            }
+        }
+    }
+
+}
+
+
+void impurity_solver(Parameters &parameters, std::vector<dcomp>  &diag_gf_local_up, std::vector<dcomp>  &diag_gf_local_down,
+        std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down){
+
+    for(int r = 0; r < parameters.steps; r++){
+        impurity_self_energy_up.at(r) = 0;
+        impurity_self_energy_up.at(r) = 0;
+    }
+
+}
+
+void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &kx, std::vector<double> const &ky, 
+        std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down, 
+        std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down){
+
+    double difference = -std::numeric_limits<double>::infinity();
+    int count = 0;
+    while (difference > 0.0001 and count < parameters.self_consistent_steps){
+        get_difference(parameters, gf_local_up, difference);
+        
+        if (difference < 0.0001){
+            break;
+        }
+
+        if (parameters.interaction_order != 0.0) {
+            for(int i = 0; i < parameters.chain_length; i++) {
+                std::vector<dcomp> diag_gf_local_up(parameters.steps), diag_gf_local_down(parameters.steps), 
+                    impurity_self_energy_up(parameters.steps), impurity_self_energy_down(parameters.steps);
+
+                for(int r = 0; r < parameters.steps; r++){
+                    diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
+                    diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);
+                }
+                impurity_solver(parameters, diag_gf_local_up, diag_gf_local_down, impurity_self_energy_up, impurity_self_energy_down);
+
+                for(int r = 0; r < parameters.steps; r++){
+                    self_energy_mb_up.at(i).at(r) = impurity_self_energy_up.at(r);
+                    self_energy_mb_down.at(i).at(r) = impurity_self_energy_down.at(r);
+                }
+            }
+        } else {
+            break;
+        }
+        std::cout << "The difference is " << "\n";
+    }
+
+}
+
+
+/*
 def integrate(gf_1: List[complex], gf_2: List[complex], gf_3: List[complex],
               r: int):
     # in this function, the green functions are 1d arrays in energy. this is becasue we have passed the diagonal component of the green fun( lesser, or retarded).The
@@ -75,39 +145,6 @@ def fluctuation_dissipation(green_function: List[complex]):
     return g_lesser
 
 
-def impurity_solver(impurity_gf_up: List[complex],
-                    impurity_gf_down: List[complex]):
-    impurity_self_energy_up = [0 for z in range(0, parameters.steps)]
-    impurity_self_energy_down = [0 for z in range(0, parameters.steps)]
-
-    if (parameters.voltage_step == 0):
-        impurity_gf_up_lesser = fluctuation_dissipation(impurity_gf_up)
-        impurity_gf_down_lesser = fluctuation_dissipation(impurity_gf_down)
-
-    impurity_spin_up, impurity_spin_down = get_spin_occupation(
-        impurity_gf_up_lesser, impurity_gf_down_lesser)
-
-    if (parameters.interaction_order == 2):
-        impurity_self_energy_up = self_energy_2nd_order(
-            impurity_gf_up, impurity_gf_down, impurity_gf_up_lesser,
-            impurity_gf_down_lesser)
-        impurity_self_energy_down = self_energy_2nd_order(
-            impurity_gf_down, impurity_gf_up, impurity_gf_down_lesser,
-            impurity_gf_up_lesser)
-        for r in range(0, parameters.steps):
-            impurity_self_energy_up[r] += parameters.hubbard_interaction * \
-                impurity_spin_down
-            impurity_self_energy_down[r] += parameters.hubbard_interaction * \
-                impurity_spin_up
-
-    if (parameters.interaction_order == 1):
-        for r in range(0, parameters.steps):
-            impurity_self_energy_up[r] = parameters.hubbard_interaction * \
-                impurity_spin_down
-            impurity_self_energy_down[r] = parameters.hubbard_interaction * \
-                impurity_spin_up
-
-    return impurity_self_energy_up, impurity_self_energy_down, impurity_spin_up, impurity_spin_down
 
 
 def create_matrix(size: int):
@@ -129,88 +166,6 @@ def get_coupling_matrices(kx: int, ky: int):
             parameters.conjugate(self_energy.self_energy_right[r]))
 
     return coupling_left, coupling_right
-
-
-def get_local_gf(kx: List[int], ky: List[int],
-                 self_energy_mb_up: List[List[List[complex]]],
-                 self_energy_mb_down: List[List[List[complex]]],
-                 embedding_self_energy: List[List[
-                     leads_self_energy.EmbeddingSelfEnergy]]):
-    gf_local_up = [
-        create_matrix(parameters.chain_length)
-        for z in range(0, parameters.steps)
-    ]
-    gf_local_down = [
-        create_matrix(parameters.chain_length)
-        for z in range(0, parameters.steps)
-    ]
-
-    if (parameters.hubbard_interaction == 0):
-        transmission = [0 for r in range(0, parameters.steps)]
-
-    num_k_points = parameters.chain_length_x * parameters.chain_length_y
-    for kx_i in range(0, parameters.chain_length_x):
-        for ky_i in range(0, parameters.chain_length_y):
-            gf_interacting_up = Interacting_GF(
-                kx[kx_i], ky[ky_i], parameters.voltage_step, self_energy_mb_up,
-                embedding_self_energy[kx_i][ky_i].self_energy_left,
-                embedding_self_energy[kx_i][ky_i].self_energy_right)
-            gf_interacting_down = Interacting_GF(
-                kx[kx_i], ky[ky_i], parameters.voltage_step,
-                self_energy_mb_down,
-                embedding_self_energy[kx_i][ky_i].self_energy_left,
-                embedding_self_energy[kx_i][ky_i].self_energy_right)
-
-            if (parameters.hubbard_interaction == 0.0):
-                coupling_left, coupling_right = get_coupling_matrices(
-                    kx[kx_i], ky[ky_i])
-                for r in range(0, parameters.steps):
-                    transmission[r] += coupling_left[
-                        r] * gf_interacting_up.interacting_gf[r][0][
-                            parameters.chain_length -
-                            1] * coupling_right[r] * parameters.conjugate(
-                                gf_interacting_up.interacting_gf[r][0]
-                                [parameters.chain_length - 1]) / num_k_points
-
-            for r in range(0, parameters.steps):
-                for i in range(0, parameters.chain_length):
-                    for j in range(0, parameters.chain_length):
-                        gf_local_up[r][i][
-                            j] += gf_interacting_up.interacting_gf[r][i][
-                                j] / num_k_points
-                        gf_local_down[r][i][
-                            j] += gf_interacting_down.interacting_gf[r][i][
-                                j] / num_k_points
-
-    if (parameters.hubbard_interaction == 0):
-        fig = plt.figure()
-        plt.plot(parameters.energy, transmission, color='blue')
-
-        plt.title('Transmission')
-        plt.legend(loc='upper right')
-        plt.xlabel("energy")
-        plt.ylabel("Transmission")
-        plt.show()
-
-    return gf_local_up, gf_local_down
-
-
-def get_difference(gf_local_up: List[List[List[complex]]],
-                   old_green_function: List[List[List[complex]]]):
-    n = parameters.chain_length**2 * parameters.steps
-    differencelist = [0 for i in range(0, 2 * n)]
-    for r in range(0, parameters.steps):
-        for i in range(0, parameters.chain_length):
-            for j in range(0, parameters.chain_length):
-                differencelist[r + i +
-                               j] = abs(gf_local_up[r][i][j].real -
-                                        old_green_function[r][i][j].real)
-                differencelist[n + r + i +
-                               j] = abs(gf_local_up[r][i][j].imag -
-                                        old_green_function[r][i][j].imag)
-
-    return max(differencelist), gf_local_up
-
 
 def self_energy_from_textfile(voltage: int, kx: List[float], ky: List[float]):
     print("reading in the textfile")
@@ -253,79 +208,6 @@ def self_energy_from_textfile(voltage: int, kx: List[float], ky: List[float]):
 
     return gf_local_up, gf_local_down  # , spin_up_occup, spin_down_occup
 
-
-def dmft(voltage: int, kx: List[float], ky: List[float]):
-    self_energy_mb_up = [[0 for i in range(0, parameters.chain_length)]
-                         for z in range(0, parameters.steps)]
-    self_energy_mb_down = [[0 for i in range(0, parameters.chain_length)]
-                           for z in range(0, parameters.steps)]
-    """
-    embedding_self_energy = [[
-        leads_self_energy.EmbeddingSelfEnergy(kx[i], ky[j],
-                                              parameters.voltage_step)
-        for i in range(0, parameters.chain_length_x)
-    ] for j in (0, parameters.chain_length_y)]
-    """
-    print(ky)
-    embedding_self_energy = [[
-        leads_self_energy.EmbeddingSelfEnergy(kx[i], ky[j],
-                                              parameters.voltage_step)
-        for j in range(0, parameters.chain_length_y)
-    ] for i in range(0, parameters.chain_length_x)]
-
-    old_green_function = [[[1.0 + 1j for x in range(parameters.chain_length)]
-                           for y in range(parameters.chain_length)]
-                          for z in range(0, parameters.steps)]
-    difference = 100.0
-    count = 0
-    # these allows us to determine self consistency in the retarded green function
-    while (difference > 0.0001 and count < parameters.self_consistent_steps):
-        count += 1
-        # this quantity is the green function which is averaged over all k points.
-        gf_local_up, gf_local_down = get_local_gf(kx, ky, self_energy_mb_up,
-                                                  self_energy_mb_down,
-                                                  embedding_self_energy)
-        # this will compare the new green function with the last green function for convergence
-        difference, old_green_function = get_difference(
-            gf_local_up, old_green_function)
-
-        if (difference < 0.0001):
-            break
-
-        if (parameters.interaction_order != 0):
-            for i in range(0, parameters.chain_length):
-                impurity_self_energy_up, impurity_self_energy_down, spin_up_occup, spin_down_occup = (
-                    impurity_solver([e[i][i] for e in gf_local_up],
-                                    [e[i][i] for e in gf_local_down]))
-                for r in range(0, parameters.steps):
-                    self_energy_mb_up[r][i] = impurity_self_energy_up[r]
-                    self_energy_mb_down[r][i] = impurity_self_energy_down[r]
-        else:
-            break
-        print("The count is ", count, "The difference is ", difference)
-
-    #local_transmission = transmission(gf_interacting_up)
-
-    if (parameters.hubbard_interaction == 0.0
-            and parameters.voltage_step == 0):
-        spin_up_occup, spin_down_occup = [
-            0 for i in range(parameters.chain_length)
-        ], [0 for i in range(parameters.chain_length)]
-        for i in range(0, parameters.chain_length):
-            spin_up_occup[i], spin_down_occup[i] = first_order_self_energy(
-                [e[i][i] for e in gf_local_up],
-                [e[i][i] for e in gf_local_down])
-
-    plot_and_write_files(gf_local_up, gf_local_down, self_energy_mb_up,
-                         self_energy_mb_down)
-
-    for i in range(0, parameters.chain_length):
-        print("The spin up occupancy for the site", i + 1, " is ",
-              spin_up_occup)
-        print("The spin down occupancy for the site", i + 1, " is ",
-              spin_down_occup)
-
-    return gf_local_up, gf_local_down  # , spin_up_occup, spin_down_occup
 
 
 def plot_and_write_files(gf_local_up: List[List[List[complex]]],
@@ -562,3 +444,5 @@ def main():
 
 if __name__ == "__main__":  # this will only run if it is a script and not a import module
     main()
+    
+*/

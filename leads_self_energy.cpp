@@ -55,8 +55,8 @@ void EmbeddingSelfEnergy::get_transfer_matrix(Parameters &parameters, std::vecto
         difference = -std::numeric_limits<double>::infinity();
         for (int r = 0; r < parameters.steps; r++)
         {
-            t_next_l.at(r) = pow(t_next_l.at(r), 2) / (1.0 - 2.0 * pow(t_next_l.at(r), 2));
-            t_next_r.at(r) = pow(t_next_r.at(r), 2) / (1.0 - 2.0 * pow(t_next_r.at(r), 2));
+            t_next_l.at(r) = t_next_l.at(r) * t_next_l.at(r)/ (1.0 - 2.0 * pow(t_next_l.at(r), 2));
+            t_next_r.at(r) = t_next_r.at(r) * t_next_r.at(r) / (1.0 - 2.0 * pow(t_next_r.at(r), 2));
             t_product_l.at(r) = t_product_l.at(r) * t_next_l.at(r);
             t_product_r.at(r) = t_product_r.at(r) * t_next_r.at(r);
             transfer_matrix_l.at(r) = transfer_matrix_l.at(r) + t_product_l.at(r);
@@ -83,8 +83,8 @@ void EmbeddingSelfEnergy::get_self_energy(Parameters &parameters, std::vector<dc
     {
         surface_gf_l.at(r) = 1.0 / (parameters.energy.at(r) - parameters.voltage_l[parameters.voltage_step] - parameters.onsite_l - 2.0 * parameters.hopping_ly * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_lz * transfer_matrix_l.at(r));
         surface_gf_r.at(r) = 1.0 / (parameters.energy.at(r) - parameters.voltage_r[parameters.voltage_step] - parameters.onsite_r - 2.0 * parameters.hopping_ry * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_rz * transfer_matrix_r.at(r));
-        this->self_energy_left.at(r) = pow(parameters.hopping_lc, 2) * surface_gf_l.at(r);
-        this->self_energy_right.at(r) = pow(parameters.hopping_lc, 2) * surface_gf_r.at(r);
+        this->self_energy_left.at(r) = parameters.hopping_lc * parameters.hopping_lc * surface_gf_l.at(r);
+        this->self_energy_right.at(r) = parameters.hopping_rc * parameters.hopping_rc * surface_gf_r.at(r);
     }
 }
 
@@ -109,14 +109,14 @@ std::vector<dcomp> analytic_self_energy(Parameters &parameters)
     {
         double x = (parameters.energy.at(r).real() - parameters.onsite_l - parameters.voltage_l[parameters.voltage_step]) / (2.0 * parameters.hopping_lz);
 
-        analytic_se.at(r) = pow(parameters.hopping_lc, 2) * (1.0 / abs(parameters.hopping_lz)) * x;
+        analytic_se.at(r) = parameters.hopping_lc * parameters.hopping_lc * (1.0 / abs(parameters.hopping_lz)) * x;
         if (abs(x) > 1.0)
         {
-            analytic_se.at(r) = analytic_se.at(r).real() - pow(parameters.hopping_lc, 2) * (1.0 / abs(parameters.hopping_lz)) * (sgn(x) * sqrt(abs(x) * abs(x) - 1.0));
+            analytic_se.at(r) = analytic_se.at(r).real() -parameters.hopping_lc * parameters.hopping_lc * (1.0 / abs(parameters.hopping_lz)) * (sgn(x) * sqrt(abs(x) * abs(x) - 1.0));
         }
         else if (abs(x) < 1.0)
         {
-            analytic_se.at(r) = analytic_se.at(r).real() - parameters.j1 * pow(parameters.hopping_lc, 2) * abs((1.0 / abs(parameters.hopping_lz))) * (sqrt(1.0 - abs(x) * abs(x)));
+            analytic_se.at(r) = analytic_se.at(r).real() - parameters.j1 * parameters.hopping_lc * parameters.hopping_lc * abs((1.0 / abs(parameters.hopping_lz))) * (sqrt(1.0 - abs(x) * abs(x)));
         }
     }
     return analytic_se;

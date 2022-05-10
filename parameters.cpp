@@ -21,8 +21,8 @@ Parameters Parameters::init()
         .hopping_lc = -1.0,
         .hopping_rc = -1.0,
         .chain_length = 1,
-        .chain_length_y = 2,
-        .chain_length_x = 1,
+        .chain_length_y = 100,
+        .chain_length_x = 100,
         .chemical_potential = 0.0,
         .temperature = 0,
         .e_upper_bound = 15.0,
@@ -53,7 +53,7 @@ Parameters Parameters::init()
         parameters.interaction_order = 2;
     }
 
-    parameters.steps = 81;
+    parameters.steps = 161;
 
     parameters.energy.resize(parameters.steps);
 

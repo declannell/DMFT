@@ -34,7 +34,8 @@ int main() {
 
     std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     std::vector<Eigen::MatrixXcd> gf_local_down(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-    std::vector<std::vector<dcomp>> self_energy_mb(parameters.chain_length, std::vector<dcomp> (parameters.steps));
+    std::vector<std::vector<dcomp>> self_energy_mb_up(parameters.chain_length, std::vector<dcomp> (parameters.steps));
+    std::vector<std::vector<dcomp>> self_energy_mb_down(parameters.chain_length, std::vector<dcomp> (parameters.steps));
 
     std::vector<std::vector<EmbeddingSelfEnergy>> leads;
     for (int i = 0; i < parameters.chain_length_x; i++)
@@ -46,7 +47,7 @@ int main() {
         leads.push_back(vy);
     }
 
-
+    /*
     std::cout << "kx is " << std::endl;
     for (int i = 0; i < parameters.chain_length_x; i++) {
         std::cout << kx.at(i) << ",";
@@ -55,10 +56,14 @@ int main() {
     for (int i = 0; i < parameters.chain_length_y; i++) {
         std::cout << ky.at(i) << "," << "\n";
     }
-    
-    get_local_gf(parameters, kx, ky, self_energy_mb, leads, gf_local_up, gf_local_down);
+    */
+    std::cout << "leads complete" << std::endl;
+    get_local_gf(parameters, kx, ky, self_energy_mb_up, leads, gf_local_up, gf_local_down);
 
-    if(parameters.hubbard_interaction == 0 && parameters.chain_length == 1){
+    dmft(parameters, parameters.voltage_step, kx, ky, self_energy_mb_up, self_energy_mb_down, 
+        gf_local_up, gf_local_down);
+
+    if(parameters.hubbard_interaction == 0 && parameters.chain_length == 1 && parameters.chain_length_x == 1){
         get_analytic_gf_1_site(parameters, gf_local_up);
     }
 

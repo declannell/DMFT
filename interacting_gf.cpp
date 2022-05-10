@@ -17,7 +17,6 @@ double Interacting_GF::ky() const { return ky_value; }
 Interacting_GF::Interacting_GF(Parameters &parameters, double _kx, double _ky, std::vector<std::vector<dcomp>> &self_energy_mb, std::vector<dcomp> &self_energy_left,
                 std::vector<dcomp> &self_energy_right): kx_value(_kx), ky_value(_ky)
 {
-        std::cout << "here7";
     this->interacting_gf.resize(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     Eigen::MatrixXcd hamiltonian = get_hamiltonian(parameters);
     get_interacting_gf(parameters, hamiltonian, self_energy_mb, self_energy_left,
@@ -50,7 +49,6 @@ Eigen::MatrixXcd Interacting_GF::get_hamiltonian(Parameters const &parameters){
 
 void Interacting_GF::get_interacting_gf(Parameters &parameters, const Eigen::MatrixXcd& hamiltonian, std::vector<std::vector<dcomp>>  const &self_energy_mb, 
     std::vector<dcomp> const &self_energy_left, std::vector<dcomp> const &self_energy_right){
-    std::cout << "here1";
     Eigen::MatrixXcd inverse_gf;
     for(int r = 0; r < parameters.steps; r++){
         inverse_gf = Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length);
@@ -122,7 +120,6 @@ void get_local_gf(Parameters &parameters, std::vector<double> const &kx, std::ve
     std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down){
 
     double num_k_points = parameters.chain_length_x * parameters.chain_length_y;
-    std::cout << num_k_points << "\n";
     for(int kx_i = 0; kx_i < parameters.chain_length_x; kx_i++) {
         for(int ky_i = 0; ky_i < parameters.chain_length_y; ky_i++) {
 
