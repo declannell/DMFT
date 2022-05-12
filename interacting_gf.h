@@ -1,3 +1,4 @@
+#pragma once
 #include "parameters.h"
 #include "leads_self_energy.h"
 #include <iostream>

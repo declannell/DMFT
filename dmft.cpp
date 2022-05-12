@@ -10,23 +10,25 @@
 
 
 void get_spin_occupation(Parameters &parameters, std::vector<dcomp> &gf_lesser_up,
-                        std::vector<dcomp> &gf_lesser_down, double &spin_up, double &spin_down){
+                        std::vector<dcomp> &gf_lesser_down, double *spin_up, double *spin_down){
     double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
     double result_up = 0.0, result_down = 0.0;
     for(int r = 0; r < parameters.steps; r++){
         result_up = (delta_energy) * gf_lesser_up.at(r).imag() + result_up;
         result_down = (delta_energy) * gf_lesser_down.at(r).imag() + result_down;
     }
-    spin_up = 1.0 / (2.0 * M_PI) * result_up;
-    spin_down = 1.0 / (2.0 * M_PI) * result_down;
+    *spin_up = 1.0 / (2.0 * M_PI) * result_up;
+    *spin_down = 1.0 / (2.0 * M_PI) * result_down;
+
+    std::cout << *spin_up << std::endl;
 }
 
 
-void get_difference(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local_up,
+void get_difference(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &old_green_function,
                 double &difference){
-    static int n = parameters.chain_length * parameters.chain_length * parameters.steps;
-    static std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-    double difference = -std::numeric_limits<double>::infinity(), real_difference, imag_difference;
+    int n = parameters.chain_length * parameters.chain_length * parameters.steps;
+    difference = -std::numeric_limits<double>::infinity();
+    double real_difference, imag_difference;
     for (int r = 0; r < parameters.steps; r++) {
         for(int i = 0; i < parameters.chain_length; i++){
             for(int j = 0; j < parameters.chain_length; j++){
@@ -37,33 +39,117 @@ void get_difference(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_lo
             }
         }
     }
+}
 
+void fluctuation_dissipation(Parameters &parameters, const std::vector<dcomp> &green_function, std::vector<dcomp> &lesser_green_function){
+    for(int r = 0; r < parameters.steps; r++){
+        lesser_green_function.at(r) = -fermi_function(parameters.energy.at(r).real(), parameters) * (
+            green_function.at(r) - std::conj(green_function.at(r)));
+    }
+    std::ofstream myfile2;
+    myfile2.open("/home/declan/green_function_code/quantum_transport/textfiles/gf_lesser_c++.txt");
+    // myfile << parameters.steps << std::endl;
+    for (int r = 0; r < parameters.steps; r++)
+    {
+        myfile2 << parameters.energy.at(r).real() << "," << lesser_green_function.at(r).real() << "," << lesser_green_function.at(r).imag() << "\n";
+    }
+    myfile2.close();    
 }
 
 
-void impurity_solver(Parameters &parameters, std::vector<dcomp>  &diag_gf_local_up, std::vector<dcomp>  &diag_gf_local_down,
-        std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down){
+dcomp integrate(Parameters &parameters, std::vector<dcomp> &gf_1, std::vector<dcomp> &gf_2,
+            std::vector<dcomp> &gf_3, int r){
+    double delta_energy = (parameters.e_upper_bound -
+                    parameters.e_lower_bound) / (double)parameters.steps;
+    dcomp result = 0;
+    for(int i = 0; i < parameters.steps; i++) {
+        for(int j = 0; j < parameters.steps; j++){
+            if (((i + j - r) >= 0) && ((i + j - r) < parameters.steps)) {
+                //this integrates like PHYSICAL REVIEW B 74, 155125 2006
+                //I say the green function is zero outside e_lower_bound and e_upper_bound. This means I need the final green function in the integral to be within an energy of e_lower_bound
+                //and e_upper_bound. The index of 0 corresponds to e_lower_bound. Hence we need i+J-r>0 but in order to be less an energy of e_upper_bound we need i+j-r<steps. 
+                //These conditions enesure the enrgy of the gf3 greens function to be within (e_upper_bound, e_lower_bound)
+                result = (delta_energy / (2.0 * parameters.pi)) * (delta_energy / (2.0 * parameters.pi)) * 
+                    gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r) + result;
+            } 
+        }
+    }
+    return result;
+}
 
+void self_energy_2nd_order(Parameters &parameters, std::vector<dcomp> &impurity_gf_up, std::vector<dcomp> &impurity_gf_down, 
+            std::vector<dcomp> &impurity_gf_up_lesser, std::vector<dcomp> &impurity_gf_down_lesser, std::vector<dcomp> &impurity_self_energy){
+    
+    std::vector<dcomp> impurity_gf_down_advanced(parameters.steps);
     for(int r = 0; r < parameters.steps; r++){
-        impurity_self_energy_up.at(r) = 0;
-        impurity_self_energy_up.at(r) = 0;
+        impurity_gf_down_advanced.at(r) = std::conj(impurity_gf_down.at(r));
+    }
+    for(int r = 0; r < parameters.steps; r++){
+        impurity_self_energy.at(r) = parameters.hubbard_interaction * parameters.hubbard_interaction * 
+            (integrate(parameters, impurity_gf_up, impurity_gf_down,impurity_gf_down_lesser, r));  // line 3
+
+        impurity_self_energy.at(r) += parameters.hubbard_interaction * parameters.hubbard_interaction *
+            (integrate(parameters, impurity_gf_up, impurity_gf_down_lesser, impurity_gf_down_lesser, r));  // line 2
+
+        impurity_self_energy.at(r) += parameters.hubbard_interaction * parameters.hubbard_interaction * 
+        (integrate(parameters, impurity_gf_up_lesser, impurity_gf_down, impurity_gf_down_lesser, r));  // line 1
+
+        impurity_self_energy.at(r) += parameters.hubbard_interaction * parameters.hubbard_interaction * 
+        (integrate(parameters, impurity_gf_up_lesser, impurity_gf_down_lesser, impurity_gf_down_advanced, r));  //line 4
+    }
+}
+
+
+void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_up, std::vector<dcomp>  &impurity_gf_down,
+        std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down){
+    std::vector<dcomp> impurity_gf_up_lesser(parameters.steps, 0), impurity_gf_down_lesser(parameters.steps, 0);
+
+    if (parameters.voltage_step == 0) {
+        fluctuation_dissipation(parameters, impurity_gf_up, impurity_gf_up_lesser);
+        fluctuation_dissipation(parameters, impurity_gf_down, impurity_gf_down_lesser);
     }
 
+    double impurity_spin_up, impurity_spin_down;
+    get_spin_occupation(parameters, impurity_gf_up_lesser, impurity_gf_down_lesser, &impurity_spin_up, &impurity_spin_down);
+    std::cout << "The spin up occupancy is " <<impurity_spin_up << "\n";
+    std::cout << "The spin down occupancy is " <<impurity_spin_down << "\n";
+    
+    if (parameters.interaction_order == 2){
+        self_energy_2nd_order(parameters, impurity_gf_up, impurity_gf_down, impurity_gf_up_lesser,
+            impurity_gf_down_lesser, impurity_self_energy_up);
+        self_energy_2nd_order(parameters, impurity_gf_down, impurity_gf_up, impurity_gf_down_lesser,
+            impurity_gf_up_lesser, impurity_self_energy_down);
+
+        for(int r = 0; r < parameters.steps; r++){
+            impurity_self_energy_up.at(r) += parameters.hubbard_interaction * impurity_spin_down;
+            impurity_self_energy_down.at(r) += parameters.hubbard_interaction * impurity_spin_up;
+        }
+    }
+
+    if (parameters.interaction_order == 1){
+        for(int r = 0; r < parameters.steps; r++) {
+            impurity_self_energy_up.at(r) = parameters.hubbard_interaction * impurity_spin_down;
+            impurity_self_energy_down.at(r) = parameters.hubbard_interaction * impurity_spin_up;
+        }
+    }
 }
+
+
 
 void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &kx, std::vector<double> const &ky, 
         std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down, 
-        std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down){
+        std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down, 
+        std::vector<std::vector<EmbeddingSelfEnergy>> &leads){
 
-    double difference = -std::numeric_limits<double>::infinity();
+    double difference = std::numeric_limits<double>::infinity();
     int count = 0;
-    while (difference > 0.0001 and count < parameters.self_consistent_steps){
-        get_difference(parameters, gf_local_up, difference);
-        
+    std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+    while (difference > 0.0001 && count < parameters.self_consistent_steps){
+        get_difference(parameters, gf_local_up, old_green_function, difference);
+        std::cout << "The difference is " << difference <<". The count is " << count << std::endl;
         if (difference < 0.0001){
             break;
         }
-
         if (parameters.interaction_order != 0.0) {
             for(int i = 0; i < parameters.chain_length; i++) {
                 std::vector<dcomp> diag_gf_local_up(parameters.steps), diag_gf_local_down(parameters.steps), 
@@ -73,6 +159,7 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
                     diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
                     diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);
                 }
+
                 impurity_solver(parameters, diag_gf_local_up, diag_gf_local_down, impurity_self_energy_up, impurity_self_energy_down);
 
                 for(int r = 0; r < parameters.steps; r++){
@@ -80,77 +167,16 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
                     self_energy_mb_down.at(i).at(r) = impurity_self_energy_down.at(r);
                 }
             }
+            get_local_gf(parameters, kx, ky, self_energy_mb_up, leads, gf_local_up, gf_local_down);
         } else {
             break;
         }
-        std::cout << "The difference is " << "\n";
+        count++;
     }
-
 }
 
 
 /*
-def integrate(gf_1: List[complex], gf_2: List[complex], gf_3: List[complex],
-              r: int):
-    # in this function, the green functions are 1d arrays in energy. this is becasue we have passed the diagonal component of the green fun( lesser, or retarded).The
-    delta_energy = (parameters.e_upper_bound -
-                    parameters.e_lower_bound) / parameters.steps
-    result = 0
-    for i in range(0, parameters.steps):
-        for j in range(0, parameters.steps):
-            if (((i + j - r) >= 0) and ((i + j - r) < parameters.steps)):
-                # this integrates like PHYSICAL REVIEW B 74, 155125 2006
-                # I say the green function is zero outside e_lower_bound and e_upper_bound. This means I need the final green function in the integral to be within an energy of e_lower_bound
-                # and e_upper_bound. The index of 0 corresponds to e_lower_bound. Hence we need i+J-r>0 but in order to be less an energy of e_upper_bound we need i+j-r<steps. These conditions enesure the enrgy of the gf3 greens function to be within (e_upper_bound, e_lower_bound)
-                result = (delta_energy / (2 * parameters.pi)) ** 2 * \
-                    gf_1[i] * gf_2[j] * gf_3[i+j-r] + result
-            else:
-                result = result
-    return result
-
-
-# this creates the entire parameters.energy() array at once
-def self_energy_2nd_order(impurity_gf_up: List[complex],
-                          impurity_gf_down: List[complex],
-                          impurity_gf_up_lesser: List[complex],
-                          impurity_gf_down_lesser: List[complex]):
-    impurity_self_energy = [0 for z in range(0, parameters.steps)]
-
-    # the are calculating the self parameters.energy() sigma_{ii}(E) for each discretized parameters.energy(). To do this we pass the green_fun_{ii} for all energies as we need to integrate over all energies in the integrate function
-    for r in range(0, parameters.steps):
-        impurity_self_energy[r] = parameters.hubbard_interaction**2 * (
-            integrate(impurity_gf_up, impurity_gf_down,
-                      impurity_gf_down_lesser, r))  # line 3
-        impurity_self_energy[r] += parameters.hubbard_interaction**2 * (
-            integrate(impurity_gf_up, impurity_gf_down_lesser,
-                      impurity_gf_down_lesser, r))  # line 2
-        impurity_self_energy[r] += parameters.hubbard_interaction**2 * (
-            integrate(impurity_gf_up_lesser, impurity_gf_down,
-                      impurity_gf_down_lesser, r))  # line 1
-        impurity_self_energy[r] += parameters.hubbard_interaction**2 * (
-            integrate(impurity_gf_up_lesser, impurity_gf_down_lesser,
-                      [parameters.conjugate(e)
-                       for e in impurity_gf_down], r))  # line 4
-    return impurity_self_energy
-
-
-# this is only used to compare the lesser green functions using two different methods. This is not used in the calculation of the self energies.
-
-
-def fluctuation_dissipation(green_function: List[complex]):
-    g_lesser = [0 for z in range(0, parameters.steps)]
-    for r in range(0, parameters.steps):
-        g_lesser[r] = -parameters.fermi_function(parameters.energy[r].real) * (
-            green_function[r] - parameters.conjugate(green_function[r]))
-    return g_lesser
-
-
-
-
-def create_matrix(size: int):
-    return [[0.0 for x in range(size)] for y in range(size)]
-
-
 def get_coupling_matrices(kx: int, ky: int):
     self_energy = leads_self_energy.EmbeddingSelfEnergy(
         kx, ky, parameters.voltage_step)

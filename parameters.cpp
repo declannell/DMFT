@@ -21,13 +21,13 @@ Parameters Parameters::init()
         .hopping_lc = -1.0,
         .hopping_rc = -1.0,
         .chain_length = 1,
-        .chain_length_y = 100,
-        .chain_length_x = 100,
+        .chain_length_y = 1,
+        .chain_length_x = 1,
         .chemical_potential = 0.0,
         .temperature = 0,
         .e_upper_bound = 15.0,
         .e_lower_bound = -15.0,
-        .hubbard_interaction = 0.0,
+        .hubbard_interaction = 0.3,
         .voltage_step = 0,
         .pi = 3.14159265359,
         .self_consistent_steps = 20,
@@ -53,7 +53,7 @@ Parameters Parameters::init()
         parameters.interaction_order = 2;
     }
 
-    parameters.steps = 161;
+    parameters.steps = 81;
 
     parameters.energy.resize(parameters.steps);
 

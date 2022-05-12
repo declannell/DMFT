@@ -59,9 +59,10 @@ int main() {
     */
     std::cout << "leads complete" << std::endl;
     get_local_gf(parameters, kx, ky, self_energy_mb_up, leads, gf_local_up, gf_local_down);
-
+    std::cout << "got local green function" << std::endl;
     dmft(parameters, parameters.voltage_step, kx, ky, self_energy_mb_up, self_energy_mb_down, 
-        gf_local_up, gf_local_down);
+        gf_local_up, gf_local_down, leads);
+    std::cout << "got self energy" << std::endl;
 
     if(parameters.hubbard_interaction == 0 && parameters.chain_length == 1 && parameters.chain_length_x == 1){
         get_analytic_gf_1_site(parameters, gf_local_up);

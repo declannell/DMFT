@@ -118,7 +118,11 @@ void get_analytic_gf_1_site(Parameters &parameters, std::vector<Eigen::MatrixXcd
 
 void get_local_gf(Parameters &parameters, std::vector<double> const &kx, std::vector<double> const &ky, std::vector<std::vector<dcomp>> &self_energy_mb, 
     std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down){
-
+    Eigen::MatrixXcd m = Eigen::MatrixXcd::Random(3,3);
+    for(int r = 0; r < parameters.steps; r++){
+        gf_local_up.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+        gf_local_down.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));    
+    }
     double num_k_points = parameters.chain_length_x * parameters.chain_length_y;
     for(int kx_i = 0; kx_i < parameters.chain_length_x; kx_i++) {
         for(int ky_i = 0; ky_i < parameters.chain_length_y; ky_i++) {
