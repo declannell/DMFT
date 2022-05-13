@@ -23,11 +23,11 @@ void self_energy_2nd_order(Parameters &parameters, std::vector<dcomp> &impurity_
             std::vector<dcomp> &impurity_gf_up_lesser, std::vector<dcomp> &impurity_gf_down_lesser, std::vector<dcomp> &impurity_self_energy);
 
 void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_local_up, std::vector<dcomp>  &impurity_gf_local_down,
-        std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down);
+        std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down, double *spin_up, double *spin_down);
 
 void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &kx, std::vector<double> const &ky, 
         std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down, 
         std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down,
-        std::vector<std::vector<EmbeddingSelfEnergy>> &leads);
+        std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup);
 
 

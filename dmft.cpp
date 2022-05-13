@@ -101,7 +101,7 @@ void self_energy_2nd_order(Parameters &parameters, std::vector<dcomp> &impurity_
 
 
 void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_up, std::vector<dcomp>  &impurity_gf_down,
-        std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down){
+        std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down, double *spin_up, double *spin_down){
     std::vector<dcomp> impurity_gf_up_lesser(parameters.steps, 0), impurity_gf_down_lesser(parameters.steps, 0);
 
     if (parameters.voltage_step == 0) {
@@ -109,10 +109,9 @@ void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_up
         fluctuation_dissipation(parameters, impurity_gf_down, impurity_gf_down_lesser);
     }
 
-    double impurity_spin_up, impurity_spin_down;
-    get_spin_occupation(parameters, impurity_gf_up_lesser, impurity_gf_down_lesser, &impurity_spin_up, &impurity_spin_down);
-    std::cout << "The spin up occupancy is " <<impurity_spin_up << "\n";
-    std::cout << "The spin down occupancy is " <<impurity_spin_down << "\n";
+    get_spin_occupation(parameters, impurity_gf_up_lesser, impurity_gf_down_lesser, spin_up, spin_down);
+    std::cout << "The spin up occupancy is " << *spin_up << "\n";
+    std::cout << "The spin down occupancy is " << *spin_down << "\n";
     
     if (parameters.interaction_order == 2){
         self_energy_2nd_order(parameters, impurity_gf_up, impurity_gf_down, impurity_gf_up_lesser,
@@ -121,25 +120,23 @@ void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_up
             impurity_gf_up_lesser, impurity_self_energy_down);
 
         for(int r = 0; r < parameters.steps; r++){
-            impurity_self_energy_up.at(r) += parameters.hubbard_interaction * impurity_spin_down;
-            impurity_self_energy_down.at(r) += parameters.hubbard_interaction * impurity_spin_up;
+            impurity_self_energy_up.at(r) += parameters.hubbard_interaction * (*spin_down);
+            impurity_self_energy_down.at(r) += parameters.hubbard_interaction * (*spin_up);
         }
     }
 
     if (parameters.interaction_order == 1){
         for(int r = 0; r < parameters.steps; r++) {
-            impurity_self_energy_up.at(r) = parameters.hubbard_interaction * impurity_spin_down;
-            impurity_self_energy_down.at(r) = parameters.hubbard_interaction * impurity_spin_up;
+            impurity_self_energy_up.at(r) = parameters.hubbard_interaction * (*spin_down);
+            impurity_self_energy_down.at(r) = parameters.hubbard_interaction * (*spin_up);
         }
     }
 }
 
-
-
 void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &kx, std::vector<double> const &ky, 
         std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down, 
         std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down, 
-        std::vector<std::vector<EmbeddingSelfEnergy>> &leads){
+        std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup){
 
     double difference = std::numeric_limits<double>::infinity();
     int count = 0;
@@ -150,27 +147,26 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
         if (difference < 0.0001){
             break;
         }
-        if (parameters.interaction_order != 0.0) {
-            for(int i = 0; i < parameters.chain_length; i++) {
-                std::vector<dcomp> diag_gf_local_up(parameters.steps), diag_gf_local_down(parameters.steps), 
-                    impurity_self_energy_up(parameters.steps), impurity_self_energy_down(parameters.steps);
 
-                for(int r = 0; r < parameters.steps; r++){
-                    diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
-                    diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);
-                }
+        for(int i = 0; i < parameters.chain_length; i++) {
+            std::vector<dcomp> diag_gf_local_up(parameters.steps), diag_gf_local_down(parameters.steps), 
+                impurity_self_energy_up(parameters.steps), impurity_self_energy_down(parameters.steps);
 
-                impurity_solver(parameters, diag_gf_local_up, diag_gf_local_down, impurity_self_energy_up, impurity_self_energy_down);
-
-                for(int r = 0; r < parameters.steps; r++){
-                    self_energy_mb_up.at(i).at(r) = impurity_self_energy_up.at(r);
-                    self_energy_mb_down.at(i).at(r) = impurity_self_energy_down.at(r);
-                }
+            for(int r = 0; r < parameters.steps; r++){
+                diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
+                diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);
             }
-            get_local_gf(parameters, kx, ky, self_energy_mb_up, leads, gf_local_up, gf_local_down);
-        } else {
-            break;
+
+            impurity_solver(parameters, diag_gf_local_up, diag_gf_local_down, impurity_self_energy_up, 
+                impurity_self_energy_down, &spins_occup.at(i), &spins_occup.at(i + parameters.chain_length));
+
+            for(int r = 0; r < parameters.steps; r++){
+                self_energy_mb_up.at(i).at(r) = impurity_self_energy_up.at(r);
+                self_energy_mb_down.at(i).at(r) = impurity_self_energy_down.at(r);
+            }
         }
+        
+        get_local_gf(parameters, kx, ky, self_energy_mb_up, leads, gf_local_up, gf_local_down, voltage_step);
         count++;
     }
 }
@@ -192,48 +188,6 @@ def get_coupling_matrices(kx: int, ky: int):
             parameters.conjugate(self_energy.self_energy_right[r]))
 
     return coupling_left, coupling_right
-
-def self_energy_from_textfile(voltage: int, kx: List[float], ky: List[float]):
-    print("reading in the textfile")
-    self_energy_mb_up = [[0 for i in range(0, parameters.chain_length)]
-                         for z in range(0, parameters.steps)]
-    self_energy_mb_down = [[0 for i in range(0, parameters.chain_length)]
-                           for z in range(0, parameters.steps)]
-    lines_complex = [[0, 0] for r in range(0, parameters.steps)]
-
-    embedding_self_energy = [[
-        leads_self_energy.EmbeddingSelfEnergy(kx[i], kx[j],
-                                              parameters.voltage_step)
-        for j in range(0, parameters.chain_length_y)
-    ] for i in range(0, parameters.chain_length_x)]
-
-    with open(parameters.path_of_self_energy_up, 'r',
-              encoding='utf-8') as infile:
-        lines = infile.read().rsplit()
-        for r in range(0, parameters.steps):
-            for i in range(0, parameters.chain_length):
-                lines_complex[r] = lines[r].split(',')
-                self_energy_mb_up[r][i] = float(
-                    lines_complex[r][0]) + 1j * float(lines_complex[r][1])
-
-    with open(parameters.path_of_self_energy_down, 'r',
-              encoding='utf-8') as infile:
-        lines = infile.read().rsplit()
-        for r in range(0, parameters.steps):
-            for i in range(0, parameters.chain_length):
-                lines_complex[r] = lines[r].split(',')
-                self_energy_mb_down[r][i] = float(
-                    lines_complex[r][0]) + 1j * float(lines_complex[r][1])
-
-    gf_local_up, gf_local_down = get_local_gf(kx, ky, self_energy_mb_up,
-                                              self_energy_mb_down,
-                                              embedding_self_energy)
-
-    plot_and_write_files(gf_local_up, gf_local_down, self_energy_mb_up,
-                         self_energy_mb_down)
-
-    return gf_local_up, gf_local_down  # , spin_up_occup, spin_down_occup
-
 
 
 def plot_and_write_files(gf_local_up: List[List[List[complex]]],
@@ -337,138 +291,5 @@ def plot_and_write_files(gf_local_up: List[List[List[complex]]],
     #compare_g_lesser(gf_int_lesser_up , gf_int_up)
 
 
-def first_order_self_energy(gf_local_up: List[complex],
-                            gf_local_down: List[complex]):
-    gf_up_lesser = fluctuation_dissipation(gf_local_up)
-    gf_down_lesser = fluctuation_dissipation(gf_local_down)
-    spin_up_occup, spin_down_occup = get_spin_occupation(
-        gf_up_lesser, gf_down_lesser)
-    return spin_up_occup, spin_down_occup
 
-
-# this the analytic soltuion for the noninteracting green function when we have a single site in the scattering region
-def analytic_local_gf_1site(gf_int_up: List[List[List[complex]]],
-                            kx: List[float], ky: List[float]):
-    # this assume the interaction between the scattering region and leads is nearest neighbour
-    analytic_gf = [0 for i in range(parameters.steps)]
-    for i in range(0, parameters.chain_length_x):
-        for j in range(0, parameters.chain_length_y):
-            self_energy = leads_self_energy.EmbeddingSelfEnergy(
-                kx[i], ky[j], parameters.voltage_step)
-            # self_energy.plot_self_energy()
-            num_k_points = parameters.chain_length_x * parameters.chain_length_y
-            for r in range(0, parameters.steps):
-                x = parameters.energy[r].real - parameters.onsite - 2 * parameters.hopping_x * math.cos(kx[i]) \
-                    - 2 * parameters.hopping_y * math.cos(ky[j]) - self_energy.self_energy_left[r].real - \
-                    self_energy.self_energy_right[r].real
-
-                y = self_energy.self_energy_left[r].imag + \
-                    self_energy.self_energy_right[r].imag
-                analytic_gf[r] += 1 / num_k_points * (x / (x * x + y * y) +
-                                                      1j * y / (x * x + y * y))
-
-    # plt.plot(parameters.energy, [
-    # e[0][0].real for e in gf_int_up], color='red', label='real green function')
-    plt.plot(parameters.energy, [-e[0][0].imag for e in gf_int_up],
-             color='blue',
-             label='imaginary green function')
-    plt.plot(parameters.energy, [-e.imag for e in analytic_gf],
-             color='blue',
-             label='analytic imaginary green function')
-    # plt.plot(parameters.energy, [e.real for e in analytic_gf],
-    # color='red', label='analytic real green function')
-    plt.title(" Analytical Green function and numerical GF")
-    #plt.legend(loc='upper right')
-    plt.xlabel("energy")
-    plt.ylabel("Green Function")
-    plt.show()
-
-def analytic_gf_2site():#this the analytic soltuion for the noninteracting green function when we have 2 sites in the scattering region
-    analytic_gf= [ 0 for i  in range( parameters.steps ) ]# this assume the interaction between the scattering region and leads is nearest neighbour
-    energy = [ 0 for i in range( parameters.steps ) ]  
-   
-    self_energy = leads_self_energy.EmbeddingSelfEnergy(
-        parameters.pi/2, parameters.pi/2, parameters.voltage_step)
-    for r in range( 0 , parameters.steps ):  
-        x= energy[r] - parameters.onsite - self_energy.self_energy_left[r].real
-        y = self_energy.self_energy_left[r].imag
-        a = x * x - y * y - parameters.hopping * parameters.hopping
-        b = 2 * x * y
-        analytic_gf[r] =  ( a * x + b * y ) / ( a * a + b * b ) + 1j * ( y * a - x * b ) / ( a * a + b * b )
-
-   
-    plt.plot(parameters.energy, [ e.imag for e in analytic_gf ], color='blue', label='imaginary green function' )
-    plt.plot(parameters.energy, [e.real for e in analytic_gf] , color='red' , label='real green function')
-    plt.title(" Analytical Green function")
-    #plt.legend(loc='upper right')
-    plt.xlabel("energy")
-    plt.ylabel("Green Function")  
-    plt.show()
-
-def main():
-    #h = hpy()
-    kx = [0 for m in range(0, parameters.chain_length_x)]
-    ky = [0 for m in range(0, parameters.chain_length_y)]
-    for i in range(0, parameters.chain_length_y):
-        if (parameters.chain_length_y != 1):
-            ky[i] = 2 * parameters.pi * i / parameters.chain_length_y
-        elif (parameters.chain_length_y == 1):
-            ky[i] = parameters.pi / 2.0
-
-    for i in range(0, parameters.chain_length_x):
-        if (parameters.chain_length_x != 1):
-            kx[i] = 2 * parameters.pi * i / parameters.chain_length_x
-        elif (parameters.chain_length_x == 1):
-            kx[i] = parameters.pi / 2.0
-    print(ky)
-    # voltage step of zero is equilibrium.
-    print(
-        "The voltage difference is ",
-        parameters.voltage_l[parameters.voltage_step] -
-        parameters.voltage_r[parameters.voltage_step])
-    print("The number of sites in the z direction is ",
-          parameters.chain_length)
-    print("The number of sites in the x direction is ",
-          parameters.chain_length_x)
-    print("The number of sites in the y direction is ",
-          parameters.chain_length_y)
-    #print("The ky value is ", ky)
-    #print("The kx value is ", kx)
-    time_start = time.perf_counter()
-    if (parameters.read_in_self_energy == True):
-        green_function_up, green_function_down = self_energy_from_textfile(
-            parameters.voltage_step, kx, ky)
-    else:
-        green_function_up, green_function_down = dmft(parameters.voltage_step,
-                                                      kx, ky)
-    if (parameters.chain_length == 1 and parameters.hubbard_interaction == 0):
-        analytic_local_gf_1site(green_function_up, kx, ky)
-    elif (parameters.chain_length == 2 and parameters.hubbard_interaction == 0):
-        analytic_gf_2site()
-    else:
-        for i in range(0, parameters.chain_length):
-            plt.plot(parameters.energy,
-                     [-e[i][i].imag for e in green_function_up],
-                     color='blue',
-                     label='Imaginary Green function')
-            j = i + 1
-            plt.title(
-                'The local Green function site % i for %i k points and %i energy points'
-                % (j, parameters.chain_length_x, parameters.steps))
-            plt.legend(loc='upper left')
-            plt.xlabel("energy")
-            if (parameters.hubbard_interaction == 0):
-                plt.ylabel("Noninteracting green Function")
-            else:
-                plt.ylabel("Interacting green Function")
-            plt.show()
-    time_elapsed = (time.perf_counter() - time_start)
-    print(" The time it took the computation is", time_elapsed)
-
-    # print(h.heap())
-
-
-if __name__ == "__main__":  # this will only run if it is a script and not a import module
-    main()
-    
 */

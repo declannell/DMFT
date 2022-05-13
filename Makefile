@@ -24,12 +24,13 @@
 #	$(RM) *.o $(EXECS) $(TESTS) TAGS tags
 
 all:
-	g++  -O3 -g -c -o main.o main.cpp
-	g++  -O3 -g -c -o parameters.o parameters.cpp
-	g++  -O3 -g -c -o leads_self_energy.o leads_self_energy.cpp
-	g++  -O3 -g -c -o interacting_gf.o interacting_gf.cpp
-	g++  -O3 -g -c -o dmft.o dmft.cpp
-	g++ -g -Wall -O3 -o a main.o parameters.o leads_self_energy.o interacting_gf.o dmft.o -lm
+	g++ -std=c++17 -O3 -g -c -o main.o main.cpp
+	g++ -std=c++17 -O3 -g -c -o parameters.o parameters.cpp
+	g++ -std=c++17 -O3 -g -c -o leads_self_energy.o leads_self_energy.cpp
+	g++ -std=c++17 -O3 -g -c -o interacting_gf.o interacting_gf.cpp
+	g++ -std=c++17 -O3 -g -c -o dmft.o dmft.cpp
+	g++ -std=c++17 -O3 -g -c -o transport.o transport.cpp
+	g++ -std=c++17 -g -Wall -O3 -o ../bin/gf main.o parameters.o leads_self_energy.o interacting_gf.o dmft.o transport.o -lm
 
 
 tags:

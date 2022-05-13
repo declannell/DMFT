@@ -16,30 +16,28 @@
 double EmbeddingSelfEnergy::kx() const { return kx_value; }
 double EmbeddingSelfEnergy::ky() const { return ky_value; }
 
-EmbeddingSelfEnergy::EmbeddingSelfEnergy(Parameters &parameters, double kx, double ky) : kx_value(kx), ky_value(ky) // type is implied, it knows this is a constructor
+EmbeddingSelfEnergy::EmbeddingSelfEnergy(Parameters &parameters, double kx, double ky, int voltage_step) : kx_value(kx), ky_value(ky) // type is implied, it knows this is a constructor
 {
     self_energy_left.resize(parameters.steps);
     self_energy_right.resize(parameters.steps);
     std::vector<dcomp> transfer_matrix_l(parameters.steps);
     std::vector<dcomp> transfer_matrix_r(parameters.steps);
-    get_transfer_matrix(parameters, transfer_matrix_l, transfer_matrix_r);
-    get_self_energy(parameters, transfer_matrix_l, transfer_matrix_r);
+    get_transfer_matrix(parameters, transfer_matrix_l, transfer_matrix_r, voltage_step);
+    get_self_energy(parameters, transfer_matrix_l, transfer_matrix_r, voltage_step);
     // get_self_energy();
 }
 
-void EmbeddingSelfEnergy::get_transfer_matrix(Parameters &parameters, std::vector<dcomp> &transfer_matrix_l, std::vector<dcomp> &transfer_matrix_r)
+void EmbeddingSelfEnergy::get_transfer_matrix(Parameters &parameters, std::vector<dcomp> &transfer_matrix_l, std::vector<dcomp> &transfer_matrix_r, int voltage_step)
 {
     std::vector<dcomp> t_next_l(parameters.steps);
     std::vector<dcomp> t_next_r(parameters.steps);
     std::vector<dcomp> t_product_l(parameters.steps);
     std::vector<dcomp> t_product_r(parameters.steps);
-    dcomp foo = parameters.onsite_l - parameters.voltage_l[parameters.voltage_step] - 2 * parameters.hopping_ly * cos(this->ky()) - 2 * parameters.hopping_lx * cos(this->kx());
-    //std::cout << "This value is " << foo << std::endl;
 
     for (int r = 0; r < parameters.steps; r++)
     {
-        t_next_l.at(r) = parameters.hopping_lz / (parameters.energy.at(r) - parameters.onsite_l - parameters.voltage_l[parameters.voltage_step] - 2 * parameters.hopping_ly * cos(this->ky()) - 2 * parameters.hopping_lx * cos(this->kx())); // dont need to do this-> but it looks like i can code
-        t_next_r.at(r) = parameters.hopping_rz / (parameters.energy.at(r) - parameters.onsite_r - parameters.voltage_r[parameters.voltage_step] - 2 * parameters.hopping_ry * cos(this->ky()) - 2 * parameters.hopping_lx * cos(this->kx()));
+        t_next_l.at(r) = parameters.hopping_lz / (parameters.energy.at(r) - parameters.onsite_l - parameters.voltage_l[voltage_step] - 2 * parameters.hopping_ly * cos(this->ky()) - 2 * parameters.hopping_lx * cos(this->kx())); // dont need to do this-> but it looks like i can code
+        t_next_r.at(r) = parameters.hopping_rz / (parameters.energy.at(r) - parameters.onsite_r - parameters.voltage_r[voltage_step] - 2 * parameters.hopping_ry * cos(this->ky()) - 2 * parameters.hopping_lx * cos(this->kx()));
         t_product_l.at(r) = t_next_l.at(r);
         t_product_r.at(r) = t_next_r.at(r);
         transfer_matrix_l.at(r) = t_next_l.at(r);
@@ -75,14 +73,14 @@ void EmbeddingSelfEnergy::get_transfer_matrix(Parameters &parameters, std::vecto
     } while (difference > 0.01 && count < 50);
 }
 
-void EmbeddingSelfEnergy::get_self_energy(Parameters &parameters, std::vector<dcomp> &transfer_matrix_l, std::vector<dcomp> &transfer_matrix_r)
+void EmbeddingSelfEnergy::get_self_energy(Parameters &parameters, std::vector<dcomp> &transfer_matrix_l, std::vector<dcomp> &transfer_matrix_r, int voltage_step)
 {
     std::vector<dcomp> surface_gf_l(parameters.steps);
     std::vector<dcomp> surface_gf_r(parameters.steps);
     for (int r = 0; r < parameters.steps; r++)
     {
-        surface_gf_l.at(r) = 1.0 / (parameters.energy.at(r) - parameters.voltage_l[parameters.voltage_step] - parameters.onsite_l - 2.0 * parameters.hopping_ly * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_lz * transfer_matrix_l.at(r));
-        surface_gf_r.at(r) = 1.0 / (parameters.energy.at(r) - parameters.voltage_r[parameters.voltage_step] - parameters.onsite_r - 2.0 * parameters.hopping_ry * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_rz * transfer_matrix_r.at(r));
+        surface_gf_l.at(r) = 1.0 / (parameters.energy.at(r) - parameters.voltage_l[voltage_step] - parameters.onsite_l - 2.0 * parameters.hopping_ly * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_lz * transfer_matrix_l.at(r));
+        surface_gf_r.at(r) = 1.0 / (parameters.energy.at(r) - parameters.voltage_r[voltage_step] - parameters.onsite_r - 2.0 * parameters.hopping_ry * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_rz * transfer_matrix_r.at(r));
         this->self_energy_left.at(r) = parameters.hopping_lc * parameters.hopping_lc * surface_gf_l.at(r);
         this->self_energy_right.at(r) = parameters.hopping_rc * parameters.hopping_rc * surface_gf_r.at(r);
     }
@@ -101,13 +99,13 @@ int sgn(T val)
     }
 }
 
-std::vector<dcomp> analytic_self_energy(Parameters &parameters)
+std::vector<dcomp> analytic_self_energy(Parameters &parameters, int voltage_step)
 {
 
     std::vector<dcomp> analytic_se(parameters.steps);
     for (int r = 0; r < parameters.steps; r++)
     {
-        double x = (parameters.energy.at(r).real() - parameters.onsite_l - parameters.voltage_l[parameters.voltage_step]) / (2.0 * parameters.hopping_lz);
+        double x = (parameters.energy.at(r).real() - parameters.onsite_l - parameters.voltage_l[voltage_step]) / (2.0 * parameters.hopping_lz);
 
         analytic_se.at(r) = parameters.hopping_lc * parameters.hopping_lc * (1.0 / abs(parameters.hopping_lz)) * x;
         if (abs(x) > 1.0)
@@ -124,7 +122,7 @@ std::vector<dcomp> analytic_self_energy(Parameters &parameters)
 
 void run(Parameters &parameters)
 {
-    EmbeddingSelfEnergy leads(parameters, M_PI / 2.0, M_PI / 2.0);
+    EmbeddingSelfEnergy leads(parameters, M_PI / 2.0, M_PI / 2.0, parameters.voltage_step);
 
     std::ofstream myfile;
     myfile.open("/home/declan/green_function_code/quantum_transport/textfiles/self_energy_lead_real.txt");

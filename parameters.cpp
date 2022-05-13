@@ -27,10 +27,10 @@ Parameters Parameters::init()
         .temperature = 0,
         .e_upper_bound = 15.0,
         .e_lower_bound = -15.0,
-        .hubbard_interaction = 0.3,
+        .hubbard_interaction = 0.0,
         .voltage_step = 0,
         .pi = 3.14159265359,
-        .self_consistent_steps = 20,
+        .self_consistent_steps = 40,
         .read_in_self_energy = false
     };
 
@@ -40,7 +40,7 @@ Parameters Parameters::init()
     for (int i = 0; i < 8; i++)
     {
         parameters.voltage_l[i] = 0.15 * (double)i;
-        parameters.voltage_r[i] = 0.15 * (double)i;
+        parameters.voltage_r[i] = -0.15 * (double)i;
     }
 
     
@@ -53,7 +53,7 @@ Parameters Parameters::init()
         parameters.interaction_order = 2;
     }
 
-    parameters.steps = 81;
+    parameters.steps = 401;
 
     parameters.energy.resize(parameters.steps);
 
@@ -66,7 +66,7 @@ Parameters Parameters::init()
 
     for (int i = 0; i < parameters.steps; i++)
     {
-        parameters.energy.at(i) = parameters.e_lower_bound + (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps * (double)i + 0.0000001 * parameters.j1;
+        parameters.energy.at(i) = parameters.e_lower_bound + (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps * (double)i + 0.000001 * parameters.j1;
     }
     return parameters;
 }
