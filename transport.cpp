@@ -41,14 +41,19 @@ void get_landauer_buttiker_current(Parameters &parameters, std::vector<dcomp> &t
     double delta_energy = (parameters.e_upper_bound -
                 parameters.e_lower_bound) / (double)parameters.steps;
     for(int r = 0; r < parameters.steps; r++){
-        *current_up += delta_energy * transmission_up.at(r) * (fermi_function(parameters.energy.at(r).real() + parameters.voltage_l[votlage_step], parameters)
+        *current_up -= delta_energy * transmission_up.at(r) * (fermi_function(parameters.energy.at(r).real() + parameters.voltage_l[votlage_step], parameters)
         - fermi_function(parameters.energy.at(r).real() + parameters.voltage_r[votlage_step], parameters)); 
-        *current_down += delta_energy * transmission_down.at(r) * (fermi_function(parameters.energy.at(r).real() + parameters.voltage_l[votlage_step], parameters)
+        *current_down -= delta_energy * transmission_down.at(r) * (fermi_function(parameters.energy.at(r).real() + parameters.voltage_l[votlage_step], parameters)
         - fermi_function(parameters.energy.at(r).real() + parameters.voltage_r[votlage_step], parameters)); 
     }
-
 }
 
+
+void get_meir_wingreen_current(const Parameters &parameters, const double kx, const double ky, const std::vector<std::vector<dcomp>> &self_energy_mb_r, 
+    const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<dcomp> &left_lead_se, const std::vector<dcomp> &right_lead_se,
+    const int voltage_step, dcomp *current_down){
+
+    }
 
 
 

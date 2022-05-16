@@ -30,16 +30,16 @@ int main() {
             ky.at(i) = M_PI / 2.0;
         }
     }
-    double NIV_points = 8;
-    std::vector<dcomp> current_up(NIV_points, 0);
-    std::vector<dcomp> current_down(NIV_points, 0);
+
+    std::vector<dcomp> current_up(parameters.NIV_points, 0);
+    std::vector<dcomp> current_down(parameters.NIV_points, 0);
 
     std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     std::vector<Eigen::MatrixXcd> gf_local_down(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     std::vector<std::vector<dcomp>> self_energy_mb_up(parameters.chain_length, std::vector<dcomp> (parameters.steps));
     std::vector<std::vector<dcomp>> self_energy_mb_down(parameters.chain_length, std::vector<dcomp> (parameters.steps));
 
-    for( int m = 0; m < NIV_points; m++){
+    for( int m = 0; m < parameters.NIV_points; m++){
         std::cout << "The voltage difference is " <<  parameters.voltage_l[m] - parameters.voltage_r[m] << std::endl;
 
         std::vector<std::vector<EmbeddingSelfEnergy>> leads;
@@ -111,8 +111,8 @@ int main() {
     std::ofstream myfile4;
     myfile4.open("/home/declan/green_function_code/quantum_transport/textfiles/c++_current.txt");
     // myfile << parameters.steps << std::endl;
-    for(int m = 0; m < NIV_points; m++){  
-        myfile4 << current_up.at(m).real() <<  "," << current_down.at(m).real() << "\n";
+    for(int m = 0; m < parameters.NIV_points; m++){  
+        myfile4 << parameters.voltage_l[m] - parameters.voltage_r[m] << "," << current_up.at(m).real() <<  "," << current_down.at(m).real() << "\n";
     }
     myfile4.close();
 

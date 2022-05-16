@@ -34,11 +34,13 @@ struct Parameters
     double pi;
     double self_consistent_steps; // this is the number of self consistent steps my code needs
     bool read_in_self_energy;
+    int NIV_points;
+    double delta_v;
     int interaction_order; // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
     std::string path_of_self_energy_up;
     std::string path_of_self_energy_down;
-    double voltage_r[8];
-    double voltage_l[8];
+    std::vector<double> voltage_r;
+    std::vector<double> voltage_l;
     int steps; // number of energy points we take
     std::vector<dcomp> energy;
     static Parameters init();
