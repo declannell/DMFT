@@ -20,19 +20,19 @@ Parameters Parameters::init()
         .hopping_rx = -1.0,
         .hopping_lc = -1.0,
         .hopping_rc = -1.0,
-        .chain_length = 1,
-        .chain_length_y = 1,
-        .chain_length_x = 1,
+        .chain_length = 2,
+        .chain_length_y = 100,
+        .chain_length_x = 100,
         .chemical_potential = 0.0,
-        .temperature = 10.0,
+        .temperature = 0.0,
         .e_upper_bound = 15.0,
         .e_lower_bound = -15.0,
-        .hubbard_interaction = 0.0,
+        .hubbard_interaction = 0.3,
         .voltage_step = 0,
         .pi = 3.14159265359,
         .self_consistent_steps = 40,
         .read_in_self_energy = false,
-        .NIV_points = 20,
+        .NIV_points = 8,
         .delta_v = 0.11
     
     };
@@ -48,21 +48,17 @@ Parameters Parameters::init()
         parameters.voltage_r.at(i) = - parameters.delta_v * (double)i;
     }
 
-    
     if (parameters.hubbard_interaction == 0.0)
     {
         parameters.interaction_order = 0.0; // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
     }
     else
     {
-        parameters.interaction_order = 2;
+        parameters.interaction_order = 1;
     }
 
-    parameters.steps = 301; //you must make sure the energy spacing is less than delta_v
-
+    parameters.steps = 401; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
-
-
 
     parameters.j1 = -1;
     parameters.j1 = sqrt(parameters.j1);
@@ -81,7 +77,7 @@ Parameters Parameters::init()
     }
 }
 
-double fermi_function(double energy, Parameters &parameters) {
+double fermi_function(double energy, const Parameters &parameters) {
     if(parameters.temperature == 0){
         if(energy < parameters.chemical_potential){
             return 1.0;

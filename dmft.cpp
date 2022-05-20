@@ -6,7 +6,7 @@
 #include <vector>
 #include <x86_64-linux-gnu/mpich/mpi.h>
 #include <eigen3/Eigen/Dense>
-
+#include <iomanip>
 
 
 void get_spin_occupation(Parameters &parameters, std::vector<dcomp> &gf_lesser_up,
@@ -43,12 +43,15 @@ void get_difference(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_lo
 
 void fluctuation_dissipation(Parameters &parameters, const std::vector<dcomp> &green_function, std::vector<dcomp> &lesser_green_function){
     for(int r = 0; r < parameters.steps; r++){
-        lesser_green_function.at(r) = -fermi_function(parameters.energy.at(r).real(), parameters) * (
+        lesser_green_function.at(r) = - 1.0 * fermi_function(parameters.energy.at(r).real(), parameters) * (
             green_function.at(r) - std::conj(green_function.at(r)));
+        //std::cout << lesser_green_function.at(r) << std::endl;
     }
+    //std::cout << "\n";
+
     std::ofstream myfile2;
     myfile2.open("/home/declan/green_function_code/quantum_transport/textfiles/gf_lesser_c++.txt");
-    // myfile << parameters.steps << std::endl;
+
     for (int r = 0; r < parameters.steps; r++)
     {
         myfile2 << parameters.energy.at(r).real() << "," << lesser_green_function.at(r).real() << "," << lesser_green_function.at(r).imag() << "\n";
@@ -78,12 +81,28 @@ dcomp integrate(Parameters &parameters, std::vector<dcomp> &gf_1, std::vector<dc
 }
 
 void self_energy_2nd_order(Parameters &parameters, std::vector<dcomp> &impurity_gf_up, std::vector<dcomp> &impurity_gf_down, 
-            std::vector<dcomp> &impurity_gf_up_lesser, std::vector<dcomp> &impurity_gf_down_lesser, std::vector<dcomp> &impurity_self_energy){
+        std::vector<dcomp> &impurity_gf_up_lesser, std::vector<dcomp> &impurity_gf_down_lesser, std::vector<dcomp> &impurity_self_energy,
+        std::vector<dcomp> &impurity_self_energy_lesser_up){
     
-    std::vector<dcomp> impurity_gf_down_advanced(parameters.steps);
+    std::vector<dcomp> impurity_gf_down_advanced(parameters.steps), gf_greater_down(parameters.steps);
+    
     for(int r = 0; r < parameters.steps; r++){
         impurity_gf_down_advanced.at(r) = std::conj(impurity_gf_down.at(r));
+        gf_greater_down.at(r) = parameters.j1 * 2.0 * impurity_gf_down.at(r).imag() + impurity_gf_down_lesser.at(r);
+    }   
+    /*
+    std::cout << "The greater green function is \n";
+    for(int r = 0 ; r < parameters.steps; r++){
+        std::cout << gf_greater_down.at(r) << std::endl;
     }
+        std::cout << "\n";
+
+    std::cout << "The lesser green function is \n";
+    for(int r = 0 ; r < parameters.steps; r++){
+        std::cout << impurity_gf_down_lesser.at(r) << std::endl;
+    }
+        std::cout << "\n";
+    */
     for(int r = 0; r < parameters.steps; r++){
         impurity_self_energy.at(r) = parameters.hubbard_interaction * parameters.hubbard_interaction * 
             (integrate(parameters, impurity_gf_up, impurity_gf_down,impurity_gf_down_lesser, r));  // line 3
@@ -96,33 +115,36 @@ void self_energy_2nd_order(Parameters &parameters, std::vector<dcomp> &impurity_
 
         impurity_self_energy.at(r) += parameters.hubbard_interaction * parameters.hubbard_interaction * 
         (integrate(parameters, impurity_gf_up_lesser, impurity_gf_down_lesser, impurity_gf_down_advanced, r));  //line 4
+        //there could be a problem here with the constant multiplying sigma lesser
+        impurity_self_energy_lesser_up.at(r) = parameters.hubbard_interaction * parameters.hubbard_interaction *
+        (integrate(parameters, impurity_gf_up_lesser, impurity_gf_down_lesser, gf_greater_down, r));  
+
+        
+        //std::cout << impurity_self_energy.at(r) << impurity_self_energy_lesser_up.at(r) << "\n";
     }
 }
 
-
 void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_up, std::vector<dcomp>  &impurity_gf_down,
-        std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down, double *spin_up, double *spin_down){
-    std::vector<dcomp> impurity_gf_up_lesser(parameters.steps, 0), impurity_gf_down_lesser(parameters.steps, 0);
-
-    if (parameters.voltage_step == 0) {
-        fluctuation_dissipation(parameters, impurity_gf_up, impurity_gf_up_lesser);
-        fluctuation_dissipation(parameters, impurity_gf_down, impurity_gf_down_lesser);
-    }
+    std::vector<dcomp>  &impurity_gf_up_lesser, std::vector<dcomp>  &impurity_gf_down_lesser,
+    std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down, 
+    std::vector<dcomp>  &impurity_self_energy_lesser_up, std::vector<dcomp>  &impurity_self_energy_lesser_down,
+    double *spin_up, double *spin_down){
 
     get_spin_occupation(parameters, impurity_gf_up_lesser, impurity_gf_down_lesser, spin_up, spin_down);
-    std::cout << "The spin up occupancy is " << *spin_up << "\n";
+    std::cout << std::setprecision (15) << "The spin up occupancy is " << *spin_up << "\n";
     std::cout << "The spin down occupancy is " << *spin_down << "\n";
     
     if (parameters.interaction_order == 2){
         self_energy_2nd_order(parameters, impurity_gf_up, impurity_gf_down, impurity_gf_up_lesser,
-            impurity_gf_down_lesser, impurity_self_energy_up);
+            impurity_gf_down_lesser, impurity_self_energy_up, impurity_self_energy_lesser_up);
         self_energy_2nd_order(parameters, impurity_gf_down, impurity_gf_up, impurity_gf_down_lesser,
-            impurity_gf_up_lesser, impurity_self_energy_down);
+            impurity_gf_up_lesser, impurity_self_energy_down, impurity_self_energy_lesser_down);
 
         for(int r = 0; r < parameters.steps; r++){
             impurity_self_energy_up.at(r) += parameters.hubbard_interaction * (*spin_down);
             impurity_self_energy_down.at(r) += parameters.hubbard_interaction * (*spin_up);
         }
+        std::cout << parameters.hubbard_interaction * (*spin_down) << std::endl;
     }
 
     if (parameters.interaction_order == 1){
@@ -133,9 +155,14 @@ void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_up
     }
 }
 
+
+
+
 void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &kx, std::vector<double> const &ky, 
         std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down, 
+        std::vector<std::vector<dcomp>> &self_energy_mb_lesser_up, std::vector<std::vector<dcomp>> &self_energy_mb_lesser_down,
         std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down, 
+        std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_lesser_down,
         std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup){
 
     double difference = std::numeric_limits<double>::infinity();
@@ -144,152 +171,84 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
     while (difference > 0.0001 && count < parameters.self_consistent_steps){
         get_difference(parameters, gf_local_up, old_green_function, difference);
         std::cout << "The difference is " << difference <<". The count is " << count << std::endl;
-        if (difference < 0.0001){
+        if (difference < 0.0000001){
             break;
         }
 
         for(int i = 0; i < parameters.chain_length; i++) {
             std::vector<dcomp> diag_gf_local_up(parameters.steps), diag_gf_local_down(parameters.steps), 
-                impurity_self_energy_up(parameters.steps), impurity_self_energy_down(parameters.steps);
+                diag_gf_local_lesser_up(parameters.steps), diag_gf_local_lesser_down(parameters.steps),
+                impurity_self_energy_up(parameters.steps), impurity_self_energy_down(parameters.steps),
+                impurity_self_energy_lesser_up(parameters.steps), impurity_self_energy_lesser_down(parameters.steps);
 
             for(int r = 0; r < parameters.steps; r++){
                 diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
                 diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);
+                diag_gf_local_lesser_up.at(r) = gf_local_lesser_up.at(r)(i, i);
+                diag_gf_local_lesser_down.at(r) = gf_local_lesser_down.at(r)(i, i);
             }
 
-            impurity_solver(parameters, diag_gf_local_up, diag_gf_local_down, impurity_self_energy_up, 
-                impurity_self_energy_down, &spins_occup.at(i), &spins_occup.at(i + parameters.chain_length));
+            impurity_solver(parameters, diag_gf_local_up, diag_gf_local_down, diag_gf_local_lesser_up, diag_gf_local_lesser_down,
+            impurity_self_energy_up, impurity_self_energy_down, impurity_self_energy_lesser_up,
+            impurity_self_energy_lesser_down, &spins_occup.at(i), &spins_occup.at(i + parameters.chain_length));
 
             for(int r = 0; r < parameters.steps; r++){
                 self_energy_mb_up.at(i).at(r) = impurity_self_energy_up.at(r);
                 self_energy_mb_down.at(i).at(r) = impurity_self_energy_down.at(r);
+                self_energy_mb_lesser_up.at(i).at(r) = impurity_self_energy_lesser_up.at(r);
+                self_energy_mb_lesser_down.at(i).at(r) = impurity_self_energy_lesser_down.at(r);
             }
         }
-        
-        get_local_gf(parameters, kx, ky, self_energy_mb_up, leads, gf_local_up, gf_local_down, voltage_step);
+        get_local_gf_r_and_lesser(parameters, kx, ky, self_energy_mb_up, self_energy_mb_lesser_up,
+            leads, gf_local_up, gf_local_lesser_up, voltage_step);
+        get_local_gf_r_and_lesser(parameters, kx, ky, self_energy_mb_down, self_energy_mb_lesser_down,
+            leads, gf_local_down, gf_local_lesser_down, voltage_step);
+
+        if(voltage_step == 0){
+            std::vector<Eigen::MatrixXcd> gf_local_lesser_up_FD(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+            for(int r = 0; r < parameters.steps; r++){
+                for(int i = 0; i < parameters.chain_length; i++){
+                    for(int j = 0; j < parameters.chain_length; j++){
+                        gf_local_lesser_up_FD.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r).real(), parameters) *
+                            (gf_local_up.at(r)(i, j) - std::conj(gf_local_up.at(r)(j, i)));
+                        
+                    }
+                }
+                //std::cout << gf_local_lesser_up_FD.at(r) << std::endl;
+            }
+            double difference;
+            
+            get_difference(parameters, gf_local_lesser_up, gf_local_lesser_up_FD, difference);
+
+            std::cout << "The difference between the fD and other is " << difference << std::endl;
+
+
+            std::ofstream myfile9;
+            myfile9.open("/home/declan/green_function_code/quantum_transport/textfiles/gf_lesser_FD_c++.txt");
+            // myfile << parameters.steps << std::endl;
+            for(int i = 0; i < parameters.chain_length; i++){  
+                for (int r = 0; r < parameters.steps; r++)
+                {
+                    myfile9 << parameters.energy.at(r).real() << "," << gf_local_lesser_up_FD.at(r)(i, i).real() << "," << gf_local_lesser_up_FD.at(r)(i, i).imag() << "\n";
+                }
+            }
+            myfile9.close();
+        }
+
+        std::ofstream myfile1;
+        myfile1.open("/home/declan/green_function_code/quantum_transport/textfiles/gf_lesser_c++.txt");
+        // myfile << parameters.steps << std::endl;
+        for(int i = 0; i < parameters.chain_length; i++){  
+            for (int r = 0; r < parameters.steps; r++)
+            {
+                myfile1 << parameters.energy.at(r).real() << "," << gf_local_lesser_up.at(r)(i, i).real() << "," << gf_local_lesser_up.at(r)(i, i).imag() << "\n";
+            }
+        }
+        myfile1.close();
+
+
+
         count++;
     }
 }
 
-
-/*
-def get_coupling_matrices(kx: int, ky: int):
-    self_energy = leads_self_energy.EmbeddingSelfEnergy(
-        kx, ky, parameters.voltage_step)
-    coupling_left, coupling_right = [0 for i in range(0, parameters.steps)], [
-        0 for i in range(0, parameters.steps)
-    ]
-    for r in range(0, parameters.steps):
-        coupling_left[r] = 1j * (
-            self_energy.self_energy_left[r] -
-            parameters.conjugate(self_energy.self_energy_left[r]))
-        coupling_right[r] = 1j * (
-            self_energy.self_energy_right[r] -
-            parameters.conjugate(self_energy.self_energy_right[r]))
-
-    return coupling_left, coupling_right
-
-
-def plot_and_write_files(gf_local_up: List[List[List[complex]]],
-                         gf_local_down: List[List[List[complex]]],
-                         self_energy_mb_up: List[List[complex]],
-                         self_energy_mb_down: List[List[complex]]):
-
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument("-tf", "--textfile", help="Textfiles", type=bool)
-
-    args = parser.parse_args()
-    if (args.textfile == True):
-        f = open(
-            '/home/declan/green_function_code/quantum_transport/textfiles/local_gf_%i_k_points_%i_energy.txt'
-            % (parameters.chain_length_x, parameters.steps), 'w')
-        for r in range(0, parameters.steps):
-            f.write(str(gf_local_up[r][0][0].real))
-            f.write(",")
-            f.write(str(gf_local_up[r][0][0].imag))
-            f.write("\n")
-        f.close()
-
-        if (parameters.hubbard_interaction != 0):
-            f = open(
-                '/home/declan/green_function_code/quantum_transport/textfiles/local_se_up_%i_k_points_%i_energy.txt'
-                % (parameters.chain_length_x, parameters.steps), 'w')
-            for r in range(0, parameters.steps):
-                f.write(str(self_energy_mb_up[r][0].real))
-                f.write(",")
-                f.write(str(self_energy_mb_up[r][0].imag))
-                f.write("\n")
-            f.close()
-
-        if (parameters.hubbard_interaction != 0):
-            f = open(
-                '/home/declan/green_function_code/quantum_transport/textfiles/local_se_down_%i_k_points_%i_energy.txt'
-                % (parameters.chain_length_x, parameters.steps), 'w')
-            for r in range(0, parameters.steps):
-                f.write(str(self_energy_mb_down[r][0].real))
-                f.write(",")
-                f.write(str(self_energy_mb_down[r][0].imag))
-                f.write("\n")
-            f.close()
-
-    for i in range(0, parameters.chain_length):
-        plt.plot(parameters.energy, [e[i][i].real for e in gf_local_up],
-                 color='red',
-                 label='Real Green up')
-        plt.plot(parameters.energy, [e[i][i].imag for e in gf_local_up],
-                 color='blue',
-                 label='Imaginary Green function')
-        j = i + 1
-        plt.title(
-            'The local Green function site % i for %i k points and %i energy points'
-            % (j, parameters.chain_length_x, parameters.steps))
-        plt.legend(loc='upper left')
-        plt.xlabel("energy")
-        if (parameters.hubbard_interaction == 0):
-            plt.ylabel("Noninteracting green Function")
-        else:
-            plt.ylabel("Interacting green Function")
-        plt.show()
-
-    if (parameters.hubbard_interaction != 0):
-        for i in range(0, parameters.chain_length):
-            fig = plt.figure()
-            plt.plot(parameters.energy,
-                     [e[i].imag for e in self_energy_mb_down],
-                     color='blue',
-                     label='imaginary self energy')
-            # plt.plot(parameters.energy, [
-            # e[i].real for e in self_energy_mb_down], color='red', label='real self energy')
-            j = i + 1
-            plt.title(
-                'The local self energy site % i (%i k %i energy points)' %
-                (j, parameters.chain_length_x, parameters.steps))
-            plt.legend(loc='upper right')
-            plt.xlabel("energy")
-            plt.ylabel("Self Energy")
-            plt.show()
-
-        for i in range(0, parameters.chain_length):
-            fig = plt.figure()
-            plt.plot(parameters.energy, [e[i].imag for e in self_energy_mb_up],
-                     color='blue',
-                     label='imaginary self energy')
-            plt.plot(parameters.energy, [e[i].real for e in self_energy_mb_up],
-                     color='red',
-                     label='real self energy')
-            j = i + 1
-            plt.title('Many-body self energy spin up site %i' % j)
-            plt.legend(loc='upper right')
-            plt.xlabel("energy")
-            plt.ylabel("Self Energy")
-            plt.show()
-
-    #print("The spin up occupaton probability is ", spin_up_occup)
-    #print("The spin down occupaton probability is ", spin_down_occup)
-    # if(voltage == 0):#this compares the two methods in equilibrium
-    #compare_g_lesser(gf_int_lesser_up , gf_int_up)
-
-
-
-*/

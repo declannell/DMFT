@@ -17,23 +17,33 @@ private:
 
 public:
     std::vector<Eigen::MatrixXcd> interacting_gf;
-    Interacting_GF(Parameters &parameters, double _kx, double _ky, std::vector<std::vector<dcomp>> &self_energy_mb, std::vector<dcomp> &self_energy_left,
-                   std::vector<dcomp> &self_energy_right, int voltage_step);
+    Interacting_GF(const Parameters &parameters, const double _kx, const double _ky, const std::vector<std::vector<dcomp>> &self_energy_mb, const  std::vector<dcomp> &self_energy_left,
+                const std::vector<dcomp> &self_energy_right, const int voltage_step);
 
-    Eigen::MatrixXcd get_hamiltonian(Parameters const &parameters, int voltage_step);
-    void get_interacting_gf(Parameters &parameters, const Eigen::MatrixXcd& hamiltonian, std::vector<std::vector<dcomp>> const &self_energy_mb, 
-                            std::vector<dcomp> const &self_energy_left, std::vector<dcomp> const &self_energy_right, int voltage_step);
+    Eigen::MatrixXcd get_hamiltonian(const Parameters &parameters, const int voltage_step);
+    void get_interacting_gf(const Parameters &parameters, const Eigen::MatrixXcd& hamiltonian, const std::vector<std::vector<dcomp>> &self_energy_mb, 
+                            std::vector<dcomp> const &self_energy_left, std::vector<dcomp> const &self_energy_right, const int voltage_step);
     double kx() const;
     double ky() const;
 
 };
 
-void get_analytic_gf_1_site(Parameters &parameters, std::vector<Eigen::MatrixXcd> green_function, int voltage_step);
+void get_analytic_gf_1_site(Parameters &parameters, std::vector<Eigen::MatrixXcd> &green_function, int voltage_step);
 void run(Parameters &parameters);
 
 void get_local_gf(Parameters &parameters, std::vector<double> const &kx, std::vector<double> const &ky, std::vector<std::vector<dcomp>> &self_energy_mb, 
-    std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local_up,
-    std::vector<Eigen::MatrixXcd> &gf_local_down, int voltage_step);
+    std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, int voltage_step);
+
+void get_advance_gf(const Parameters &parameters, const Eigen::MatrixXcd &gf_retarded, Eigen::MatrixXcd &gf_advanced);
+
+void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, 
+    std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<dcomp> &self_energy_left,
+    const std::vector<dcomp> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser_local, int voltage_step);
+
+void get_local_gf_r_and_lesser(Parameters &parameters, std::vector<double> const &kx, std::vector<double> const &ky, 
+    std::vector<std::vector<dcomp>> &self_energy_mb, std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
+    std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
+    std::vector<Eigen::MatrixXcd> &gf_local_lesser, int voltage_step);
 
 
 

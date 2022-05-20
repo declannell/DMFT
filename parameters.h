@@ -49,4 +49,4 @@ struct Parameters
 
 # define M_PI           3.14159265358979323846
 
-double fermi_function(double energy, Parameters &parameters);
+double fermi_function(double energy, const Parameters &parameters);
