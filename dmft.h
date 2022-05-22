@@ -4,7 +4,7 @@
 #include "interacting_gf.h"
 #include <iostream>
 #include <vector>
-#include <x86_64-linux-gnu/mpich/mpi.h>
+#include <mpi.h>
 #include <eigen3/Eigen/Dense>
 
 

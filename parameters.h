@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
-#include <complex> //this contains complex numbers and trig functions
-#include <math.h>
+#include <complex>
+#include <cmath>
 
 typedef std::complex<double> dcomp;
 
@@ -22,9 +22,9 @@ struct Parameters
     double hopping_rx;     // the hopping in the x direction of the left lead
     double hopping_lc;     // the hopping inbetween the left lead and scattering region
     double hopping_rc;     // the hopping inbetween the right lead and scattering region
-    double chain_length;   // the number of atoms in the z direction of the scattering region
-    double chain_length_y; // this is the number of k in the y direction for the scattering region
-    double chain_length_x; // This is the number of points in the x direction.
+    int chain_length;   // the number of atoms in the z direction of the scattering region
+    int chain_length_y; // this is the number of k in the y direction for the scattering region
+    int chain_length_x; // This is the number of points in the x direction.
     double chemical_potential;
     double temperature;
     double e_upper_bound;       // this is the max energy value

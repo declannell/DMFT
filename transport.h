@@ -5,7 +5,7 @@
 #include "dmft.h"
 #include <iostream>
 #include <vector>
-#include <x86_64-linux-gnu/mpich/mpi.h>
+#include <mpi.h>
 #include <eigen3/Eigen/Dense>
 
 void get_transmission(const Parameters &parameters, const std::vector<double> &kx, const std::vector<double> &ky, const std::vector<std::vector<dcomp>> &self_energy_mb, 
