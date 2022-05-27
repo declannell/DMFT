@@ -74,7 +74,7 @@ void get_landauer_buttiker_current(const Parameters& parameters,
 void get_meir_wingreen_current(Parameters& parameters, std::vector<double> const& kx,
     std::vector<double> const& ky, std::vector<std::vector<dcomp>>& self_energy_mb,
     std::vector<std::vector<dcomp>>& self_energy_mb_lesser,
-    std::vector<std::vector<EmbeddingSelfEnergy>>& leads, int voltage_step, dcomp* current)
+    std::vector<std::vector<EmbeddingSelfEnergy>>& leads, int voltage_step, dcomp* current_left, dcomp* current_right)
 {
 	double num_k_points = parameters.chain_length_x * parameters.chain_length_y;
 	for (int kx_i = 0; kx_i < parameters.chain_length_x; kx_i++) {
@@ -89,13 +89,14 @@ void get_meir_wingreen_current(Parameters& parameters, std::vector<double> const
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    gf_lesser, voltage_step);
 
-			dcomp current_k_resolved;
+			dcomp current_k_resolved_left, current_k_resolved_right;
 
 			get_meir_wingreen_k_dependent_current(parameters, gf_interacting.interacting_gf,
 			    gf_lesser, leads.at(kx_i).at(ky_i).self_energy_left,
-			    leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, &current_k_resolved);
+			    leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, &current_k_resolved_left, &current_k_resolved_right);
 
-			*current -= current_k_resolved / num_k_points;
+			*current_left -= current_k_resolved_left / num_k_points;
+			*current_right -= current_k_resolved_right / num_k_points;
 		}
 	}
 }
@@ -103,11 +104,11 @@ void get_meir_wingreen_current(Parameters& parameters, std::vector<double> const
 void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
     std::vector<Eigen::MatrixXcd>& green_function,
     std::vector<Eigen::MatrixXcd>& green_function_lesser, const std::vector<dcomp>& left_lead_se,
-    const std::vector<dcomp>& right_lead_se, const int voltage_step, dcomp* current)
+    const std::vector<dcomp>& right_lead_se, const int voltage_step, dcomp* current_left, dcomp* current_right)
 {
 	double delta_energy =
 	    (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
-	dcomp trace, coupling_left, coupling_right, spectral_left, spectral_right;
+	dcomp trace_left, trace_right, coupling_left, coupling_right, spectral_left, spectral_right;
 
 	for (int r = 0; r < parameters.steps; r++) {
 		coupling_left = parameters.j1 * (left_lead_se.at(r) - std::conj(left_lead_se.at(r)));
@@ -119,18 +120,19 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		        - std::conj(green_function.at(
 		            r)(parameters.chain_length - 1, parameters.chain_length - 1)));
 
-		trace =
+		trace_left =
 		    fermi_function(parameters.energy.at(r).real() - parameters.voltage_l.at(voltage_step),
 		        parameters)
 		    * coupling_left * spectral_left;
-		trace +=
-		    -fermi_function(parameters.energy.at(r).real() - parameters.voltage_r.at(voltage_step),
+		trace_right =
+		    fermi_function(parameters.energy.at(r).real() - parameters.voltage_r.at(voltage_step),
 		        parameters)
 		    * coupling_right * spectral_right;
-		trace += parameters.j1 * coupling_left * green_function_lesser.at(r)(0, 0);
-		trace += -parameters.j1 * coupling_right
+		trace_left += parameters.j1 * coupling_left * green_function_lesser.at(r)(0, 0);
+		trace_right += parameters.j1 * coupling_right
 		    * green_function_lesser.at(r)(parameters.chain_length - 1, parameters.chain_length - 1);
 
-		*current -= delta_energy * trace * 0.5;
+		*current_left -= delta_energy * trace_left * 0.5;
+		*current_right -= delta_energy * trace_right * 0.5;
 	}
 }

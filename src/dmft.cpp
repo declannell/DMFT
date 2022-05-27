@@ -20,13 +20,12 @@ void get_spin_occupation(Parameters &parameters, std::vector<dcomp> &gf_lesser_u
     *spin_up = 1.0 / (2.0 * M_PI) * result_up;
     *spin_down = 1.0 / (2.0 * M_PI) * result_down;
 
-    std::cout << *spin_up << std::endl;
+   //std::cout << *spin_up << std::endl;
 }
 
 
 void get_difference(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &old_green_function,
                 double &difference){
-    int n = parameters.chain_length * parameters.chain_length * parameters.steps;
     difference = -std::numeric_limits<double>::infinity();
     double real_difference, imag_difference;
     for (int r = 0; r < parameters.steps; r++) {
@@ -144,7 +143,7 @@ void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_up
             impurity_self_energy_up.at(r) += parameters.hubbard_interaction * (*spin_down);
             impurity_self_energy_down.at(r) += parameters.hubbard_interaction * (*spin_up);
         }
-        std::cout << parameters.hubbard_interaction * (*spin_down) << std::endl;
+
     }
 
     if (parameters.interaction_order == 1){

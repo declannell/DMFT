@@ -6,9 +6,9 @@
 Parameters Parameters::init()
 {
     Parameters parameters =  {
-        .onsite = 0.0,
-        .onsite_l = 0.0,
-        .onsite_r = 0.0,
+        .onsite = -0.15,
+        .onsite_l = -0.0,
+        .onsite_r = -0.0,
         .hopping = -1.0,
         .hopping_y = -1.0,
         .hopping_x = -1.0,
@@ -27,13 +27,13 @@ Parameters Parameters::init()
         .temperature = 0.0,
         .e_upper_bound = 15.0,
         .e_lower_bound = -15.0,
-        .hubbard_interaction = 0.0,
+        .hubbard_interaction = 0.3,
         .voltage_step = 0,
         .pi = 3.14159265359,
-        .self_consistent_steps = 40,
+        .self_consistent_steps = 20,
         .read_in_self_energy = false,
         .NIV_points = 8,
-        .delta_v = 0.11
+        .delta_v = 0.05
     
     };
 
@@ -44,8 +44,8 @@ Parameters Parameters::init()
     parameters.voltage_r.resize(parameters.NIV_points);
     for (int i = 0; i < parameters.NIV_points; i++)
     {
-        parameters.voltage_l.at(i) = parameters.delta_v * (double)i;
-        parameters.voltage_r.at(i) = - parameters.delta_v * (double)i;
+        parameters.voltage_l.at(i) = parameters.delta_v * (double)(i);
+        parameters.voltage_r.at(i) = - parameters.delta_v * (double)(i);
     }
 
     if (parameters.hubbard_interaction == 0.0)
@@ -54,7 +54,7 @@ Parameters Parameters::init()
     }
     else
     {
-        parameters.interaction_order = 1;
+        parameters.interaction_order = 2;
     }
 
     parameters.steps = 401; //you must make sure the energy spacing is less than delta_v
@@ -68,7 +68,7 @@ Parameters Parameters::init()
 
     for (int i = 0; i < parameters.steps; i++)
     {
-        parameters.energy.at(i) = parameters.e_lower_bound + delta_energy * (double)i + 0.000001 * parameters.j1;
+        parameters.energy.at(i) = parameters.e_lower_bound + delta_energy * (double)i + 0.001 * parameters.j1;
     }
     return parameters;
 
