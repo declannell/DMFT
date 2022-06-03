@@ -36,7 +36,7 @@ void get_local_gf(Parameters &parameters, std::vector<double> const &kx, std::ve
 
 void get_advance_gf(const Parameters &parameters, const Eigen::MatrixXcd &gf_retarded, Eigen::MatrixXcd &gf_advanced);
 
-void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, 
+void get_gf_lesser_non_eq(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_retarded, 
     std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<dcomp> &self_energy_left,
     const std::vector<dcomp> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser_local, int voltage_step);
 

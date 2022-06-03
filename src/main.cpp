@@ -267,7 +267,8 @@ std::cout << ky.at(i) << "," << "\n";
                    << current_up_left.at(m).real() << ","
                    << current_up_right.at(m).real() << ","
                    << current_down_left.at(m).real() << ","
-                   << current_down_right.at(m).real() << "\n";
+                   << current_down_right.at(m).real() << "   "
+                   << current_down_left.at(m).real() + current_down_right.at(m).real() << "\n";
     }
     current_file.close();
   }

@@ -6,7 +6,7 @@
 Parameters Parameters::init()
 {
     Parameters parameters =  {
-        .onsite = -0.15,
+        .onsite = -0.1,
         .onsite_l = -0.0,
         .onsite_r = -0.0,
         .hopping = -1.0,
@@ -24,17 +24,17 @@ Parameters Parameters::init()
         .chain_length_y = 1,
         .chain_length_x = 1,
         .chemical_potential = 0.0,
-        .temperature = 10.0,
+        .temperature = 00.0,
         .e_upper_bound = 15.0,
         .e_lower_bound = -15.0,
-        .hubbard_interaction = 0.3,
+        .hubbard_interaction = 0.2,
         .voltage_step = 0,
         .self_consistent_steps = 20,
         .read_in_self_energy = false,
         .NIV_points = 8,
         .delta_v = 0.05,
         .delta_leads = 0.000000001,
-        .delta_gf = 0.0000000001,
+        .delta_gf = 0.000001,
     
     };
 
@@ -55,7 +55,7 @@ Parameters Parameters::init()
     }
     else
     {
-        parameters.interaction_order = 2;
+        parameters.interaction_order = 1;
     }
 
     parameters.steps = 401; //you must make sure the energy spacing is less than delta_v

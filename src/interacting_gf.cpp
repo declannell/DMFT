@@ -150,14 +150,20 @@ void get_advance_gf(const Parameters &parameters, const Eigen::MatrixXcd &gf_ret
 
 
 
-void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, 
+void get_gf_lesser_non_eq(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_retarded, 
     std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<dcomp> &self_energy_left,
     const std::vector<dcomp> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser, int voltage_step){
     for(int r = 0; r < parameters.steps; r++) {
         gf_lesser.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     }
+
+    Eigen::MatrixXcd delta_term = Eigen::MatrixXd::Zero(parameters.chain_length, parameters.chain_length);
+
         //std::cout << "The lesser green function is" << "\n";
     for(int r = 0; r < parameters.steps; r++) {   
+        delta_term = 2.0 * parameters.j1 * parameters.delta_gf * fermi_function(parameters.energy.at(r), parameters) 
+            * gf_retarded.at(r) * gf_retarded.at(r).adjoint();
+
         for(int i = 0; i < parameters.chain_length; i++ ) {
             for(int j = 0; j < parameters.chain_length; j++) {  
                 for(int k = 0; k < parameters.chain_length; k++){
@@ -175,6 +181,7 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
                 } 
             }
         }
+        gf_lesser.at(r) = gf_lesser.at(r) + delta_term;
     }
 }
 
