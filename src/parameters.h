@@ -31,22 +31,25 @@ struct Parameters
     double e_lower_bound;       // this is the min energy value
     double hubbard_interaction; // this is the hubbard interaction
     int voltage_step;        // voltage step of zero is equilibrium. This is an integer and higher values correspond to a higher potential difference between the two leads.
-    double pi;
     double self_consistent_steps; // this is the number of self consistent steps my code needs
     bool read_in_self_energy;
     int NIV_points;
     double delta_v;
+    double delta_leads;
+    double delta_gf;
+    double gamma_l;
+    double gamma_r;
     int interaction_order; // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
     std::string path_of_self_energy_up;
     std::string path_of_self_energy_down;
     std::vector<double> voltage_r;
     std::vector<double> voltage_l;
     int steps; // number of energy points we take
-    std::vector<dcomp> energy;
+    std::vector<double> energy;
     static Parameters init();
     dcomp j1; // this is a complex number class defined within the complex library
 };
 
-# define M_PI           3.14159265358979323846
+
 
 double fermi_function(double energy, const Parameters &parameters);

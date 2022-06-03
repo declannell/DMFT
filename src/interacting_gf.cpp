@@ -53,20 +53,20 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Eige
     for(int r = 0; r < parameters.steps; r++){
         inverse_gf = Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length);
         if (parameters.chain_length != 1){
-            inverse_gf(0, 0) = parameters.energy.at(r) - hamiltonian(0, 0) - self_energy_mb.at(0).at(r) - self_energy_left.at(r);
+            inverse_gf(0, 0) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - hamiltonian(0, 0) - self_energy_mb.at(0).at(r) - self_energy_left.at(r);
 
-            inverse_gf(parameters.chain_length - 1, parameters.chain_length - 1) = parameters.energy.at(r) - 
+            inverse_gf(parameters.chain_length - 1, parameters.chain_length - 1) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf  - 
                 hamiltonian(parameters.chain_length - 1, parameters.chain_length - 1) - self_energy_mb.at(parameters.chain_length - 1).at(r) - self_energy_right.at(r);
 
         } else if (parameters.chain_length == 1) {
-            inverse_gf(0, 0) = parameters.energy.at(r) - hamiltonian(0, 0) - self_energy_mb.at(0).at(r) - self_energy_left.at(r) - self_energy_right.at(r);
+            inverse_gf(0, 0) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf  - hamiltonian(0, 0) - self_energy_mb.at(0).at(r) - self_energy_left.at(r) - self_energy_right.at(r);
         }
 
         for(int i = 0; i < parameters.chain_length; i++){
             for(int j = 0; j < parameters.chain_length; j++){
                 if (i == j && ((i != 0) && (i != parameters.chain_length - 1))) {
                     //std::cout << i  << j << std::endl;
-                    inverse_gf(i, i) = parameters.energy.at(r) - hamiltonian(i, i) - self_energy_mb.at(i).at(r);
+                    inverse_gf(i, i) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf  - hamiltonian(i, i) - self_energy_mb.at(i).at(r);
                 } else if (i != j) {
                     inverse_gf(i, j) = - hamiltonian(i, j);
                 }
@@ -85,7 +85,7 @@ void get_analytic_gf_1_site(Parameters &parameters, std::vector<Eigen::MatrixXcd
     double difference = -std::numeric_limits<double>::infinity();
     
     for(int r = 0; r < parameters.steps; r++){
-        double x = parameters.energy.at(r).real() - parameters.onsite - 2.0 * parameters.hopping_x * cos(M_PI / 2.0) 
+        dcomp x = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - parameters.onsite - 2.0 * parameters.hopping_x * cos(M_PI / 2.0) 
                     - 2.0 * parameters.hopping_y * cos(M_PI / 2.0) - leads.self_energy_left.at(r).real() - 
                     leads.self_energy_right.at(r).real();
 
@@ -164,12 +164,12 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
                    
                     gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (self_energy_mb_lesser.at(k).at(r)) * std::conj(gf_retarded.at(r)(j, k));
                     if (k == 0){
-                        gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (- 2.0 * parameters.j1) * fermi_function(parameters.energy.at(r).real() - parameters.voltage_l.at(voltage_step), parameters) * 
+                        gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (- 2.0 * parameters.j1) * fermi_function(parameters.energy.at(r) - parameters.voltage_l.at(voltage_step), parameters) * 
                             (self_energy_left.at(r)).imag() * std::conj(gf_retarded.at(r)(j, k));
                     }
                     if (k == parameters.chain_length - 1){
                         //std::cout <<  parameters.voltage_r.at(voltage_step) << std::endl;
-                        gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (- 2.0 * parameters.j1)  * fermi_function(parameters.energy.at(r).real() - parameters.voltage_r.at(voltage_step), parameters) * 
+                        gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (- 2.0 * parameters.j1)  * fermi_function(parameters.energy.at(r) - parameters.voltage_r.at(voltage_step), parameters) * 
                             (self_energy_right.at(r)).imag() * std::conj(gf_retarded.at(r)(j, k));
                     }
                 } 

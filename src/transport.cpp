@@ -57,15 +57,15 @@ void get_landauer_buttiker_current(const Parameters& parameters,
 	    (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
 	for (int r = 0; r < parameters.steps; r++) {
 		*current_up -= delta_energy * transmission_up.at(r)
-		    * (fermi_function(parameters.energy.at(r).real() + parameters.voltage_l[votlage_step],
+		    * (fermi_function(parameters.energy.at(r) + parameters.voltage_l[votlage_step],
 		           parameters)
-		        - fermi_function(parameters.energy.at(r).real()
+		        - fermi_function(parameters.energy.at(r)
 		                + parameters.voltage_r[votlage_step],
 		            parameters));
 		*current_down -= delta_energy * transmission_down.at(r)
-		    * (fermi_function(parameters.energy.at(r).real() + parameters.voltage_l[votlage_step],
+		    * (fermi_function(parameters.energy.at(r) + parameters.voltage_l[votlage_step],
 		           parameters)
-		        - fermi_function(parameters.energy.at(r).real()
+		        - fermi_function(parameters.energy.at(r)
 		                + parameters.voltage_r[votlage_step],
 		            parameters));
 	}
@@ -109,6 +109,11 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 	double delta_energy =
 	    (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
 	dcomp trace_left, trace_right, coupling_left, coupling_right, spectral_left, spectral_right;
+    std::ofstream integrand_file;
+    integrand_file.open(
+        "/home/declan/green_function_code/quantum_transport/textfiles/"
+        "c++_integrand.txt");
+    // myfile << parameters.steps << std::endl;
 
 	for (int r = 0; r < parameters.steps; r++) {
 		coupling_left = parameters.j1 * (left_lead_se.at(r) - std::conj(left_lead_se.at(r)));
@@ -120,19 +125,32 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		        - std::conj(green_function.at(
 		            r)(parameters.chain_length - 1, parameters.chain_length - 1)));
 
-		trace_left =
-		    fermi_function(parameters.energy.at(r).real() - parameters.voltage_l.at(voltage_step),
+		dcomp trace_left_a =
+		    fermi_function(parameters.energy.at(r) - parameters.voltage_l.at(voltage_step),
 		        parameters)
 		    * coupling_left * spectral_left;
-		trace_right =
-		    fermi_function(parameters.energy.at(r).real() - parameters.voltage_r.at(voltage_step),
+		dcomp trace_right_a =
+		    fermi_function(parameters.energy.at(r) - parameters.voltage_r.at(voltage_step),
 		        parameters)
 		    * coupling_right * spectral_right;
-		trace_left += parameters.j1 * coupling_left * green_function_lesser.at(r)(0, 0);
-		trace_right += parameters.j1 * coupling_right
+		dcomp trace_left_b = parameters.j1 * coupling_left * green_function_lesser.at(r)(0, 0);
+		dcomp trace_right_b = parameters.j1 * coupling_right
 		    * green_function_lesser.at(r)(parameters.chain_length - 1, parameters.chain_length - 1);
 
-		*current_left -= delta_energy * trace_left * 0.5;
-		*current_right -= delta_energy * trace_right * 0.5;
+		trace_left = trace_left_a + trace_left_b;
+		trace_right = trace_right_a + trace_right_b;		
+
+		integrand_file << parameters.energy.at(r) << "  "
+				<< trace_left_a << "  "
+				<< trace_right_a << "  "
+				<< trace_left_b << "  "
+				<< trace_right_b << "  "
+				<< trace_left << "  "
+				<< trace_right <<"\n";
+				
+		*current_left -= delta_energy * trace_left;
+		*current_right -= delta_energy * trace_right;
 	}
+
+	integrand_file.close();
 }

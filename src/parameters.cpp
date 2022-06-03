@@ -24,16 +24,17 @@ Parameters Parameters::init()
         .chain_length_y = 1,
         .chain_length_x = 1,
         .chemical_potential = 0.0,
-        .temperature = 0.0,
+        .temperature = 10.0,
         .e_upper_bound = 15.0,
         .e_lower_bound = -15.0,
         .hubbard_interaction = 0.3,
         .voltage_step = 0,
-        .pi = 3.14159265359,
         .self_consistent_steps = 20,
         .read_in_self_energy = false,
         .NIV_points = 8,
-        .delta_v = 0.05
+        .delta_v = 0.05,
+        .delta_leads = 0.000000001,
+        .delta_gf = 0.0000000001,
     
     };
 
@@ -68,7 +69,7 @@ Parameters Parameters::init()
 
     for (int i = 0; i < parameters.steps; i++)
     {
-        parameters.energy.at(i) = parameters.e_lower_bound + delta_energy * (double)i + 0.001 * parameters.j1;
+        parameters.energy.at(i) = parameters.e_lower_bound + delta_energy * (double)i;
     }
     return parameters;
 

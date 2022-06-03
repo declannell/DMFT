@@ -95,7 +95,7 @@ get_local_gf(parameters, kx, ky, self_energy_mb_down, leads, gf_local_down, m);
         for (int j = 0; j < parameters.chain_length; j++) {
           gf_local_lesser_up_FD.at(r)(i, j) =
               -1.0 *
-              fermi_function(parameters.energy.at(r).real(), parameters) *
+              fermi_function(parameters.energy.at(r), parameters) *
               (gf_local_up.at(r)(i, j) - std::conj(gf_local_up.at(r)(j, i)));
         }
       }
@@ -168,7 +168,7 @@ std::cout << ky.at(i) << "," << "\n";
     // myfile << parameters.steps << std::endl;
     for (int i = 0; i < parameters.chain_length; i++) {
       for (int r = 0; r < parameters.steps; r++) {
-        gf_local_file << parameters.energy.at(r).real() << ","
+        gf_local_file << parameters.energy.at(r) << ","
                       << gf_local_up.at(r)(i, i).real() << ","
                       << gf_local_up.at(r)(i, i).imag() << ","
                       << gf_local_down.at(r)(i, i).real() << ","
@@ -185,7 +185,7 @@ std::cout << ky.at(i) << "," << "\n";
         "c++_tranmission.txt");
     // myfile << parameters.steps << std::endl;
     for (int r = 0; r < parameters.steps; r++) {
-      transmission_file << parameters.energy.at(r).real() << ","
+      transmission_file << parameters.energy.at(r) << ","
                         << transmission_up.at(r).real() << ","
                         << transmission_up.at(r).imag() << ","
                         << transmission_down.at(r).real() << "\n";
@@ -198,7 +198,7 @@ std::cout << ky.at(i) << "," << "\n";
         "c++se_mb_r.txt");
     for (int i = 0; i < parameters.chain_length; i++) {
       for (int r = 0; r < parameters.steps; r++) {
-        se_r_file << parameters.energy.at(r).real() << ","
+        se_r_file << parameters.energy.at(r) << ","
                   << self_energy_mb_up.at(i).at(r).real() << ","
                   << self_energy_mb_up.at(i).at(r).imag() << ","
                   << self_energy_mb_down.at(i).at(r).real() << ","
@@ -214,7 +214,7 @@ std::cout << ky.at(i) << "," << "\n";
         "c++_se_mb_lesser.txt");
     for (int i = 0; i < parameters.chain_length; i++) {
       for (int r = 0; r < parameters.steps; r++) {
-        se_lesser_file << parameters.energy.at(r).real() << ","
+        se_lesser_file << parameters.energy.at(r) << ","
                        << self_energy_mb_lesser_up.at(i).at(r).real() << ","
                        << self_energy_mb_lesser_up.at(i).at(r).imag() << "\n";
       }

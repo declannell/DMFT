@@ -42,7 +42,7 @@ void get_difference(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_lo
 
 void fluctuation_dissipation(Parameters &parameters, const std::vector<dcomp> &green_function, std::vector<dcomp> &lesser_green_function){
     for(int r = 0; r < parameters.steps; r++){
-        lesser_green_function.at(r) = - 1.0 * fermi_function(parameters.energy.at(r).real(), parameters) * (
+        lesser_green_function.at(r) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) * (
             green_function.at(r) - std::conj(green_function.at(r)));
         //std::cout << lesser_green_function.at(r) << std::endl;
     }
@@ -53,7 +53,7 @@ void fluctuation_dissipation(Parameters &parameters, const std::vector<dcomp> &g
 
     for (int r = 0; r < parameters.steps; r++)
     {
-        myfile2 << parameters.energy.at(r).real() << "," << lesser_green_function.at(r).real() << "," << lesser_green_function.at(r).imag() << "\n";
+        myfile2 << parameters.energy.at(r) << "," << lesser_green_function.at(r).real() << "," << lesser_green_function.at(r).imag() << "\n";
     }
     myfile2.close();    
 }
@@ -71,7 +71,7 @@ dcomp integrate(Parameters &parameters, std::vector<dcomp> &gf_1, std::vector<dc
                 //I say the green function is zero outside e_lower_bound and e_upper_bound. This means I need the final green function in the integral to be within an energy of e_lower_bound
                 //and e_upper_bound. The index of 0 corresponds to e_lower_bound. Hence we need i+J-r>0 but in order to be less an energy of e_upper_bound we need i+j-r<steps. 
                 //These conditions enesure the enrgy of the gf3 greens function to be within (e_upper_bound, e_lower_bound)
-                result = (delta_energy / (2.0 * parameters.pi)) * (delta_energy / (2.0 * parameters.pi)) * 
+                result = (delta_energy / (2.0 * M_PI)) * (delta_energy / (2.0 * M_PI)) * 
                     gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r) + result;
             } 
         }
@@ -208,7 +208,7 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
             for(int r = 0; r < parameters.steps; r++){
                 for(int i = 0; i < parameters.chain_length; i++){
                     for(int j = 0; j < parameters.chain_length; j++){
-                        gf_local_lesser_up_FD.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r).real(), parameters) *
+                        gf_local_lesser_up_FD.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) *
                             (gf_local_up.at(r)(i, j) - std::conj(gf_local_up.at(r)(j, i)));
                         
                     }
@@ -228,7 +228,7 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
             for(int i = 0; i < parameters.chain_length; i++){  
                 for (int r = 0; r < parameters.steps; r++)
                 {
-                    myfile9 << parameters.energy.at(r).real() << "," << gf_local_lesser_up_FD.at(r)(i, i).real() << "," << gf_local_lesser_up_FD.at(r)(i, i).imag() << "\n";
+                    myfile9 << parameters.energy.at(r) << "," << gf_local_lesser_up_FD.at(r)(i, i).real() << "," << gf_local_lesser_up_FD.at(r)(i, i).imag() << "\n";
                 }
             }
             myfile9.close();
@@ -240,7 +240,7 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
         for(int i = 0; i < parameters.chain_length; i++){  
             for (int r = 0; r < parameters.steps; r++)
             {
-                myfile1 << parameters.energy.at(r).real() << "," << gf_local_lesser_up.at(r)(i, i).real() << "," << gf_local_lesser_up.at(r)(i, i).imag() << "\n";
+                myfile1 << parameters.energy.at(r) << "," << gf_local_lesser_up.at(r)(i, i).real() << "," << gf_local_lesser_up.at(r)(i, i).imag() << "\n";
             }
         }
         myfile1.close();

@@ -36,8 +36,8 @@ void EmbeddingSelfEnergy::get_transfer_matrix(Parameters &parameters, std::vecto
 
     for (int r = 0; r < parameters.steps; r++)
     {
-        t_next_l.at(r) = parameters.hopping_lz / (parameters.energy.at(r) - parameters.onsite_l - parameters.voltage_l[voltage_step] - 2 * parameters.hopping_ly * cos(this->ky()) - 2 * parameters.hopping_lx * cos(this->kx())); // dont need to do this-> but it looks like i can code
-        t_next_r.at(r) = parameters.hopping_rz / (parameters.energy.at(r) - parameters.onsite_r - parameters.voltage_r[voltage_step] - 2 * parameters.hopping_ry * cos(this->ky()) - 2 * parameters.hopping_lx * cos(this->kx()));
+        t_next_l.at(r) = parameters.hopping_lz / (parameters.energy.at(r) + parameters.j1 * parameters.delta_leads - parameters.onsite_l - parameters.voltage_l[voltage_step] - 2 * parameters.hopping_ly * cos(this->ky()) - 2 * parameters.hopping_lx * cos(this->kx())); // dont need to do this-> but it looks like i can code
+        t_next_r.at(r) = parameters.hopping_rz / (parameters.energy.at(r) + parameters.j1 * parameters.delta_leads - parameters.onsite_r - parameters.voltage_r[voltage_step] - 2 * parameters.hopping_ry * cos(this->ky()) - 2 * parameters.hopping_lx * cos(this->kx()));
         t_product_l.at(r) = t_next_l.at(r);
         t_product_r.at(r) = t_next_r.at(r);
         transfer_matrix_l.at(r) = t_next_l.at(r);
@@ -79,8 +79,8 @@ void EmbeddingSelfEnergy::get_self_energy(Parameters &parameters, std::vector<dc
     std::vector<dcomp> surface_gf_r(parameters.steps);
     for (int r = 0; r < parameters.steps; r++)
     {
-        surface_gf_l.at(r) = 1.0 / (parameters.energy.at(r) - parameters.voltage_l[voltage_step] - parameters.onsite_l - 2.0 * parameters.hopping_ly * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_lz * transfer_matrix_l.at(r));
-        surface_gf_r.at(r) = 1.0 / (parameters.energy.at(r) - parameters.voltage_r[voltage_step] - parameters.onsite_r - 2.0 * parameters.hopping_ry * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_rz * transfer_matrix_r.at(r));
+        surface_gf_l.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_leads - parameters.voltage_l[voltage_step] - parameters.onsite_l - 2.0 * parameters.hopping_ly * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_lz * transfer_matrix_l.at(r));
+        surface_gf_r.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_leads - parameters.voltage_r[voltage_step] - parameters.onsite_r - 2.0 * parameters.hopping_ry * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_rz * transfer_matrix_r.at(r));
         this->self_energy_left.at(r) = parameters.hopping_lc * parameters.hopping_lc * surface_gf_l.at(r);
         this->self_energy_right.at(r) = parameters.hopping_rc * parameters.hopping_rc * surface_gf_r.at(r);
     }
@@ -105,9 +105,9 @@ std::vector<dcomp> analytic_self_energy(Parameters &parameters, int voltage_step
     std::vector<dcomp> analytic_se(parameters.steps);
     for (int r = 0; r < parameters.steps; r++)
     {
-        double x = (parameters.energy.at(r).real() - parameters.onsite_l - parameters.voltage_l[voltage_step]) / (2.0 * parameters.hopping_lz);
+        double x = (parameters.energy.at(r) - parameters.onsite_l - parameters.voltage_l[voltage_step]) / (2.0 * parameters.hopping_lz);
 
-        analytic_se.at(r) = parameters.hopping_lc * parameters.hopping_lc * (1.0 / abs(parameters.hopping_lz)) * x;
+        analytic_se.at(r) = parameters.hopping_lc * parameters.hopping_lc * (1.0 / abs(parameters.hopping_lz)) * (x + + parameters.j1 * parameters.delta_leads);
         if (abs(x) > 1.0)
         {
             analytic_se.at(r) = analytic_se.at(r).real() -parameters.hopping_lc * parameters.hopping_lc * (1.0 / abs(parameters.hopping_lz)) * (sgn(x) * sqrt(abs(x) * abs(x) - 1.0));
@@ -129,7 +129,7 @@ void run(Parameters &parameters)
     // myfile << parameters.steps << std::endl;
     for (int r = 0; r < parameters.steps; r++)
     {
-        myfile << parameters.energy.at(r).real() << "," << leads.self_energy_left.at(r).real() << "," << leads.self_energy_left.at(r).imag() << "," << leads.self_energy_right.at(r).real() << "," << leads.self_energy_right.at(r).imag() << ","
+        myfile << parameters.energy.at(r) << "," << leads.self_energy_left.at(r).real() << "," << leads.self_energy_left.at(r).imag() << "," << leads.self_energy_right.at(r).real() << "," << leads.self_energy_right.at(r).imag() << ","
                << "\n";
         // std::cout << leads.self_energy_left.at(r) << "\n";
     }
