@@ -65,7 +65,32 @@ int main() {
       self_energy_mb_lesser_down(parameters.chain_length,
                                  std::vector<dcomp>(parameters.steps, 0));
 
+
   for (int m = 0; m < parameters.NIV_points; m++) {
+    if (m != 0 && parameters.leads_3d == true){
+
+        kx.resize(parameters.chain_length_x);
+        ky.resize(parameters.chain_length_y);
+        for (int i = 0; i < parameters.chain_length_x; i++) {
+          if (parameters.chain_length_x != 1) {
+            kx.at(i) = 2 * M_PI * i / parameters.chain_length_x;
+          } else if (parameters.chain_length_x == 1) {
+            kx.at(i) = M_PI / 2.0;
+          }
+        }
+
+        for (int i = 0; i < parameters.chain_length_y; i++) {
+          if (parameters.chain_length_y != 1) {
+            ky.at(i) = 2 * M_PI * i / parameters.chain_length_y;
+          } else if (parameters.chain_length_y == 1) {
+            ky.at(i) = M_PI / 2.0;
+          }
+        }
+    }
+
+
+
+
     std::cout << "The voltage difference is "
               << parameters.voltage_l[m] - parameters.voltage_r[m] << std::endl;
 
@@ -76,6 +101,15 @@ int main() {
         vy.push_back(EmbeddingSelfEnergy(parameters, kx.at(i), ky.at(j), m));
       }
       leads.push_back(vy);
+    }
+
+    if (parameters.leads_3d == true){
+      get_k_averaged_embedding_self_energy(parameters, leads);
+      kx.resize(1);
+      ky.resize(1);      
+      kx.at(0) = M_PI / 2.0;
+      ky.at(0) = M_PI / 2.0;      
+      //std::cout << kx.at(0) << "\n";
     }
 
     std::cout << "leads complete" << std::endl;
@@ -102,11 +136,13 @@ get_local_gf(parameters, kx, ky, self_energy_mb_down, leads, gf_local_down, m);
     }
 
     double difference;
+    int index;
     if (m == 0) {
       get_difference(parameters, gf_local_lesser_up, gf_local_lesser_up_FD,
-                     difference);
+                     difference, index);
       std::cout << "The difference between the fD and other is " << difference
                 << std::endl;
+      std::cout << "The index is " << index << std::endl;
       std::cout << "got local green function" << std::endl;
     }
 
@@ -168,11 +204,11 @@ std::cout << ky.at(i) << "," << "\n";
     // myfile << parameters.steps << std::endl;
     for (int i = 0; i < parameters.chain_length; i++) {
       for (int r = 0; r < parameters.steps; r++) {
-        gf_local_file << parameters.energy.at(r) << ","
-                      << gf_local_up.at(r)(i, i).real() << ","
-                      << gf_local_up.at(r)(i, i).imag() << ","
-                      << gf_local_down.at(r)(i, i).real() << ","
-                      << gf_local_down.at(r)(i, i).imag() << "\n";
+        gf_local_file << parameters.energy.at(r) << "  "
+                      << gf_local_up.at(r)(i, i).real() << "   "
+                      << gf_local_up.at(r)(i, i).imag() << "   "
+                      << gf_local_down.at(r)(i, i).real() << "   "
+                      << gf_local_down.at(r)(i, i).imag() <<   " \n";
 
         // std::cout << leads.self_energy_left.at(r) << "\n";
       }
@@ -185,9 +221,9 @@ std::cout << ky.at(i) << "," << "\n";
         "c++_tranmission.txt");
     // myfile << parameters.steps << std::endl;
     for (int r = 0; r < parameters.steps; r++) {
-      transmission_file << parameters.energy.at(r) << ","
-                        << transmission_up.at(r).real() << ","
-                        << transmission_up.at(r).imag() << ","
+      transmission_file << parameters.energy.at(r) << "  "
+                        << transmission_up.at(r).real() << "  "
+                        << transmission_up.at(r).imag() << "  "
                         << transmission_down.at(r).real() << "\n";
     }
     transmission_file.close();
@@ -198,10 +234,10 @@ std::cout << ky.at(i) << "," << "\n";
         "c++se_mb_r.txt");
     for (int i = 0; i < parameters.chain_length; i++) {
       for (int r = 0; r < parameters.steps; r++) {
-        se_r_file << parameters.energy.at(r) << ","
-                  << self_energy_mb_up.at(i).at(r).real() << ","
-                  << self_energy_mb_up.at(i).at(r).imag() << ","
-                  << self_energy_mb_down.at(i).at(r).real() << ","
+        se_r_file << parameters.energy.at(r) << "  "
+                  << self_energy_mb_up.at(i).at(r).real() << "  "
+                  << self_energy_mb_up.at(i).at(r).imag() << "  "
+                  << self_energy_mb_down.at(i).at(r).real() << "  " 
                   << self_energy_mb_down.at(i).at(r).imag() << "\n";
       }
     }
@@ -214,8 +250,8 @@ std::cout << ky.at(i) << "," << "\n";
         "c++_se_mb_lesser.txt");
     for (int i = 0; i < parameters.chain_length; i++) {
       for (int r = 0; r < parameters.steps; r++) {
-        se_lesser_file << parameters.energy.at(r) << ","
-                       << self_energy_mb_lesser_up.at(i).at(r).real() << ","
+        se_lesser_file << parameters.energy.at(r) << "  "
+                       << self_energy_mb_lesser_up.at(i).at(r).real() << " "
                        << self_energy_mb_lesser_up.at(i).at(r).imag() << "\n";
       }
     }
@@ -238,13 +274,13 @@ std::cout << ky.at(i) << "," << "\n";
                 << "\n";
 
       std::cout << "\n";
-      current_file << parameters.voltage_l[m] - parameters.voltage_r[m] << ","
-                   << current_up.at(m).real() << ","
-                   << current_down.at(m).real() << ","
-                   << current_up_left.at(m).real() << ","
-                   << current_up_right.at(m).real() << ","
-                   << current_down_left.at(m).real() << ","
-                   << current_down_right.at(m).real() << "\n";
+      current_file << parameters.voltage_l[m] - parameters.voltage_r[m] << "   "
+                   //<< current_up.at(m).real() << "   "
+                   //<< current_down.at(m).real() << "   "
+                   << 2 * current_up_left.at(m).real() << "   "
+                   << 2 * current_up_right.at(m).real() << "   "
+                   //<< current_down_left.at(m).real() << "   "
+                   << 2 * current_up_left.at(m).real() + 2 * current_up_right.at(m).real() << "\n"   ;
     }
     current_file.close();
   } else {
@@ -263,11 +299,11 @@ std::cout << ky.at(i) << "," << "\n";
 
       std::cout << "\n";
 
-      current_file << parameters.voltage_l[m] - parameters.voltage_r[m] << ","
-                   << current_up_left.at(m).real() << ","
-                   << current_up_right.at(m).real() << ","
-                   << current_down_left.at(m).real() << ","
-                   << current_down_right.at(m).real() << "   "
+      current_file << parameters.voltage_l[m] - parameters.voltage_r[m] << "   "
+                   << current_up_left.at(m).real() << "   "
+                   << current_up_right.at(m).real() << "   "
+                   << current_down_left.at(m).real() << "   "
+                   << current_down_right.at(m).real() << "     "
                    << current_down_left.at(m).real() + current_down_right.at(m).real() << "\n";
     }
     current_file.close();

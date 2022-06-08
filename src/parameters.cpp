@@ -6,7 +6,7 @@
 Parameters Parameters::init()
 {
     Parameters parameters =  {
-        .onsite = -0.1,
+        .onsite = -0.15,
         .onsite_l = -0.0,
         .onsite_r = -0.0,
         .hopping = -1.0,
@@ -21,20 +21,21 @@ Parameters Parameters::init()
         .hopping_lc = -1.0,
         .hopping_rc = -1.0,
         .chain_length = 1,
-        .chain_length_y = 1,
-        .chain_length_x = 1,
+        .chain_length_y = 100,
+        .chain_length_x = 100,
         .chemical_potential = 0.0,
         .temperature = 00.0,
         .e_upper_bound = 15.0,
         .e_lower_bound = -15.0,
-        .hubbard_interaction = 0.2,
+        .hubbard_interaction = 0.3,
         .voltage_step = 0,
         .self_consistent_steps = 20,
         .read_in_self_energy = false,
         .NIV_points = 8,
         .delta_v = 0.05,
         .delta_leads = 0.000000001,
-        .delta_gf = 0.000001,
+        .delta_gf = 0.0000001,
+        .leads_3d = true
     
     };
 
@@ -55,10 +56,10 @@ Parameters Parameters::init()
     }
     else
     {
-        parameters.interaction_order = 1;
+        parameters.interaction_order = 2;
     }
 
-    parameters.steps = 401; //you must make sure the energy spacing is less than delta_v
+    parameters.steps = 801; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;

@@ -12,7 +12,7 @@ void get_spin_occupation(Parameters &parameters, std::vector<dcomp> &gf_lesser_u
                         std::vector<dcomp> &gf_lesser_down, double *spin_up, double *spin_down);
 
 void get_difference(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &old_green_function,
-                double &difference);
+                double &difference, int &index);
 
 void fluctuation_dissipation(Parameters &parameters, const std::vector<dcomp> &green_function, std::vector<dcomp> &lesser_green_function);
 

@@ -35,7 +35,7 @@ Eigen::MatrixXcd Interacting_GF::get_hamiltonian(Parameters const &parameters, c
                              parameters.voltage_r[voltage_step]);
         double voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) / (double)(parameters.chain_length + 1.0) * potential_bias;
 
-        hamiltonian(i, i) = parameters.onsite + 2 * parameters.hopping_x * cos(this->kx()) + 2 * parameters.hopping_y * \
+        hamiltonian(i, i) = parameters.onsite + 2 * parameters.hopping_x * cos(this->kx()) + 2 * parameters.hopping_y * 
                 cos(this->ky()) + voltage_i;
     }
     /*
@@ -118,10 +118,19 @@ void get_analytic_gf_1_site(Parameters &parameters, std::vector<Eigen::MatrixXcd
 
 void get_local_gf(Parameters &parameters, std::vector<double> const &kx, std::vector<double> const &ky, std::vector<std::vector<dcomp>> &self_energy_mb, 
     std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, int voltage_step){
-        
-    double num_k_points = parameters.chain_length_x * parameters.chain_length_y;
-    for(int kx_i = 0; kx_i < parameters.chain_length_x; kx_i++) {
-        for(int ky_i = 0; ky_i < parameters.chain_length_y; ky_i++) {
+
+    int n_x, n_y;
+    if (parameters.leads_3d == false){
+        n_x =  parameters.chain_length_x; //number of k points to take in x direction
+        n_y =  parameters.chain_length_y; //number of k points to take in y direction
+    } else {
+        n_x = 1;
+        n_y = 1;
+    }
+    double num_k_points = n_x * n_y;
+
+    for(int kx_i = 0; kx_i < n_x; kx_i++) {
+        for(int ky_i = 0; ky_i < n_y; ky_i++) {
 
             Interacting_GF gf_interacting(parameters,
                 kx.at(kx_i), ky.at(ky_i), self_energy_mb,
@@ -153,6 +162,8 @@ void get_advance_gf(const Parameters &parameters, const Eigen::MatrixXcd &gf_ret
 void get_gf_lesser_non_eq(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_retarded, 
     std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<dcomp> &self_energy_left,
     const std::vector<dcomp> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser, int voltage_step){
+
+
     for(int r = 0; r < parameters.steps; r++) {
         gf_lesser.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     }
@@ -191,14 +202,26 @@ void get_local_gf_r_and_lesser(Parameters &parameters, std::vector<double> const
     std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
     std::vector<Eigen::MatrixXcd> &gf_local_lesser, int voltage_step){
 
+    std::cout << ky.at(0) << "\n";
     for(int r = 0; r < parameters.steps; r++){
         gf_local.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
         gf_local_lesser.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     }
+
+    int n_x, n_y;
+
+    if (parameters.leads_3d == false){
+        n_x =  parameters.chain_length_x; //number of k points to take in x direction
+        n_y =  parameters.chain_length_y; //number of k points to take in y direction
+    } else {
+        n_x = 1;
+        n_y = 1;
+    }
+
     std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length)); 
-    double num_k_points = parameters.chain_length_x * parameters.chain_length_y;
-    for(int kx_i = 0; kx_i < parameters.chain_length_x; kx_i++) {
-        for(int ky_i = 0; ky_i < parameters.chain_length_y; ky_i++) {
+    double num_k_points = n_x * n_y;
+    for(int kx_i = 0; kx_i < n_x; kx_i++) {
+        for(int ky_i = 0; ky_i < n_y; ky_i++) {
             Interacting_GF gf_interacting(parameters,
                 kx.at(kx_i), ky.at(ky_i), self_energy_mb,
                 leads.at(kx_i).at(ky_i).self_energy_left,

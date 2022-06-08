@@ -16,7 +16,7 @@
 double EmbeddingSelfEnergy::kx() const { return kx_value; }
 double EmbeddingSelfEnergy::ky() const { return ky_value; }
 
-EmbeddingSelfEnergy::EmbeddingSelfEnergy(Parameters &parameters, double kx, double ky, int voltage_step) : kx_value(kx), ky_value(ky) // type is implied, it knows this is a constructor
+EmbeddingSelfEnergy::EmbeddingSelfEnergy(const Parameters &parameters, double kx, double ky, int voltage_step) : kx_value(kx), ky_value(ky) // type is implied, it knows this is a constructor
 {
     self_energy_left.resize(parameters.steps);
     self_energy_right.resize(parameters.steps);
@@ -27,7 +27,7 @@ EmbeddingSelfEnergy::EmbeddingSelfEnergy(Parameters &parameters, double kx, doub
     // get_self_energy();
 }
 
-void EmbeddingSelfEnergy::get_transfer_matrix(Parameters &parameters, std::vector<dcomp> &transfer_matrix_l, std::vector<dcomp> &transfer_matrix_r, int voltage_step)
+void EmbeddingSelfEnergy::get_transfer_matrix(const Parameters &parameters, std::vector<dcomp> &transfer_matrix_l, std::vector<dcomp> &transfer_matrix_r, int voltage_step)
 {
     std::vector<dcomp> t_next_l(parameters.steps);
     std::vector<dcomp> t_next_r(parameters.steps);
@@ -73,7 +73,7 @@ void EmbeddingSelfEnergy::get_transfer_matrix(Parameters &parameters, std::vecto
     } while (difference > 0.01 && count < 50);
 }
 
-void EmbeddingSelfEnergy::get_self_energy(Parameters &parameters, std::vector<dcomp> &transfer_matrix_l, std::vector<dcomp> &transfer_matrix_r, int voltage_step)
+void EmbeddingSelfEnergy::get_self_energy(const Parameters &parameters, std::vector<dcomp> &transfer_matrix_l, std::vector<dcomp> &transfer_matrix_r, int voltage_step)
 {
     std::vector<dcomp> surface_gf_l(parameters.steps);
     std::vector<dcomp> surface_gf_r(parameters.steps);
@@ -99,7 +99,7 @@ int sgn(T val)
     }
 }
 
-std::vector<dcomp> analytic_self_energy(Parameters &parameters, int voltage_step)
+std::vector<dcomp> analytic_self_energy(const Parameters &parameters, int voltage_step)
 {
 
     std::vector<dcomp> analytic_se(parameters.steps);
@@ -120,7 +120,7 @@ std::vector<dcomp> analytic_self_energy(Parameters &parameters, int voltage_step
     return analytic_se;
 }
 
-void run(Parameters &parameters)
+void run(const Parameters &parameters)
 {
     EmbeddingSelfEnergy leads(parameters, M_PI / 2.0, M_PI / 2.0, parameters.voltage_step);
 
@@ -136,3 +136,45 @@ void run(Parameters &parameters)
 
     myfile.close();
 }
+
+void get_k_averaged_embedding_self_energy(const Parameters parameters, std::vector<std::vector<EmbeddingSelfEnergy>> &leads){
+    int num_k = parameters.chain_length_x * parameters.chain_length_y;
+    std::vector<dcomp> k_averaged_self_energy_left(parameters.steps), k_averaged_self_energy_right(parameters.steps);
+    for( int kx_i = 0; kx_i < parameters.chain_length_x; kx_i++) {
+        for( int ky_i = 0; ky_i < parameters.chain_length_y; ky_i++) {
+            for(int r = 0; r < parameters.steps; r++) {
+                k_averaged_self_energy_left.at(r) += leads.at(kx_i).at(ky_i).self_energy_left.at(r) / (double)num_k;
+                k_averaged_self_energy_right.at(r) += leads.at(kx_i).at(ky_i).self_energy_right.at(r) / (double)num_k;
+            }
+        }
+    }
+
+    std::cout << "core has not being dumped yet 1\n";
+    std::vector<EmbeddingSelfEnergy> vy;
+    vy.push_back(EmbeddingSelfEnergy(parameters, 0.0, 0.0, 0));
+ 
+
+    leads.resize(1, vy);
+    for(int r = 0; r < parameters.steps; r++) {
+        leads.at(0).at(0).self_energy_left.at(r) = k_averaged_self_energy_left.at(r);
+        leads.at(0).at(0).self_energy_right.at(r) = k_averaged_self_energy_right.at(r);
+    }
+
+    std::ofstream embedding_se_file;
+    embedding_se_file.open(
+        "/home/declan/green_function_code/quantum_transport/textfiles/"
+        "c++_embedding_self_energyS.txt");
+    // myfile << parameters.steps << std::endl;
+
+	for (int r = 0; r < parameters.steps; r++) {
+		embedding_se_file << parameters.energy.at(r) << "  "
+				<< leads.at(0).at(0).self_energy_left.at(r).real() << "  "
+				<< leads.at(0).at(0).self_energy_left.at(r).imag() << "  "
+				<< leads.at(0).at(0).self_energy_right.at(r).real() << "  " 
+                << leads.at(0).at(0).self_energy_right.at(r).imag() <<"\n";
+	}
+	embedding_se_file.close();
+}
+
+
+

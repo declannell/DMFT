@@ -37,6 +37,7 @@ struct Parameters
     double delta_v;
     double delta_leads;
     double delta_gf;
+    bool leads_3d;//if true, this will attach 3d leads to a 1d scattering region
     double gamma_l;
     double gamma_r;
     int interaction_order; // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//

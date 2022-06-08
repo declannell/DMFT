@@ -16,11 +16,20 @@ void get_transmission(const Parameters& parameters, const std::vector<double>& k
     const std::vector<std::vector<EmbeddingSelfEnergy>>& leads, std::vector<dcomp>& transmission_up,
     std::vector<dcomp>& transmission_down, const int voltage_step)
 {
-	double num_k_points = parameters.chain_length_x * parameters.chain_length_y;
-	std::cout << num_k_points << std::endl;
+	int n_x, n_y;
+    if (parameters.leads_3d == false){
+        n_x =  parameters.chain_length_x; //number of k points to take in x direction
+        n_y =  parameters.chain_length_y; //number of k points to take in y direction
+    } else {
+        n_x = 1;
+        n_y = 1;
+    }
 
-	for (int kx_i = 0; kx_i < parameters.chain_length_x; kx_i++) {
-		for (int ky_i = 0; ky_i < parameters.chain_length_y; ky_i++) {
+    double num_k_points = n_x * n_y;
+
+
+	for (int kx_i = 0; kx_i < n_x; kx_i++) {
+		for (int ky_i = 0; ky_i < n_y; ky_i++) {
 			Interacting_GF gf_interacting_up(parameters, kx.at(kx_i), ky.at(ky_i), self_energy_mb,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    voltage_step);
@@ -76,9 +85,18 @@ void get_meir_wingreen_current(Parameters& parameters, std::vector<double> const
     std::vector<std::vector<dcomp>>& self_energy_mb_lesser,
     std::vector<std::vector<EmbeddingSelfEnergy>>& leads, int voltage_step, dcomp* current_left, dcomp* current_right)
 {
-	double num_k_points = parameters.chain_length_x * parameters.chain_length_y;
-	for (int kx_i = 0; kx_i < parameters.chain_length_x; kx_i++) {
-		for (int ky_i = 0; ky_i < parameters.chain_length_y; ky_i++) {
+	int n_x, n_y;
+    if (parameters.leads_3d == false){
+        n_x =  parameters.chain_length_x; //number of k points to take in x direction
+        n_y =  parameters.chain_length_y; //number of k points to take in y direction
+    } else {
+        n_x = 1;
+        n_y = 1;
+    }
+
+    double num_k_points = n_x * n_y;
+	for (int kx_i = 0; kx_i < n_x; kx_i++) {
+		for (int ky_i = 0; ky_i < n_y; ky_i++) {
 			Interacting_GF gf_interacting(parameters, kx.at(kx_i), ky.at(ky_i), self_energy_mb,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    voltage_step);

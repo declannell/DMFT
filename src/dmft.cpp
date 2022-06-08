@@ -25,18 +25,26 @@ void get_spin_occupation(Parameters &parameters, std::vector<dcomp> &gf_lesser_u
 
 
 void get_difference(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &old_green_function,
-                double &difference){
+                double &difference, int &index){
     difference = -std::numeric_limits<double>::infinity();
+    double old_difference = 0;
     double real_difference, imag_difference;
     for (int r = 0; r < parameters.steps; r++) {
         for(int i = 0; i < parameters.chain_length; i++){
             for(int j = 0; j < parameters.chain_length; j++){
                 real_difference = abs(gf_local_up.at(r)(i, j).real() - old_green_function.at(r)(i, j).real());
                 imag_difference = abs(gf_local_up.at(r)(i, j).imag() - old_green_function.at(r)(i, j).imag());
+                //std::cout << real_difference << "  " << imag_difference << "  "  << difference << "\n";
                 difference = std::max(difference, std::max(real_difference, imag_difference));
                 old_green_function.at(r)(i, j) = gf_local_up.at(r)(i, j);
+                if(difference > old_difference){
+                    index = r;
+                }
+                old_difference = difference;
+
             }
         }
+        //std::cout <<"\n";
     }
 }
 
@@ -45,17 +53,7 @@ void fluctuation_dissipation(Parameters &parameters, const std::vector<dcomp> &g
         lesser_green_function.at(r) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) * (
             green_function.at(r) - std::conj(green_function.at(r)));
         //std::cout << lesser_green_function.at(r) << std::endl;
-    }
-    //std::cout << "\n";
-
-    std::ofstream myfile2;
-    myfile2.open("/home/declan/green_function_code/quantum_transport/textfiles/gf_lesser_c++.txt");
-
-    for (int r = 0; r < parameters.steps; r++)
-    {
-        myfile2 << parameters.energy.at(r) << "," << lesser_green_function.at(r).real() << "," << lesser_green_function.at(r).imag() << "\n";
-    }
-    myfile2.close();    
+    } 
 }
 
 
@@ -165,10 +163,11 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
         std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup){
 
     double difference = std::numeric_limits<double>::infinity();
-    int count = 0;
+    int index, count = 0;
+
     std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-    while (difference > 0.0001 && count < parameters.self_consistent_steps){
-        get_difference(parameters, gf_local_up, old_green_function, difference);
+    while (difference > 0.00001 && count < parameters.self_consistent_steps){
+        get_difference(parameters, gf_local_up, old_green_function, difference, index);
         std::cout << "The difference is " << difference <<". The count is " << count << std::endl;
         if (difference < 0.0000001){
             break;
@@ -215,38 +214,44 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
                 }
                 //std::cout << gf_local_lesser_up_FD.at(r) << std::endl;
             }
-            double difference;
+            double difference_fd = 0;
             
-            get_difference(parameters, gf_local_lesser_up, gf_local_lesser_up_FD, difference);
+            get_difference(parameters, gf_local_lesser_up, gf_local_lesser_up_FD, difference_fd, index);
+            //i need to do this again as the difference function will overwrite gf_local_lesser_up_FD
+            for(int r = 0; r < parameters.steps; r++){
+                for(int i = 0; i < parameters.chain_length; i++){
+                    for(int j = 0; j < parameters.chain_length; j++){
+                        gf_local_lesser_up_FD.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) *
+                            (gf_local_up.at(r)(i, j) - std::conj(gf_local_up.at(r)(j, i)));
+                        
+                    }
+                }
+                //std::cout << gf_local_lesser_up_FD.at(r) << std::endl;
+            }
 
-            std::cout << "The difference between the fD and other is " << difference << std::endl;
+            std::cout << "The difference between the fD and other is " << difference_fd << std::endl;
+            std::cout << "The index is " << index << std::endl;
+            std::cout << gf_local_lesser_up.at(index) << gf_local_lesser_up_FD.at(index) <<  gf_local_lesser_up.at(index) - gf_local_lesser_up_FD.at(index)  << std::endl;
 
 
-            std::ofstream myfile9;
-            myfile9.open("/home/declan/green_function_code/quantum_transport/textfiles/gf_lesser_FD_c++.txt");
+            std::ofstream gf_lesser_file;
+            gf_lesser_file.open("/home/declan/green_function_code/quantum_transport/textfiles/gf_lesser_c++.txt");
             // myfile << parameters.steps << std::endl;
+            difference_fd = 0;
             for(int i = 0; i < parameters.chain_length; i++){  
                 for (int r = 0; r < parameters.steps; r++)
                 {
-                    myfile9 << parameters.energy.at(r) << "," << gf_local_lesser_up_FD.at(r)(i, i).real() << "," << gf_local_lesser_up_FD.at(r)(i, i).imag() << "\n";
+                    gf_lesser_file << parameters.energy.at(r) << "  " << gf_local_lesser_up.at(r)(i, i).real() << "  " << gf_local_lesser_up.at(r)(i, i).imag()
+                        << "  " << gf_local_lesser_up_FD.at(r)(i, i).real() << "  " << gf_local_lesser_up_FD.at(r)(i, i).imag() << "  " 
+                        <<   gf_local_lesser_up.at(r)(i, i).imag() - gf_local_lesser_up_FD.at(r)(i, i).imag() << "\n";
+
+                    difference_fd += abs(gf_local_lesser_up.at(r)(i, i).imag() - gf_local_lesser_up_FD.at(r)(i, i).imag());
                 }
             }
-            myfile9.close();
+            gf_lesser_file.close();
+            std::cout << "The total difference between the two methods is " << difference_fd << std::endl;
         }
-
-        std::ofstream myfile1;
-        myfile1.open("/home/declan/green_function_code/quantum_transport/textfiles/gf_lesser_c++.txt");
-        // myfile << parameters.steps << std::endl;
-        for(int i = 0; i < parameters.chain_length; i++){  
-            for (int r = 0; r < parameters.steps; r++)
-            {
-                myfile1 << parameters.energy.at(r) << "," << gf_local_lesser_up.at(r)(i, i).real() << "," << gf_local_lesser_up.at(r)(i, i).imag() << "\n";
-            }
-        }
-        myfile1.close();
-
-
-
+        
         count++;
     }
 }
