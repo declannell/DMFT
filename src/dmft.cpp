@@ -13,9 +13,19 @@ void get_spin_occupation(Parameters &parameters, std::vector<dcomp> &gf_lesser_u
                         std::vector<dcomp> &gf_lesser_down, double *spin_up, double *spin_down){
     double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
     double result_up = 0.0, result_down = 0.0;
+   //for(int r = 0; r < parameters.steps; r++){
+    //    result_up = (delta_energy) * gf_lesser_up.at(r).imag() + result_up;
+    //    result_down = (delta_energy) * gf_lesser_down.at(r).imag() + result_down;
+    //}
+
     for(int r = 0; r < parameters.steps; r++){
-        result_up = (delta_energy) * gf_lesser_up.at(r).imag() + result_up;
-        result_down = (delta_energy) * gf_lesser_down.at(r).imag() + result_down;
+        if (r == 0 || r == parameters.steps -1){
+            result_up = (delta_energy / 2.0) * gf_lesser_up.at(r).imag() + result_up;
+            result_down = (delta_energy / 2.0) * gf_lesser_down.at(r).imag() + result_down;
+        } else {
+            result_up = (delta_energy) * gf_lesser_up.at(r).imag() + result_up;
+            result_down = (delta_energy) * gf_lesser_down.at(r).imag() + result_down;            
+        }
     }
     *spin_up = 1.0 / (2.0 * M_PI) * result_up;
     *spin_down = 1.0 / (2.0 * M_PI) * result_down;
@@ -71,6 +81,17 @@ dcomp integrate(Parameters &parameters, std::vector<dcomp> &gf_1, std::vector<dc
                 //These conditions enesure the enrgy of the gf3 greens function to be within (e_upper_bound, e_lower_bound)
                 result = (delta_energy / (2.0 * M_PI)) * (delta_energy / (2.0 * M_PI)) * 
                     gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r) + result;
+//
+                //if ((i ==0 || i ==parameters.steps - 1) || ((j ==0 || j ==parameters.steps - 1))){
+                //result = 0.5 * (delta_energy / (2.0 * M_PI)) * (delta_energy / (2.0 * M_PI)) * 
+                //    gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r) + result;
+                //} else if ((i ==0 || i ==parameters.steps - 1) && ((j ==0 || j ==parameters.steps - 1))){
+                //result = 0.25 * (delta_energy / (2.0 * M_PI)) * (delta_energy / (2.0 * M_PI)) * 
+                //    gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r) + result;
+                //} else {
+                //result = (delta_energy / (2.0 * M_PI)) * (delta_energy / (2.0 * M_PI)) * 
+                //    gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r) + result;                    
+                //}
             } 
         }
     }

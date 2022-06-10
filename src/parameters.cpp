@@ -6,36 +6,36 @@
 Parameters Parameters::init()
 {
     Parameters parameters =  {
-        .onsite = -0.15,
+        .onsite = -0.0,
         .onsite_l = -0.0,
         .onsite_r = -0.0,
-        .hopping = -1.0,
-        .hopping_y = -1.0,
-        .hopping_x = -1.0,
-        .hopping_lz = -1.0,
-        .hopping_ly = -1.0,
-        .hopping_lx = -1.0,
-        .hopping_rz = -1.0,
-        .hopping_ry = -1.0,
-        .hopping_rx = -1.0,
-        .hopping_lc = -1.0,
-        .hopping_rc = -1.0,
+        .hopping = -0.10,
+        .hopping_y = -0.10,
+        .hopping_x = -0.10,
+        .hopping_lz = -0.10,
+        .hopping_ly = -0.10,
+        .hopping_lx = -0.10,
+        .hopping_rz = -0.10,
+        .hopping_ry = -0.10,
+        .hopping_rx = -0.10,
+        .hopping_lc = -0.10,
+        .hopping_rc = -0.10,
         .chain_length = 1,
         .chain_length_y = 100,
         .chain_length_x = 100,
         .chemical_potential = 0.0,
         .temperature = 00.0,
-        .e_upper_bound = 15.0,
-        .e_lower_bound = -15.0,
-        .hubbard_interaction = 0.3,
+        .e_upper_bound = 4.0,
+        .e_lower_bound = -4.0,
+        .hubbard_interaction = 0.03,
         .voltage_step = 0,
-        .self_consistent_steps = 20,
+        .self_consistent_steps = 1,
         .read_in_self_energy = false,
-        .NIV_points = 8,
+        .NIV_points = 2,
         .delta_v = 0.05,
         .delta_leads = 0.000000001,
         .delta_gf = 0.0000001,
-        .leads_3d = true
+        .leads_3d = false
     
     };
 
@@ -59,7 +59,7 @@ Parameters Parameters::init()
         parameters.interaction_order = 2;
     }
 
-    parameters.steps = 801; //you must make sure the energy spacing is less than delta_v
+    parameters.steps = 1201; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;

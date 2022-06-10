@@ -66,7 +66,7 @@ int main() {
                                  std::vector<dcomp>(parameters.steps, 0));
 
 
-  for (int m = 0; m < parameters.NIV_points; m++) {
+  for (int m = 1; m < parameters.NIV_points; m++) {
     if (m != 0 && parameters.leads_3d == true){
 
         kx.resize(parameters.chain_length_x);

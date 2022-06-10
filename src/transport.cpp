@@ -159,12 +159,12 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		trace_right = trace_right_a + trace_right_b;		
 
 		integrand_file << parameters.energy.at(r) << "  "
-				<< trace_left_a << "  "
-				<< trace_right_a << "  "
-				<< trace_left_b << "  "
-				<< trace_right_b << "  "
-				<< trace_left << "  "
-				<< trace_right <<"\n";
+				<< trace_left_a.real() << "  "
+				<< trace_right_a.real() << "  "
+				<< trace_left_b.real() << "  "
+				<< trace_right_b.real() << "  "
+				<< trace_left.real() << "  "
+				<< trace_right.real() <<"\n";
 				
 		*current_left -= delta_energy * trace_left;
 		*current_right -= delta_energy * trace_right;
