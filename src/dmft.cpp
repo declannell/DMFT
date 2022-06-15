@@ -181,7 +181,7 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
         std::vector<std::vector<dcomp>> &self_energy_mb_lesser_up, std::vector<std::vector<dcomp>> &self_energy_mb_lesser_down,
         std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down, 
         std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_lesser_down,
-        std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup){
+        std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian){
 
     double difference = std::numeric_limits<double>::infinity();
     int index, count = 0;
@@ -219,9 +219,9 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
             }
         }
         get_local_gf_r_and_lesser(parameters, kx, ky, self_energy_mb_up, self_energy_mb_lesser_up,
-            leads, gf_local_up, gf_local_lesser_up, voltage_step);
+            leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
         get_local_gf_r_and_lesser(parameters, kx, ky, self_energy_mb_down, self_energy_mb_lesser_down,
-            leads, gf_local_down, gf_local_lesser_down, voltage_step);
+            leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);
 
         if(voltage_step == 0){
             std::vector<Eigen::MatrixXcd> gf_local_lesser_up_FD(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));

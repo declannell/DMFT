@@ -14,7 +14,7 @@ void get_transmission(
     const std::vector<std::vector<dcomp>> &self_energy_mb,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
     std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
-    const int voltage_step);
+    const int voltage_step, std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian);
 
 void get_landauer_buttiker_current(const Parameters &parameters,
                                    const std::vector<dcomp> &transmission_up,
@@ -23,12 +23,12 @@ void get_landauer_buttiker_current(const Parameters &parameters,
                                    const int votlage_step);
 
 void get_meir_wingreen_current(
-    Parameters &parameters, std::vector<double> const &kx,
+    const Parameters &parameters, std::vector<double> const &kx,
     std::vector<double> const &ky,
-    std::vector<std::vector<dcomp>> &self_energy_mb,
-    std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
-    std::vector<std::vector<EmbeddingSelfEnergy>> &leads, int voltage_step,
-    dcomp *current_left, dcomp *current_right);
+    const std::vector<std::vector<dcomp>> &self_energy_mb,
+    const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
+    const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, const int voltage_step,
+    dcomp *current_left, dcomp *current_right, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian);
 
 void get_meir_wingreen_k_dependent_current(
     const Parameters &parameters, std::vector<Eigen::MatrixXcd> &green_function,

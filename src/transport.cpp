@@ -11,10 +11,13 @@
 #include "leads_self_energy.h"
 #include "parameters.h"
 
-void get_transmission(const Parameters& parameters, const std::vector<double>& kx,
-    const std::vector<double>& ky, const std::vector<std::vector<dcomp>>& self_energy_mb,
-    const std::vector<std::vector<EmbeddingSelfEnergy>>& leads, std::vector<dcomp>& transmission_up,
-    std::vector<dcomp>& transmission_down, const int voltage_step)
+void get_transmission(
+    const Parameters &parameters, const std::vector<double> &kx,
+    const std::vector<double> &ky,
+    const std::vector<std::vector<dcomp>> &self_energy_mb,
+    const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
+    std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
+    const int voltage_step, std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian)
 {
 	int n_x, n_y;
     if (parameters.leads_3d == false){
@@ -32,11 +35,11 @@ void get_transmission(const Parameters& parameters, const std::vector<double>& k
 		for (int ky_i = 0; ky_i < n_y; ky_i++) {
 			Interacting_GF gf_interacting_up(parameters, kx.at(kx_i), ky.at(ky_i), self_energy_mb,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
-			    voltage_step);
+			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
 			Interacting_GF gf_interacting_down(parameters, kx.at(kx_i), ky.at(ky_i), self_energy_mb,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
-			    voltage_step);
+			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
 			for (int r = 0; r < parameters.steps; r++) {
 				dcomp coupling_left = 2 * leads.at(kx_i).at(ky_i).self_energy_left.at(r).imag();
@@ -80,10 +83,13 @@ void get_landauer_buttiker_current(const Parameters& parameters,
 	}
 }
 
-void get_meir_wingreen_current(Parameters& parameters, std::vector<double> const& kx,
-    std::vector<double> const& ky, std::vector<std::vector<dcomp>>& self_energy_mb,
-    std::vector<std::vector<dcomp>>& self_energy_mb_lesser,
-    std::vector<std::vector<EmbeddingSelfEnergy>>& leads, int voltage_step, dcomp* current_left, dcomp* current_right)
+void get_meir_wingreen_current(
+    const Parameters &parameters, std::vector<double> const &kx,
+    std::vector<double> const &ky,
+    const std::vector<std::vector<dcomp>> &self_energy_mb,
+    const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
+    const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, const int voltage_step,
+    dcomp *current_left, dcomp *current_right, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian)
 {
 	int n_x, n_y;
     if (parameters.leads_3d == false){
@@ -99,7 +105,7 @@ void get_meir_wingreen_current(Parameters& parameters, std::vector<double> const
 		for (int ky_i = 0; ky_i < n_y; ky_i++) {
 			Interacting_GF gf_interacting(parameters, kx.at(kx_i), ky.at(ky_i), self_energy_mb,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
-			    voltage_step);
+			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
 			std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps,
 			    Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
