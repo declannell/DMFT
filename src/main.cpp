@@ -119,10 +119,10 @@ int main() {
     }
 
     std::cout << "leads complete" << std::endl;
-    get_local_gf_r_and_lesser(parameters, kx, ky, self_energy_mb_up,
+    get_local_gf_r_and_lesser(parameters, self_energy_mb_up,
                               self_energy_mb_lesser_up, leads, gf_local_up,
                               gf_local_lesser_up, m, hamiltonian);
-    get_local_gf_r_and_lesser(parameters, kx, ky, self_energy_mb_down,
+    get_local_gf_r_and_lesser(parameters, self_energy_mb_down,
                               self_energy_mb_lesser_down, leads, gf_local_down,
                               gf_local_lesser_down, m, hamiltonian);
 
@@ -154,7 +154,7 @@ int main() {
 
     std::vector<double> spins_occup(2 * parameters.chain_length);
 
-    dmft(parameters, m, kx, ky, self_energy_mb_up, self_energy_mb_down,
+    dmft(parameters, m, self_energy_mb_up, self_energy_mb_down,
          self_energy_mb_lesser_up, self_energy_mb_lesser_down, gf_local_up,
          gf_local_down, gf_local_lesser_up, gf_local_lesser_down, leads,
          spins_occup, hamiltonian);
@@ -170,29 +170,29 @@ int main() {
     std::vector<dcomp> transmission_down(parameters.steps, 0);
     if (parameters.hubbard_interaction == 0) {
 
-      get_transmission(parameters, kx, ky, self_energy_mb_up, leads,
+      get_transmission(parameters, self_energy_mb_up, leads,
                        transmission_up, transmission_down, m, hamiltonian);
 
       get_landauer_buttiker_current(parameters, transmission_up,
                                     transmission_down, &current_up.at(m),
                                     &current_down.at(m), m);
 
-      get_meir_wingreen_current(parameters, kx, ky, self_energy_mb_up,
+      get_meir_wingreen_current(parameters, self_energy_mb_up,
                                 self_energy_mb_lesser_up, leads, m,
                                 &current_up_left.at(m), &current_up_right.at(m),
                                 hamiltonian);
 
-      get_meir_wingreen_current(parameters, kx, ky, self_energy_mb_down,
+      get_meir_wingreen_current(parameters, self_energy_mb_down,
                                 self_energy_mb_lesser_down, leads, m,
                                 &current_down_left.at(m),
                                 &current_down_right.at(m), hamiltonian);
     } else {
 
-      get_meir_wingreen_current(parameters, kx, ky, self_energy_mb_up,
+      get_meir_wingreen_current(parameters, self_energy_mb_up,
                                 self_energy_mb_lesser_up, leads, m,
                                 &current_up_left.at(m), &current_up_right.at(m),
                                 hamiltonian);
-      get_meir_wingreen_current(parameters, kx, ky, self_energy_mb_down,
+      get_meir_wingreen_current(parameters, self_energy_mb_down,
                                 self_energy_mb_lesser_down, leads, m,
                                 &current_down_left.at(m),
                                 &current_down_right.at(m), hamiltonian);

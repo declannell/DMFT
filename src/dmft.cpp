@@ -176,8 +176,8 @@ void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_up
 
 
 
-void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &kx, std::vector<double> const &ky, 
-        std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down, 
+void dmft(Parameters &parameters, int voltage_step, std::vector<std::vector<dcomp>> &self_energy_mb_up, 
+        std::vector<std::vector<dcomp>> &self_energy_mb_down, 
         std::vector<std::vector<dcomp>> &self_energy_mb_lesser_up, std::vector<std::vector<dcomp>> &self_energy_mb_lesser_down,
         std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down, 
         std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_lesser_down,
@@ -218,9 +218,9 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<double> const &k
                 self_energy_mb_lesser_down.at(i).at(r) = impurity_self_energy_lesser_down.at(r);
             }
         }
-        get_local_gf_r_and_lesser(parameters, kx, ky, self_energy_mb_up, self_energy_mb_lesser_up,
+        get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up,
             leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
-        get_local_gf_r_and_lesser(parameters, kx, ky, self_energy_mb_down, self_energy_mb_lesser_down,
+        get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down,
             leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);
 
         if(voltage_step == 0){

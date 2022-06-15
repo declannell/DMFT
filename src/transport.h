@@ -9,8 +9,7 @@
 #include <vector>
 
 void get_transmission(
-    const Parameters &parameters, const std::vector<double> &kx,
-    const std::vector<double> &ky,
+    const Parameters &parameters, 
     const std::vector<std::vector<dcomp>> &self_energy_mb,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
     std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
@@ -23,8 +22,7 @@ void get_landauer_buttiker_current(const Parameters &parameters,
                                    const int votlage_step);
 
 void get_meir_wingreen_current(
-    const Parameters &parameters, std::vector<double> const &kx,
-    std::vector<double> const &ky,
+    const Parameters &parameters, 
     const std::vector<std::vector<dcomp>> &self_energy_mb,
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, const int voltage_step,

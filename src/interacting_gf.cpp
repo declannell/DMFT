@@ -14,8 +14,8 @@
 double Interacting_GF::kx() const { return kx_value; }
 double Interacting_GF::ky() const { return ky_value; }
 
-Interacting_GF::Interacting_GF(const Parameters &parameters, const double _kx, const double _ky, const std::vector<std::vector<dcomp>> &self_energy_mb, const  std::vector<dcomp> &self_energy_left,
-                const std::vector<dcomp> &self_energy_right, const int voltage_step, const  Eigen::MatrixXd &hamiltonian): kx_value(_kx), ky_value(_ky)
+Interacting_GF::Interacting_GF(const Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, const  std::vector<dcomp> &self_energy_left,
+                const std::vector<dcomp> &self_energy_right, const int voltage_step, const  Eigen::MatrixXd &hamiltonian)
 {
     this->interacting_gf.resize(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     get_interacting_gf(parameters, hamiltonian, self_energy_mb, self_energy_left,
@@ -112,7 +112,7 @@ void get_analytic_gf_1_site(Parameters &parameters, std::vector<Eigen::MatrixXcd
     myfile.close();
 }
 
-void get_local_gf(Parameters &parameters, std::vector<double> const &kx, std::vector<double> const &ky, std::vector<std::vector<dcomp>> &self_energy_mb, 
+void get_local_gf(Parameters &parameters, std::vector<std::vector<dcomp>> &self_energy_mb, 
     std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, int voltage_step, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian){
 
     int n_x, n_y;
@@ -128,8 +128,7 @@ void get_local_gf(Parameters &parameters, std::vector<double> const &kx, std::ve
     for(int kx_i = 0; kx_i < n_x; kx_i++) {
         for(int ky_i = 0; ky_i < n_y; ky_i++) {
 
-            Interacting_GF gf_interacting(parameters,
-                kx.at(kx_i), ky.at(ky_i), self_energy_mb,
+            Interacting_GF gf_interacting(parameters, self_energy_mb,
                 leads.at(kx_i).at(ky_i).self_energy_left,
                 leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
@@ -193,7 +192,7 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
 }
 
 
-void get_local_gf_r_and_lesser(const Parameters &parameters, const std::vector<double> &kx, const std::vector<double> &ky, 
+void get_local_gf_r_and_lesser(const Parameters &parameters, 
     const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
     std::vector<Eigen::MatrixXcd> &gf_local_lesser, const int voltage_step, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian){
@@ -217,8 +216,7 @@ void get_local_gf_r_and_lesser(const Parameters &parameters, const std::vector<d
     double num_k_points = n_x * n_y;
     for(int kx_i = 0; kx_i < n_x; kx_i++) {
         for(int ky_i = 0; ky_i < n_y; ky_i++) {
-            Interacting_GF gf_interacting(parameters,
-                kx.at(kx_i), ky.at(ky_i), self_energy_mb,
+            Interacting_GF gf_interacting(parameters, self_energy_mb,
                 leads.at(kx_i).at(ky_i).self_energy_left,
                 leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));
 

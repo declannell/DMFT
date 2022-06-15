@@ -17,7 +17,7 @@ private:
 
 public:
     std::vector<Eigen::MatrixXcd> interacting_gf;
-    Interacting_GF(const Parameters &parameters, const double _kx, const double _ky, const std::vector<std::vector<dcomp>> &self_energy_mb, const  std::vector<dcomp> &self_energy_left,
+    Interacting_GF(const Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, const  std::vector<dcomp> &self_energy_left,
                 const std::vector<dcomp> &self_energy_right, const int voltage_step, const Eigen::MatrixXd &hamiltonian);
 
     void get_interacting_gf(const Parameters &parameters, const Eigen::MatrixXcd& hamiltonian, const std::vector<std::vector<dcomp>> &self_energy_mb, 
@@ -33,7 +33,7 @@ void get_analytic_gf_1_site(Parameters &parameters, std::vector<Eigen::MatrixXcd
 
 void run(Parameters &parameters);
 
-void get_local_gf(Parameters &parameters, std::vector<double> const &kx, std::vector<double> const &ky, std::vector<std::vector<dcomp>> &self_energy_mb, 
+void get_local_gf(Parameters &parameters, std::vector<std::vector<dcomp>> &self_energy_mb, 
     std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, int voltage_step, const  std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian);
 
 void get_advance_gf(const Parameters &parameters, const Eigen::MatrixXcd &gf_retarded, Eigen::MatrixXcd &gf_advanced);
@@ -42,7 +42,7 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<dcomp> &self_energy_left,
     const std::vector<dcomp> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser_local, int voltage_step);
 
-void get_local_gf_r_and_lesser(const Parameters &parameters, const std::vector<double> &kx, const std::vector<double> &ky, 
+void get_local_gf_r_and_lesser(const Parameters &parameters,  
     const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
     std::vector<Eigen::MatrixXcd> &gf_local_lesser, const int voltage_step, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian);

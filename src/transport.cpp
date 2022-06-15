@@ -12,8 +12,7 @@
 #include "parameters.h"
 
 void get_transmission(
-    const Parameters &parameters, const std::vector<double> &kx,
-    const std::vector<double> &ky,
+    const Parameters &parameters, 
     const std::vector<std::vector<dcomp>> &self_energy_mb,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
     std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
@@ -33,11 +32,11 @@ void get_transmission(
 
 	for (int kx_i = 0; kx_i < n_x; kx_i++) {
 		for (int ky_i = 0; ky_i < n_y; ky_i++) {
-			Interacting_GF gf_interacting_up(parameters, kx.at(kx_i), ky.at(ky_i), self_energy_mb,
+			Interacting_GF gf_interacting_up(parameters, self_energy_mb,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
-			Interacting_GF gf_interacting_down(parameters, kx.at(kx_i), ky.at(ky_i), self_energy_mb,
+			Interacting_GF gf_interacting_down(parameters, self_energy_mb,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
@@ -84,8 +83,7 @@ void get_landauer_buttiker_current(const Parameters& parameters,
 }
 
 void get_meir_wingreen_current(
-    const Parameters &parameters, std::vector<double> const &kx,
-    std::vector<double> const &ky,
+    const Parameters &parameters, 
     const std::vector<std::vector<dcomp>> &self_energy_mb,
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, const int voltage_step,
@@ -103,7 +101,7 @@ void get_meir_wingreen_current(
     double num_k_points = n_x * n_y;
 	for (int kx_i = 0; kx_i < n_x; kx_i++) {
 		for (int ky_i = 0; ky_i < n_y; ky_i++) {
-			Interacting_GF gf_interacting(parameters, kx.at(kx_i), ky.at(ky_i), self_energy_mb,
+			Interacting_GF gf_interacting(parameters, self_energy_mb,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
