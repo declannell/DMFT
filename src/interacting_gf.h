@@ -42,6 +42,8 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<dcomp> &self_energy_left,
     const std::vector<dcomp> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser_local, int voltage_step);
 
+void get_gf_lesser_fd(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, std::vector<Eigen::MatrixXcd> &gf_lesser);
+
 void get_local_gf_r_and_lesser(const Parameters &parameters,  
     const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 

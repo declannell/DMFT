@@ -1,17 +1,21 @@
 #pragma once
-#include <vector>
 #include <complex>
 #include <cmath>
+#include <vector>
 
 typedef std::complex<double> dcomp;
 
 
 struct Parameters
 {
-    double onsite;         // onsite energy in the scattering region
+    double onsite_cor;         // onsite energy in the correlated region
+    double onsite_ins_l;   // onsite energy in the left insulating region
+    double onsite_ins_r;   // onsite energy in the right insulating region
     double onsite_l;       // onsite energy in the left lead
     double onsite_r;       // onsite energy in the right lead
-    double hopping;        // the hopping the z direction of the scattering region
+    double hopping_cor;        // the hopping the z direction of the scattering region
+    double hopping_ins_l; //the hopping in the left insulating region
+    double hopping_ins_r; //the hopping in the right insulating region    
     double hopping_y;      // the double hopping the y direction of the scattering region
     double hopping_x;      // the hopping in the x direction of the scattering region
     double hopping_lz;     // the hopping in the z direction of the left lead
@@ -22,9 +26,13 @@ struct Parameters
     double hopping_rx;     // the hopping in the x direction of the left lead
     double hopping_lc;     // the hopping inbetween the left lead and scattering region
     double hopping_rc;     // the hopping inbetween the right lead and scattering region
-    int chain_length;   // the number of atoms in the z direction of the scattering region
-    int chain_length_y; // this is the number of k in the y direction for the scattering region
-    int chain_length_x; // This is the number of points in the x direction.
+    double hopping_ins_l_cor; //the hopping between the insulating layers on the left and the correlated region    
+    double hopping_ins_r_cor; //the hopping between the insulating layers on the right and the correlated region
+    int num_cor; //this is the number of correlated atoms between the insulating atoms.
+    int num_ins_left; //this is the number of insulating layers on the left side.    
+    int num_ins_right; //this is the number of insulating layers on the right side.
+    int num_ky_points; // this is the number of k in the y direction for the scattering region
+    int num_kx_points; // This is the number of points in the x direction.
     double chemical_potential;
     double temperature;
     double e_upper_bound;       // this is the max energy value
@@ -33,13 +41,12 @@ struct Parameters
     int voltage_step;        // voltage step of zero is equilibrium. This is an integer and higher values correspond to a higher potential difference between the two leads.
     double self_consistent_steps; // this is the number of self consistent steps my code needs
     bool read_in_self_energy;
-    int NIV_points;
-    double delta_v;
-    double delta_leads;
-    double delta_gf;
+    int NIV_points;//number of IV points
+    double delta_v; //the voltage step between IV points
+    double delta_leads; //delta in the leads
+    double delta_gf; //delta in the scattering region
     bool leads_3d;//if true, this will attach 3d leads to a 1d scattering region
-    double gamma_l;
-    double gamma_r;
+    int chain_length;   // the number of atoms in the z direction of the scattering region
     int interaction_order; // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
     std::string path_of_self_energy_up;
     std::string path_of_self_energy_down;

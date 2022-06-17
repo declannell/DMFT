@@ -125,7 +125,7 @@ void run(const Parameters &parameters)
     EmbeddingSelfEnergy leads(parameters, M_PI / 2.0, M_PI / 2.0, parameters.voltage_step);
 
     std::ofstream myfile;
-    myfile.open("/home/declan/green_function_code/quantum_transport/textfiles/self_energy_lead_real.txt");
+    myfile.open("/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/self_energy_lead_real.txt");
     // myfile << parameters.steps << std::endl;
     for (int r = 0; r < parameters.steps; r++)
     {
@@ -138,10 +138,10 @@ void run(const Parameters &parameters)
 }
 
 void get_k_averaged_embedding_self_energy(const Parameters parameters, std::vector<std::vector<EmbeddingSelfEnergy>> &leads){
-    int num_k = parameters.chain_length_x * parameters.chain_length_y;
+    int num_k = parameters.num_kx_points * parameters.num_ky_points;
     std::vector<dcomp> k_averaged_self_energy_left(parameters.steps), k_averaged_self_energy_right(parameters.steps);
-    for( int kx_i = 0; kx_i < parameters.chain_length_x; kx_i++) {
-        for( int ky_i = 0; ky_i < parameters.chain_length_y; ky_i++) {
+    for( int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
+        for( int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
             for(int r = 0; r < parameters.steps; r++) {
                 k_averaged_self_energy_left.at(r) += leads.at(kx_i).at(ky_i).self_energy_left.at(r) / (double)num_k;
                 k_averaged_self_energy_right.at(r) += leads.at(kx_i).at(ky_i).self_energy_right.at(r) / (double)num_k;
@@ -162,8 +162,8 @@ void get_k_averaged_embedding_self_energy(const Parameters parameters, std::vect
 
     std::ofstream embedding_se_file;
     embedding_se_file.open(
-        "/home/declan/green_function_code/quantum_transport/textfiles/"
-        "c++_embedding_self_energyS.txt");
+        "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/"
+        "embedding_self_energy.txt");
     // myfile << parameters.steps << std::endl;
 
 	for (int r = 0; r < parameters.steps; r++) {
@@ -176,5 +176,34 @@ void get_k_averaged_embedding_self_energy(const Parameters parameters, std::vect
 	embedding_se_file.close();
 }
 
+void get_spectral_embedding_self_energy(const Parameters parameters, std::vector<std::vector<EmbeddingSelfEnergy>> &leads, int m){
+    int num_k = parameters.num_kx_points * parameters.num_ky_points;
+    std::vector<dcomp> k_averaged_self_energy_left(parameters.steps), k_averaged_self_energy_right(parameters.steps);
+    for( int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
+        for( int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
+            for(int r = 0; r < parameters.steps; r++) {
+                k_averaged_self_energy_left.at(r) += leads.at(kx_i).at(ky_i).self_energy_left.at(r) / (double)num_k;
+                k_averaged_self_energy_right.at(r) += leads.at(kx_i).at(ky_i).self_energy_right.at(r) / (double)num_k;
+            }
+        }
+    }
+
+    std::ostringstream oss;
+    oss << "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/" << m << ".spectral_leads.txt";
+    std::string var = oss.str();
+
+    std::ofstream embedding_se_file;
+    embedding_se_file.open(var);
+    // myfile << parameters.steps << std::endl;
+
+	for (int r = 0; r < parameters.steps; r++) {
+		embedding_se_file << parameters.energy.at(r) << "  "
+				<< k_averaged_self_energy_left.at(r).real() << "  "
+				<< k_averaged_self_energy_left.at(r).imag() << "  "
+				<< k_averaged_self_energy_right.at(r).real() << "  " 
+                << k_averaged_self_energy_right.at(r).imag() <<"\n";
+	}
+	embedding_se_file.close();
+}
 
 

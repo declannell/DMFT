@@ -6,10 +6,14 @@
 Parameters Parameters::init()
 {
     Parameters parameters =  {
-        .onsite = -0.0,
+        .onsite_cor = -0.0,
+        .onsite_ins_l = -0.18,
+        .onsite_ins_r = -0.18,
         .onsite_l = -0.0,
         .onsite_r = -0.0,
-        .hopping = -0.10,
+        .hopping_cor = -0.10,
+        .hopping_ins_l = -0.10,
+        .hopping_ins_r = -0.10,
         .hopping_y = -0.10,
         .hopping_x = -0.10,
         .hopping_lz = -0.10,
@@ -20,27 +24,31 @@ Parameters Parameters::init()
         .hopping_rx = -0.10,
         .hopping_lc = -0.10,
         .hopping_rc = -0.10,
-        .chain_length = 1,
-        .chain_length_y = 1,
-        .chain_length_x = 1,
+        .hopping_ins_l_cor = -0.1,
+        .hopping_ins_r_cor = -0.1,        
+        .num_cor = 1, //this is the number of correlated atoms between the insulating atoms.
+        .num_ins_left  = 2, //this is the number of insulating layers on the left side.    
+        .num_ins_right = 2,
+        .num_ky_points = 400,
+        .num_kx_points = 400,
         .chemical_potential = 0.0,
         .temperature = 00.0,
         .e_upper_bound = 4.0,
         .e_lower_bound = -4.0,
         .hubbard_interaction = 0.03,
         .voltage_step = 0,
-        .self_consistent_steps = 1,
+        .self_consistent_steps = 45,
         .read_in_self_energy = false,
-        .NIV_points = 8,
-        .delta_v = 0.005,
+        .NIV_points = 10,
+        .delta_v = 0.008,
         .delta_leads = 0.000000001,
-        .delta_gf = 0.0000001,
+        .delta_gf = 0.000001,
         .leads_3d = false
     
     };
 
-    parameters.path_of_self_energy_up = "/home/declan/green_function_code/quantum_transport/textfiles/local_se_up_1_k_points_81_energy.txt";
-    parameters.path_of_self_energy_down = "/home/declan/green_function_code/quantum_transport/textfiles/local_se_down_1_k_points_81_energy.txt";
+    parameters.path_of_self_energy_up = "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/local_se_up_1_k_points_81_energy.txt";
+    parameters.path_of_self_energy_down = "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/local_se_down_1_k_points_81_energy.txt";
 
     parameters.voltage_l.resize(parameters.NIV_points);
     parameters.voltage_r.resize(parameters.NIV_points);
@@ -59,7 +67,9 @@ Parameters Parameters::init()
         parameters.interaction_order = 2;
     }
 
-    parameters.steps = 801; //you must make sure the energy spacing is less than delta_v
+    parameters.chain_length = parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
+
+    parameters.steps = 901; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;

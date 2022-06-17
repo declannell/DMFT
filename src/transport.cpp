@@ -20,8 +20,8 @@ void get_transmission(
 {
 	int n_x, n_y;
     if (parameters.leads_3d == false){
-        n_x =  parameters.chain_length_x; //number of k points to take in x direction
-        n_y =  parameters.chain_length_y; //number of k points to take in y direction
+        n_x =  parameters.num_kx_points; //number of k points to take in x direction
+        n_y =  parameters.num_ky_points; //number of k points to take in y direction
     } else {
         n_x = 1;
         n_y = 1;
@@ -91,8 +91,8 @@ void get_meir_wingreen_current(
 {
 	int n_x, n_y;
     if (parameters.leads_3d == false){
-        n_x =  parameters.chain_length_x; //number of k points to take in x direction
-        n_y =  parameters.chain_length_y; //number of k points to take in y direction
+        n_x =  parameters.num_kx_points; //number of k points to take in x direction
+        n_y =  parameters.num_ky_points; //number of k points to take in y direction
     } else {
         n_x = 1;
         n_y = 1;
@@ -133,8 +133,8 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 	dcomp trace_left, trace_right, coupling_left, coupling_right, spectral_left, spectral_right;
     std::ofstream integrand_file;
     integrand_file.open(
-        "/home/declan/green_function_code/quantum_transport/textfiles/"
-        "c++_integrand.txt");
+        "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/"
+        "integrand.txt");
     // myfile << parameters.steps << std::endl;
 
 	for (int r = 0; r < parameters.steps; r++) {

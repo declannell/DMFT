@@ -24,3 +24,5 @@ void run(Parameters &parameters);
 std::vector<dcomp> analytic_self_energy(const Parameters &parameters, int voltage_step);
 
 void get_k_averaged_embedding_self_energy(const Parameters parameters, std::vector<std::vector<EmbeddingSelfEnergy>> &leads);
+
+void get_spectral_embedding_self_energy(const Parameters parameters, std::vector<std::vector<EmbeddingSelfEnergy>> &leads, int m);
