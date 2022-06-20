@@ -133,7 +133,7 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 	dcomp trace_left, trace_right, coupling_left, coupling_right, spectral_left, spectral_right;
     std::ofstream integrand_file;
     integrand_file.open(
-        "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/"
+        "textfiles/"
         "integrand.txt");
     // myfile << parameters.steps << std::endl;
 

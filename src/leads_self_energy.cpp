@@ -125,7 +125,7 @@ void run(const Parameters &parameters)
     EmbeddingSelfEnergy leads(parameters, M_PI / 2.0, M_PI / 2.0, parameters.voltage_step);
 
     std::ofstream myfile;
-    myfile.open("/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/self_energy_lead_real.txt");
+    myfile.open("textfiles/self_energy_lead_real.txt");
     // myfile << parameters.steps << std::endl;
     for (int r = 0; r < parameters.steps; r++)
     {
@@ -162,7 +162,7 @@ void get_k_averaged_embedding_self_energy(const Parameters parameters, std::vect
 
     std::ofstream embedding_se_file;
     embedding_se_file.open(
-        "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/"
+        "textfiles/"
         "embedding_self_energy.txt");
     // myfile << parameters.steps << std::endl;
 
@@ -189,7 +189,7 @@ void get_spectral_embedding_self_energy(const Parameters parameters, std::vector
     }
 
     std::ostringstream oss;
-    oss << "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/" << m << ".spectral_leads.txt";
+    oss << "textfiles/" << m << ".spectral_leads.txt";
     std::string var = oss.str();
 
     std::ofstream embedding_se_file;

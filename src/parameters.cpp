@@ -26,11 +26,11 @@ Parameters Parameters::init()
         .hopping_rc = -0.10,
         .hopping_ins_l_cor = -0.1,
         .hopping_ins_r_cor = -0.1,        
-        .num_cor = 1, //this is the number of correlated atoms between the insulating atoms.
-        .num_ins_left  = 2, //this is the number of insulating layers on the left side.    
-        .num_ins_right = 2,
-        .num_ky_points = 400,
-        .num_kx_points = 400,
+        .num_cor = 3, //this is the number of correlated atoms between the insulating atoms.
+        .num_ins_left  = 0, //this is the number of insulating layers on the left side.    
+        .num_ins_right = 0,
+        .num_ky_points = 1,
+        .num_kx_points = 1,
         .chemical_potential = 0.0,
         .temperature = 00.0,
         .e_upper_bound = 4.0,
@@ -39,7 +39,7 @@ Parameters Parameters::init()
         .voltage_step = 0,
         .self_consistent_steps = 45,
         .read_in_self_energy = false,
-        .NIV_points = 10,
+        .NIV_points = 1,
         .delta_v = 0.008,
         .delta_leads = 0.000000001,
         .delta_gf = 0.000001,
@@ -47,8 +47,8 @@ Parameters Parameters::init()
     
     };
 
-    parameters.path_of_self_energy_up = "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/local_se_up_1_k_points_81_energy.txt";
-    parameters.path_of_self_energy_down = "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/local_se_down_1_k_points_81_energy.txt";
+    parameters.path_of_self_energy_up = "textfiles/local_se_up_1_k_points_81_energy.txt";
+    parameters.path_of_self_energy_down = "textfiles/local_se_down_1_k_points_81_energy.txt";
 
     parameters.voltage_l.resize(parameters.NIV_points);
     parameters.voltage_r.resize(parameters.NIV_points);
@@ -69,7 +69,7 @@ Parameters Parameters::init()
 
     parameters.chain_length = parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
 
-    parameters.steps = 901; //you must make sure the energy spacing is less than delta_v
+    parameters.steps = 601; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;

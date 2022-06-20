@@ -51,7 +51,7 @@ void print_parameters(Parameters &parameters){
         std::cout << "delta_leads = " << parameters.delta_leads << std::endl;        
         std::cout << "delta_gf = " << parameters.delta_gf << std::endl;        
         std::cout << "leads_3d = " << parameters.leads_3d << std::endl;
-        std::cout << "parameters.interaction_order ; = " << parameters.interaction_order << std::endl;
+        std::cout << "parameters.interaction_order = " << parameters.interaction_order << std::endl;
         std::cout << "parameters.steps = " << parameters.steps << std::endl;       
         std::cout << "parameters.chain_length = " << parameters.chain_length << std::endl;  
 }
@@ -249,30 +249,46 @@ int main() {
     }
 
 
-    // myfile << parameters.steps << std::endl;
-   // for (int i = 0; i < parameters.chain_length; i++) {
-   //   std::ostringstream ossgf;
-   //   ossgf << "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/" << m << "." << i << ".gf.txt";
-   //   std::string var = ossgf.str();
-//
-   //   std::ofstream gf_local_file;
-   //   gf_local_file.open(var);
-   //   for (int r = 0; r < parameters.steps; r++) {
-   //     gf_local_file << parameters.energy.at(r) << "  "
-   //                   << gf_local_up.at(r)(i, i).real() << "   "
-   //                   << gf_local_up.at(r)(i, i).imag() << "   "
-   //                   << gf_local_down.at(r)(i, i).real() << "   "
-   //                   << gf_local_down.at(r)(i, i).imag() << " \n";
-//
-   //     // std::cout << leads.self_energy_left.at(r) << "\n";
-   //   }
-   //   gf_local_file.close();
-   // }
+     for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++) {
+       std::ostringstream ossgf;
+       ossgf << "textfiles/" << m << "." << i << ".gf.txt";
+       std::string var = ossgf.str();
+ 
+       std::ofstream gf_local_file;
+       gf_local_file.open(var);
+       for (int r = 0; r < parameters.steps; r++) {
+         gf_local_file << parameters.energy.at(r) << "  "
+                       << gf_local_up.at(r)(i, i).real() << "   "
+                       << gf_local_up.at(r)(i, i).imag() << "   "
+                       << gf_local_down.at(r)(i, i).real() << "   "
+                       << gf_local_down.at(r)(i, i).imag() << " \n";
+ 
+         // std::cout << leads.self_energy_left.at(r) << "\n";
+       }
+       gf_local_file.close();
+     }
 
-    
+
+     for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++) {
+       std::ostringstream ossgf;
+       ossgf << "textfiles/" << m << "." << i << ".gf_lesser.txt";
+       std::string var = ossgf.str();
+ 
+       std::ofstream gf_lesser_file;
+       gf_lesser_file.open(var);
+       for (int r = 0; r < parameters.steps; r++) {
+         gf_lesser_file << parameters.energy.at(r) << "  "
+                       << gf_local_lesser_up.at(r)(i, i).real() << "   "
+                       << gf_local_lesser_up.at(r)(i, i).imag() << "   "
+                       << gf_local_lesser_down.at(r)(i, i).real() << "   "
+                       << gf_local_lesser_down.at(r)(i, i).imag() << " "
+                       << - 2.0 * parameters.j1 * fermi_function(parameters.energy.at(r), parameters) * gf_local_down.at(r)(i, i).imag() << "\n";
+       }
+       gf_lesser_file.close();
+     } 
 
     std::ostringstream oss;
-    oss << "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/" << m << ".tranmission.txt";
+    oss << "textfiles/" << m << ".tranmission.txt";
     std::string var = oss.str();
 
     std::ofstream transmission_file;
@@ -287,7 +303,7 @@ int main() {
     transmission_file.close();
 
     std::ostringstream oss1;
-    oss1 << "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/" << m << ".dos.txt";
+    oss1 << "textfiles/" << m << ".dos.txt";
     var = oss1.str();
 
 
@@ -308,43 +324,45 @@ int main() {
     dos_file.close();
 
 
- //   for (int i = 0; i < parameters.chain_length; i++) {
- //     std::ostringstream ossser;
- //     ossser << "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/" << m << "." << i << ".se_r.txt";
- //     var = ossser.str();
- //     std::ofstream se_r_file;
- //     se_r_file.open(var);
- //     for (int r = 0; r < parameters.steps; r++) {
- //       se_r_file << parameters.energy.at(r) << "  "
- //                 << self_energy_mb_up.at(i).at(r).real() << "  "
- //                 << self_energy_mb_up.at(i).at(r).imag() << "  "
- //                 << self_energy_mb_down.at(i).at(r).real() << "  "
- //                 << self_energy_mb_down.at(i).at(r).imag() << "\n";
- //     }
- //     se_r_file.close();
- //   }
+    for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++)  {
+      std::ostringstream ossser;
+      ossser << "textfiles/" << m << "." << i << ".se_r.txt";
+      var = ossser.str();
+      std::ofstream se_r_file;
+      se_r_file.open(var);
+      for (int r = 0; r < parameters.steps; r++) {
+        se_r_file << parameters.energy.at(r) << "  "
+                  << self_energy_mb_up.at(i).at(r).real() << "  "
+                  << self_energy_mb_up.at(i).at(r).imag() << "  "
+                  << self_energy_mb_down.at(i).at(r).real() << "  "
+                  << self_energy_mb_down.at(i).at(r).imag() << "\n";
+      }
+      se_r_file.close();
+    }
 
-//
-   // for (int i = 0; i < parameters.chain_length; i++) {
-   //   std::ostringstream osssel;
-   //   osssel << "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/" << m << "." << i << ".se_l.txt";
-   //   var = osssel.str();
-   //   std::ofstream se_lesser_file;
-   //   se_lesser_file.open(var);
-   //   for (int r = 0; r < parameters.steps; r++) {
-   //     se_lesser_file << parameters.energy.at(r) << "  "
-   //                    << self_energy_mb_lesser_up.at(i).at(r).real() << " "
-   //                    << self_energy_mb_lesser_up.at(i).at(r).imag() << "\n";
-   //   }
-   //   se_lesser_file.close();
-   // }
-//
+
+    for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++) {
+      std::ostringstream osssel;
+      osssel << "textfiles/" << m << "." << i << ".se_l.txt";
+      var = osssel.str();
+      std::ofstream se_lesser_file;
+      se_lesser_file.open(var);
+      for (int r = 0; r < parameters.steps; r++) {
+        dcomp x = - 2.0 * fermi_function(parameters.energy.at(r), parameters) * (self_energy_mb_up.at(i).at(r).imag());
+        se_lesser_file << parameters.energy.at(r) << "  "
+                       << self_energy_mb_lesser_up.at(i).at(r).real() << " "
+                       << self_energy_mb_lesser_up.at(i).at(r).imag() << " "
+                       << x.imag() << "\n";
+      }
+      se_lesser_file.close();
+    }
+
   }
 
   if (parameters.hubbard_interaction == 0) {
     std::ofstream current_file;
     current_file.open(
-        "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/"
+        "textfiles/"
         "current.txt");
     // myfile << parameters.steps << std::endl;
     for (int m = 0; m < parameters.NIV_points; m++) {
@@ -375,7 +393,7 @@ int main() {
 
     std::ofstream current_file;
     current_file.open(
-        "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/"
+        "textfiles/"
         "current.txt");
     for (int m = 0; m < parameters.NIV_points; m++) {
       std::cout << "The spin up left current is " << current_up_left.at(m)

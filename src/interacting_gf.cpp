@@ -92,7 +92,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
 
     std::ofstream potential_file;
     potential_file.open(
-        "/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/"
+        "textfiles/"
         "potential.txt");
     potential_file << -5 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
     potential_file << -4 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
@@ -180,7 +180,7 @@ void get_analytic_gf_1_site(Parameters &parameters, std::vector<Eigen::MatrixXcd
     std::cout << "The difference between the numerical and the analytic greeen function is " << difference << std::endl;
     std::cout << parameters.j1;
     std::ofstream myfile;
-    myfile.open("/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/gf_c++_analytic.txt");
+    myfile.open("textfiles/gf_c++_analytic.txt");
     // myfile << parameters.steps << std::endl;
     for (int r = 0; r < parameters.steps; r++)
     {

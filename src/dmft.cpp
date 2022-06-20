@@ -13,7 +13,7 @@ void get_spin_occupation(Parameters &parameters, std::vector<dcomp> &gf_lesser_u
                         std::vector<dcomp> &gf_lesser_down, double *spin_up, double *spin_down){
     double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
     double result_up = 0.0, result_down = 0.0;
-   //for(int r = 0; r < parameters.steps; r++){
+    //for(int r = 0; r < parameters.steps; r++){
     //    result_up = (delta_energy) * gf_lesser_up.at(r).imag() + result_up;
     //    result_down = (delta_energy) * gf_lesser_down.at(r).imag() + result_down;
     //}
@@ -187,10 +187,10 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<std::vector<dcom
     int index, count = 0;
 
     std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-    while (difference > 0.00001 && count < parameters.self_consistent_steps){
+    while (difference > 0.0001 && count < parameters.self_consistent_steps){
         get_difference(parameters, gf_local_up, old_green_function, difference, index);
         std::cout << "The difference is " << difference <<". The count is " << count << std::endl;
-        if (difference < 0.0000001){
+        if (difference < 0.0001){
             break;
         }
 
@@ -213,10 +213,10 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<std::vector<dcom
             impurity_self_energy_lesser_down, &spins_occup.at(i), &spins_occup.at(i + parameters.chain_length));
 
             for(int r = 0; r < parameters.steps; r++){
-                self_energy_mb_up.at(i).at(r) = impurity_self_energy_up.at(r);
-                self_energy_mb_down.at(i).at(r) = impurity_self_energy_down.at(r);
-                self_energy_mb_lesser_up.at(i).at(r) = impurity_self_energy_lesser_up.at(r);
-                self_energy_mb_lesser_down.at(i).at(r) = impurity_self_energy_lesser_down.at(r);
+                self_energy_mb_up.at(i).at(r) = (impurity_self_energy_up.at(r) + self_energy_mb_up.at(i).at(r)) * 0.5;
+                self_energy_mb_down.at(i).at(r) = (impurity_self_energy_down.at(r) + self_energy_mb_down.at(i).at(r)) * 0.5;
+                self_energy_mb_lesser_up.at(i).at(r) = (impurity_self_energy_lesser_up.at(r) + self_energy_mb_lesser_up.at(i).at(r)) * 0.5;
+                self_energy_mb_lesser_down.at(i).at(r) = (impurity_self_energy_lesser_down.at(r) + self_energy_mb_lesser_down.at(i).at(r)) * 0.5;
             }
         }
         get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up,
@@ -224,55 +224,55 @@ void dmft(Parameters &parameters, int voltage_step, std::vector<std::vector<dcom
         get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down,
             leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);
 
-       //if(voltage_step == 0){
-       //    std::vector<Eigen::MatrixXcd> gf_local_lesser_up_FD(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-       //    for(int r = 0; r < parameters.steps; r++){
-       //        for(int i = 0; i < parameters.chain_length; i++){
-       //            for(int j = 0; j < parameters.chain_length; j++){
-       //                gf_local_lesser_up_FD.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) *
-       //                    (gf_local_up.at(r)(i, j) - std::conj(gf_local_up.at(r)(j, i)));
-       //                
-       //            }
-       //        }
-       //        //std::cout << gf_local_lesser_up_FD.at(r) << std::endl;
-       //    }
-       //    double difference_fd = 0;
-       //    
-       //    get_difference(parameters, gf_local_lesser_up, gf_local_lesser_up_FD, difference_fd, index);
-       //    //i need to do this again as the difference function will overwrite gf_local_lesser_up_FD
-       //    for(int r = 0; r < parameters.steps; r++){
-       //        for(int i = 0; i < parameters.chain_length; i++){
-       //            for(int j = 0; j < parameters.chain_length; j++){
-       //                gf_local_lesser_up_FD.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) *
-       //                    (gf_local_up.at(r)(i, j) - std::conj(gf_local_up.at(r)(j, i)));
-       //                
-       //            }
-       //        }
-       //        //std::cout << gf_local_lesser_up_FD.at(r) << std::endl;
-       //    }
-//
-       //    std::cout << "The difference between the fD and other is " << difference_fd << std::endl;
-       //    std::cout << "The index is " << index << std::endl;
-       //    std::cout << gf_local_lesser_up.at(index) << gf_local_lesser_up_FD.at(index) <<  gf_local_lesser_up.at(index) - gf_local_lesser_up_FD.at(index)  << std::endl;
-//
-//
-       //    std::ofstream gf_lesser_file;
-       //    gf_lesser_file.open("/home/declan/green_function_code/quantum_transport/c++/DMFT/textfiles/gf_lesser_c++.txt");
-       //    // myfile << parameters.steps << std::endl;
-       //    difference_fd = 0;
-       //    for(int i = 0; i < parameters.chain_length; i++){  
-       //        for (int r = 0; r < parameters.steps; r++)
-       //        {
-       //            gf_lesser_file << parameters.energy.at(r) << "  " << gf_local_lesser_up.at(r)(i, i).real() << "  " << gf_local_lesser_up.at(r)(i, i).imag()
-       //                << "  " << gf_local_lesser_up_FD.at(r)(i, i).real() << "  " << gf_local_lesser_up_FD.at(r)(i, i).imag() << "  " 
-       //                <<   gf_local_lesser_up.at(r)(i, i).imag() - gf_local_lesser_up_FD.at(r)(i, i).imag() << "\n";
-//
-       //            difference_fd += abs(gf_local_lesser_up.at(r)(i, i).imag() - gf_local_lesser_up_FD.at(r)(i, i).imag());
-       //        }
-       //    }
-       //    gf_lesser_file.close();
-       //    std::cout << "The total difference between the two methods is " << difference_fd << std::endl;
-        //}
+if(voltage_step == 0){
+    std::vector<Eigen::MatrixXcd> gf_local_lesser_up_FD(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+    for(int r = 0; r < parameters.steps; r++){
+        for(int i = 0; i < parameters.chain_length; i++){
+            for(int j = 0; j < parameters.chain_length; j++){
+                gf_local_lesser_up_FD.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) *
+                    (gf_local_up.at(r)(i, j) - std::conj(gf_local_up.at(r)(j, i)));
+                
+            }
+        }
+        //std::cout << gf_local_lesser_up_FD.at(r) << std::endl;
+    }
+    double difference_fd = 0;
+    
+    get_difference(parameters, gf_local_lesser_up, gf_local_lesser_up_FD, difference_fd, index);
+    //i need to do this again as the difference function will overwrite gf_local_lesser_up_FD
+    for(int r = 0; r < parameters.steps; r++){
+        for(int i = 0; i < parameters.chain_length; i++){
+            for(int j = 0; j < parameters.chain_length; j++){
+                gf_local_lesser_up_FD.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) *
+                    (gf_local_up.at(r)(i, j) - std::conj(gf_local_up.at(r)(j, i)));
+                
+            }
+        }
+        //std::cout << gf_local_lesser_up_FD.at(r) << std::endl;
+    }
+
+    std::cout << "The difference between the fD and other is " << difference_fd << std::endl;
+    std::cout << "The index is " << index << std::endl;
+    std::cout << gf_local_lesser_up.at(index) << gf_local_lesser_up_FD.at(index) <<  gf_local_lesser_up.at(index) - gf_local_lesser_up_FD.at(index)  << std::endl;
+
+
+    std::ofstream gf_lesser_file;
+    gf_lesser_file.open("textfiles/gf_lesser_c++.txt");
+    // myfile << parameters.steps << std::endl;
+    difference_fd = 0;
+    for(int i = 0; i < parameters.chain_length; i++){  
+        for (int r = 0; r < parameters.steps; r++)
+        {
+            gf_lesser_file << parameters.energy.at(r) << "  " << gf_local_lesser_up.at(r)(i, i).real() << "  " << gf_local_lesser_up.at(r)(i, i).imag()
+                << "  " << gf_local_lesser_up_FD.at(r)(i, i).real() << "  " << gf_local_lesser_up_FD.at(r)(i, i).imag() << "  " 
+                <<   gf_local_lesser_up.at(r)(i, i).imag() - gf_local_lesser_up_FD.at(r)(i, i).imag() << "\n";
+
+            difference_fd += abs(gf_local_lesser_up.at(r)(i, i).imag() - gf_local_lesser_up_FD.at(r)(i, i).imag());
+        }
+    }
+    gf_lesser_file.close();
+    std::cout << "The total difference between the two methods is " << difference_fd << std::endl;
+}
         
         count++;
     }
