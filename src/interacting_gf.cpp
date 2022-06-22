@@ -17,7 +17,7 @@ double Interacting_GF::ky() const { return ky_value; }
 Interacting_GF::Interacting_GF(const Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, const  std::vector<dcomp> &self_energy_left,
                 const std::vector<dcomp> &self_energy_right, const int voltage_step, const  Eigen::MatrixXd &hamiltonian)
 {
-    this->interacting_gf.resize(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+    this->interacting_gf.resize(parameters.steps, Eigen::MatrixXcd::Zero(parameters.num_cor, parameters.num_cor));
     get_interacting_gf(parameters, hamiltonian, self_energy_mb, self_energy_left,
                                               self_energy_right, voltage_step);
 }
@@ -26,20 +26,20 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Eige
                             std::vector<dcomp> const &self_energy_left, std::vector<dcomp> const &self_energy_right, const int voltage_step){
     Eigen::MatrixXcd inverse_gf;
     for(int r = 0; r < parameters.steps; r++){
-        inverse_gf = Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length);
-        if (parameters.chain_length != 1){
+        inverse_gf = Eigen::MatrixXcd::Zero(parameters.num_cor, parameters.num_cor);
+        if (parameters.num_cor != 1){
             inverse_gf(0, 0) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - hamiltonian(0, 0) - self_energy_mb.at(0).at(r) - self_energy_left.at(r);
 
-            inverse_gf(parameters.chain_length - 1, parameters.chain_length - 1) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf  - 
-                hamiltonian(parameters.chain_length - 1, parameters.chain_length - 1) - self_energy_mb.at(parameters.chain_length - 1).at(r) - self_energy_right.at(r);
+            inverse_gf(parameters.num_cor - 1, parameters.num_cor - 1) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf  - 
+                hamiltonian(parameters.num_cor - 1, parameters.num_cor - 1) - self_energy_mb.at(parameters.num_cor - 1).at(r) - self_energy_right.at(r);
 
-        } else if (parameters.chain_length == 1) {
+        } else if (parameters.num_cor == 1) {
             inverse_gf(0, 0) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf  - hamiltonian(0, 0) - self_energy_mb.at(0).at(r) - self_energy_left.at(r) - self_energy_right.at(r);
         }
 
-        for(int i = 0; i < parameters.chain_length; i++){
-            for(int j = 0; j < parameters.chain_length; j++){
-                if (i == j && ((i != 0) && (i != parameters.chain_length - 1))) {
+        for(int i = 0; i < parameters.num_cor; i++){
+            for(int j = 0; j < parameters.num_cor; j++){
+                if (i == j && ((i != 0) && (i != parameters.num_cor - 1))) {
                     //std::cout << i  << j << std::endl;
                     inverse_gf(i, i) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf  - hamiltonian(i, i) - self_energy_mb.at(i).at(r);
                 } else if (i != j) {
@@ -54,41 +54,10 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Eige
 }
 
 void get_hamiltonian(Parameters const &parameters, const int voltage_step, const double kx, const double ky, Eigen::MatrixXd &hamiltonian){
-    for (int i = 0; i < parameters.num_ins_left - 1; i++){
-        hamiltonian(i, i + 1) = parameters.hopping_ins_l;
-        hamiltonian(i + 1, i) = parameters.hopping_ins_l;
-    }
-    //std::cout << "failed here 1 \n"; 
     for (int i = 0; i < parameters.num_cor - 1; i++){
-        int j = i + parameters.num_ins_left;
-        //std::cout << j << std::endl;
-        hamiltonian(j, j + 1) = parameters.hopping_cor;
-        hamiltonian(j + 1, j) = parameters.hopping_cor;
+        hamiltonian(i, i + 1) = parameters.hopping_cor;
+        hamiltonian(i + 1, i) = parameters.hopping_cor;
     }
-
-    //std::cout << "failed here 2 \n"; 
-
-    for (int i = 0; i < parameters.num_ins_right - 1; i++){
-        int j = i + parameters.num_cor + parameters.num_ins_left;
-        hamiltonian(j, j + 1) = parameters.hopping_ins_r;
-        hamiltonian(j + 1, j) = parameters.hopping_ins_r;
-    }
-
-    //std::cout << "failed here 3 \n"; 
-
-    if(parameters.num_ins_left != 0 && parameters.num_cor != 0){
-        hamiltonian(parameters.num_ins_left, parameters.num_ins_left - 1) = parameters.hopping_ins_l_cor;
-        hamiltonian(parameters.num_ins_left - 1, parameters.num_ins_left) = parameters.hopping_ins_l_cor;
-    }
-
-    //std::cout << "failed here 4 \n"; 
-
-    if(parameters.num_ins_right != 0 && parameters.num_cor != 0){
-        int i = parameters.num_ins_left + parameters.num_cor;
-        hamiltonian(i, i - 1) = parameters.hopping_ins_r_cor;
-        hamiltonian(i - 1, i) = parameters.hopping_ins_r_cor;
-    }
-
 
     std::ofstream potential_file;
     potential_file.open(
@@ -101,19 +70,13 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
     potential_file << -1 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
     potential_file << 0 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
 
-
     double potential_bias = (parameters.voltage_l[voltage_step] -
                              parameters.voltage_r[voltage_step]);
-
     double voltage_i;
-
     int num_ins = parameters.num_ins_left + parameters.num_ins_right;
-    //std::cout << "failed here 5 \n"; 
     for (int i = 0; i < parameters.num_ins_left; i++){
         voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) / (double)(num_ins + 1.0) * potential_bias;
         potential_file << i + 1 << "  " << voltage_i <<  "\n";        
-        hamiltonian(i, i) = parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
-                cos(ky) + voltage_i;
     }
 
     if(parameters.num_ins_left == 0){
@@ -126,9 +89,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
     }
 
     for (int i = 0; i < parameters.num_cor; i++){
-        int j = i + parameters.num_ins_left;
-        potential_file << j + 1 << "  " << voltage_i <<  "\n";          
-        hamiltonian(j, j) = parameters.onsite_cor + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
+        hamiltonian(i, i) = parameters.onsite_cor + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
                 cos(ky) + voltage_i;
     }
 
@@ -136,8 +97,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         int j = i + parameters.num_cor + parameters.num_ins_left;
         voltage_i = parameters.voltage_l[voltage_step] - (double)(i + parameters.num_ins_left + 1) / (double)(num_ins + 1.0) * potential_bias;
         potential_file << j + 1 << "  " << voltage_i <<  "\n";  
-        hamiltonian(j, j) = parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
-                cos(ky) + voltage_i;
+
     }
 
     //std::cout << "The hamiltonian is " <<  std::endl;
@@ -152,6 +112,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
     potential_file << parameters.chain_length + 6  << "  " << parameters.voltage_r[voltage_step] <<  "\n";
     potential_file.close();
 }
+
 
 void get_analytic_gf_1_site(Parameters &parameters, std::vector<Eigen::MatrixXcd> &green_function, int voltage_step){
     std::vector<dcomp> analytic_gf(parameters.steps);
@@ -212,9 +173,9 @@ void get_local_gf(Parameters &parameters, std::vector<std::vector<dcomp>> &self_
                 leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
             for(int r = 0; r < parameters.steps; r++){
-                gf_local.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-                for(int i = 0; i < parameters.chain_length; i++){
-                    for(int j = 0; j < parameters.chain_length; j++){
+                gf_local.at(r) = (Eigen::MatrixXcd::Zero(parameters.num_cor, parameters.num_cor));
+                for(int i = 0; i < parameters.num_cor; i++){
+                    for(int j = 0; j < parameters.num_cor; j++){
                         gf_local.at(r)(i, j) += gf_interacting.interacting_gf.at(r)(i, j) / num_k_points;
                     }
                 }
@@ -224,8 +185,8 @@ void get_local_gf(Parameters &parameters, std::vector<std::vector<dcomp>> &self_
 }
 
 void get_advance_gf(const Parameters &parameters, const Eigen::MatrixXcd &gf_retarded, Eigen::MatrixXcd &gf_advanced){
-    for(int i = 0; i < parameters.chain_length; i++){
-        for(int j = 0; j < parameters.chain_length; j++){
+    for(int i = 0; i < parameters.num_cor; i++){
+        for(int j = 0; j < parameters.num_cor; j++){
             gf_advanced(i, j) = std::conj(gf_retarded(j, i));
         }
     } 
@@ -239,26 +200,26 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
 
 
     for(int r = 0; r < parameters.steps; r++) {
-        gf_lesser.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+        gf_lesser.at(r) = (Eigen::MatrixXcd::Zero(parameters.num_cor, parameters.num_cor));
     }
 
-    Eigen::MatrixXcd delta_term = Eigen::MatrixXd::Zero(parameters.chain_length, parameters.chain_length);
+    Eigen::MatrixXcd delta_term = Eigen::MatrixXd::Zero(parameters.num_cor, parameters.num_cor);
 
         //std::cout << "The lesser green function is" << "\n";
     for(int r = 0; r < parameters.steps; r++) {   
         delta_term = 2.0 * parameters.j1 * parameters.delta_gf * fermi_function(parameters.energy.at(r), parameters) 
             * gf_retarded.at(r) * gf_retarded.at(r).adjoint();
 
-        for(int i = 0; i < parameters.chain_length; i++ ) {
-            for(int j = 0; j < parameters.chain_length; j++) {  
-                for(int k = 0; k < parameters.chain_length; k++){
+        for(int i = 0; i < parameters.num_cor; i++ ) {
+            for(int j = 0; j < parameters.num_cor; j++) {  
+                for(int k = 0; k < parameters.num_cor; k++){
                    
                     gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (self_energy_mb_lesser.at(k).at(r)) * std::conj(gf_retarded.at(r)(j, k));
                     if (k == 0){
                         gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (- 2.0 * parameters.j1) * fermi_function(parameters.energy.at(r) - parameters.voltage_l.at(voltage_step), parameters) * 
                             (self_energy_left.at(r)).imag() * std::conj(gf_retarded.at(r)(j, k));
                     }
-                    if (k == parameters.chain_length - 1){
+                    if (k == parameters.num_cor - 1){
                         //std::cout <<  parameters.voltage_r.at(voltage_step) << std::endl;
                         gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (- 2.0 * parameters.j1)  * fermi_function(parameters.energy.at(r) - parameters.voltage_r.at(voltage_step), parameters) * 
                             (self_energy_right.at(r)).imag() * std::conj(gf_retarded.at(r)(j, k));
@@ -272,8 +233,8 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
 
 void get_gf_lesser_fd(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, std::vector<Eigen::MatrixXcd> &gf_lesser){
     for(int r = 0; r < parameters.steps; r++){
-        for(int i = 0; i < parameters.chain_length; i++){
-            for(int j = 0; j < parameters.chain_length; j++){
+        for(int i = 0; i < parameters.num_cor; i++){
+            for(int j = 0; j < parameters.num_cor; j++){
                 gf_lesser.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) *
                     (gf_retarded.at(r)(i, j) - std::conj(gf_retarded.at(r)(j, i)));
             }
@@ -287,8 +248,8 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
     std::vector<Eigen::MatrixXcd> &gf_local_lesser, const int voltage_step, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian){
 
     for(int r = 0; r < parameters.steps; r++){
-        gf_local.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-        gf_local_lesser.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+        gf_local.at(r) = (Eigen::MatrixXcd::Zero(parameters.num_cor, parameters.num_cor));
+        gf_local_lesser.at(r) = (Eigen::MatrixXcd::Zero(parameters.num_cor, parameters.num_cor));
     }
 
     int n_x, n_y;
@@ -301,7 +262,7 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
         n_y = 1;
     }
 
-    std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length)); 
+    std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps, Eigen::MatrixXcd::Zero(parameters.num_cor, parameters.num_cor)); 
     double num_k_points = n_x * n_y;
     for(int kx_i = 0; kx_i < n_x; kx_i++) {
         for(int ky_i = 0; ky_i < n_y; ky_i++) {
@@ -316,8 +277,8 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
             //get_gf_lesser_fd(parameters, gf_interacting.interacting_gf, gf_lesser);
 
             for(int r = 0; r < parameters.steps; r++){
-                for(int i = 0; i < parameters.chain_length; i++){
-                    for(int j = 0; j < parameters.chain_length; j++){
+                for(int i = 0; i < parameters.num_cor; i++){
+                    for(int j = 0; j < parameters.num_cor; j++){
                         gf_local.at(r)(i, j) += gf_interacting.interacting_gf.at(r)(i, j) / num_k_points;
                         gf_local_lesser.at(r)(i, j) += gf_lesser.at(r)(i, j) / num_k_points;
                     }

@@ -45,16 +45,16 @@ void get_transmission(
 				dcomp coupling_right = 2 * leads.at(kx_i).at(ky_i).self_energy_right.at(r).imag();
 				transmission_up.at(r) += 1.0 / num_k_points
 				    * (coupling_left
-				        * gf_interacting_up.interacting_gf.at(r)(0, parameters.chain_length - 1)
+				        * gf_interacting_up.interacting_gf.at(r)(0, parameters.num_cor - 1)
 				        * coupling_right
 				        * std::conj(gf_interacting_up.interacting_gf.at(
-				            r)(0, parameters.chain_length - 1)));
+				            r)(0, parameters.num_cor - 1)));
 				transmission_down.at(r) += 1.0 / num_k_points
 				    * (coupling_left
-				        * gf_interacting_down.interacting_gf.at(r)(0, parameters.chain_length - 1)
+				        * gf_interacting_down.interacting_gf.at(r)(0, parameters.num_cor - 1)
 				        * coupling_right
 				        * std::conj(gf_interacting_up.interacting_gf.at(
-				            r)(0, parameters.chain_length - 1)));
+				            r)(0, parameters.num_cor - 1)));
 			}
 		}
 	}
@@ -106,7 +106,7 @@ void get_meir_wingreen_current(
 			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
 			std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps,
-			    Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+			    Eigen::MatrixXcd::Zero(parameters.num_cor, parameters.num_cor));
 			get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    gf_lesser, voltage_step);
@@ -143,9 +143,9 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		spectral_left =
 		    parameters.j1 * (green_function.at(r)(0, 0) - std::conj(green_function.at(r)(0, 0)));
 		spectral_right = parameters.j1
-		    * (green_function.at(r)(parameters.chain_length - 1, parameters.chain_length - 1)
+		    * (green_function.at(r)(parameters.num_cor - 1, parameters.num_cor - 1)
 		        - std::conj(green_function.at(
-		            r)(parameters.chain_length - 1, parameters.chain_length - 1)));
+		            r)(parameters.num_cor - 1, parameters.num_cor - 1)));
 
 		dcomp trace_left_a =
 		    fermi_function(parameters.energy.at(r) - parameters.voltage_l.at(voltage_step),
@@ -157,7 +157,7 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		    * coupling_right * spectral_right;
 		dcomp trace_left_b = parameters.j1 * coupling_left * green_function_lesser.at(r)(0, 0);
 		dcomp trace_right_b = parameters.j1 * coupling_right
-		    * green_function_lesser.at(r)(parameters.chain_length - 1, parameters.chain_length - 1);
+		    * green_function_lesser.at(r)(parameters.num_cor - 1, parameters.num_cor - 1);
 
 		trace_left = trace_left_a + trace_left_b;
 		trace_right = trace_right_a + trace_right_b;		
