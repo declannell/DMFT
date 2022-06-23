@@ -113,7 +113,7 @@ int main() {
       self_energy_mb_lesser_down(parameters.chain_length,
                                  std::vector<dcomp>(parameters.steps, 0));
 
-  for (int m = 0; m < parameters.NIV_points; m++) {
+  for (int m = 1; m < parameters.NIV_points; m++) {
     if (m != 0 &&
         parameters.leads_3d == true) { // this has already been initialised for
                                        // the equilibrium case in line 19-33
@@ -175,7 +175,7 @@ int main() {
     get_local_gf_r_and_lesser(parameters, self_energy_mb_down,
                               self_energy_mb_lesser_down, leads, gf_local_down,
                               gf_local_lesser_down, m, hamiltonian);
-
+    std::cout << "got local green function " << std::endl;
     // std::vector<Eigen::MatrixXcd> gf_local_lesser_up_FD(
     //    parameters.steps,
     //    Eigen::MatrixXcd::Zero(parameters.chain_length,

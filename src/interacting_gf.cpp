@@ -286,10 +286,14 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
     std::vector<Eigen::MatrixXcd> &gf_local_lesser, const int voltage_step, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian){
 
+    
+
     for(int r = 0; r < parameters.steps; r++){
         gf_local.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
         gf_local_lesser.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     }
+
+    
 
     int n_x, n_y;
 
