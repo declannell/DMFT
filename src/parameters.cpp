@@ -7,8 +7,8 @@ Parameters Parameters::init()
 {
     Parameters parameters =  {
         .onsite_cor = -0.0,
-        .onsite_ins_l = -0.72,
-        .onsite_ins_r = -0.72,
+        .onsite_ins_l = -0.3,
+        .onsite_ins_r = -0.3,
         .onsite_l = -0.0,
         .onsite_r = -0.0,
         .hopping_cor = -0.10,
@@ -29,18 +29,18 @@ Parameters Parameters::init()
         .num_cor = 1, //this is the number of correlated atoms between the insulating atoms.
         .num_ins_left  = 2, //this is the number of insulating layers on the left side.    
         .num_ins_right = 2,
-        .num_ky_points = 250,
-        .num_kx_points = 250,
+        .num_ky_points = 5,
+        .num_kx_points = 5,
         .chemical_potential = 0.0,
         .temperature = 00.0,
         .e_upper_bound = 4.0,
         .e_lower_bound = -4.0,
-        .hubbard_interaction = 0.00,
+        .hubbard_interaction = 0.03,
         .voltage_step = 0,
         .self_consistent_steps = 55,
         .read_in_self_energy = false,
-        .NIV_points = 1,
-        .delta_v = 0.008,
+        .NIV_points = 2,
+        .delta_v = 0.005,
         .delta_leads = 0.000000001,
         .delta_gf = 0.000001,
         .leads_3d = false

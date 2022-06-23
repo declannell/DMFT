@@ -121,7 +121,7 @@ int main() {
       self_energy_mb_lesser_down(parameters.num_cor,
                                  std::vector<dcomp>(parameters.steps, 0));
 
-  for (int m = 0; m < parameters.NIV_points; m++) {
+  for (int m = 1; m < parameters.NIV_points; m++) {
     if (m != 0 &&
         parameters.leads_3d == true) { // this has already been initialised for
                                        // the equilibrium case in line 19-33
@@ -277,6 +277,8 @@ int main() {
       }
       gf_local_file.close();
     }
+
+
 
     for (int i = 0; i < parameters.num_cor; i++) {
       std::ostringstream ossgf;

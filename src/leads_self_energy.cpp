@@ -138,19 +138,42 @@ void EmbeddingSelfEnergy::add_left_insulating_layers(const Parameters &parameter
       (parameters.voltage_l[voltage_step] - parameters.voltage_r[voltage_step]);
   double voltage_i;
 
+  std::vector<dcomp> embedding_eff_l(parameters.steps, 0);
+  for(int r = 0; r < parameters.steps; r++){
+      dcomp numerator = (parameters.energy.at(r) - parameters.onsite_ins_l - (this->self_energy_left.at(r)));
+      embedding_eff_l.at(r) = parameters.hopping_ins_l_cor * parameters.hopping_ins_l_cor * (numerator) / ((numerator) * (parameters.energy.at(r) + parameters.onsite_ins_l) - parameters.hopping_ins_l * parameters.hopping_ins_l);
+  }
+
+  std::ostringstream oss_eff_emb;
+  oss_eff_emb << "textfiles/eff_emb_l.txt";
+  std::string var = oss_eff_emb.str();
+
+  std::ofstream eff_emb_r_file;
+  eff_emb_r_file.open(var);
+  for (int r = 0; r < parameters.steps; r++) {
+    eff_emb_r_file << parameters.energy.at(r) << "  "
+                  << embedding_eff_l.at(r).real() << "   "
+                  << embedding_eff_l.at(r).imag() << " \n";
+
+    // std::cout << leads.self_energy_left.at(r) << "\n";
+  }
+  eff_emb_r_file.close();
+
   int num_ins = parameters.num_ins_left + parameters.num_ins_right;
   for (int i = 0; i < parameters.num_ins_left; i++) {
       voltage_i = parameters.voltage_l[voltage_step] -
           (double)(i + 1) / (double)(num_ins + 1.0) * potential_bias;
-      double effective_onsite = voltage_i + parameters.onsite_ins_l * (1 - 2 * i % 2);
+      double effective_onsite = voltage_i + parameters.onsite_ins_l * (1 - 2 * (i % 2));
+      std::cout << "i is " << i << "effective onsite is " << effective_onsite <<std::endl;
       if (i == 0) {
+
           for (int r = 0; r < parameters.steps; r++) {
-              surface_gf_l.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - effective_onsite - 2.0 * parameters.hopping_ly * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - (this->self_energy_left.at(r)));
+              surface_gf_l.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - effective_onsite - (this->self_energy_left.at(r)) - 2.0 * parameters.hopping_ly * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx())); 
               pdos.at(i).at(r) = - 2.0 * surface_gf_l.at(r).imag();
           }
       } else {
           for (int r = 0; r < parameters.steps; r++) {
-              surface_gf_l.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - effective_onsite - 2.0 * parameters.hopping_ly * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx()) - parameters.hopping_ins_l * surface_gf_l.at(r) * parameters.hopping_ins_l);
+              surface_gf_l.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - effective_onsite - parameters.hopping_ins_l * surface_gf_l.at(r) * parameters.hopping_ins_l - 2.0 * parameters.hopping_ly * cos(this->ky()) - 2.0 * parameters.hopping_lx * cos(this->kx())) ;
               pdos.at(i).at(r) = - 2.0 * surface_gf_l.at(r).imag();
           }        
       }
@@ -164,22 +187,44 @@ void EmbeddingSelfEnergy::add_left_insulating_layers(const Parameters &parameter
 
 void EmbeddingSelfEnergy::add_right_insulating_layers(const Parameters &parameters, int voltage_step, std::vector<std::vector<double>> &pdos){
 
+
   std::vector<dcomp> surface_gf_r(parameters.steps);
   double potential_bias =
       (parameters.voltage_l[voltage_step] - parameters.voltage_r[voltage_step]);
   double voltage_i;
   int num_ins = parameters.num_ins_left + parameters.num_ins_right;
+  std::vector<dcomp> embedding_eff_r(parameters.steps, 0);
+  for(int r = 0; r < parameters.steps; r++){
+      dcomp numerator = (parameters.energy.at(r) + parameters.onsite_ins_r - (this->self_energy_right.at(r)));
+      embedding_eff_r.at(r) = parameters.hopping_ins_r_cor * parameters.hopping_ins_r_cor * numerator / (numerator * (parameters.energy.at(r) - parameters.onsite_ins_r) - parameters.hopping_ins_r * parameters.hopping_ins_r);
+  }
+  std::ostringstream oss_eff_emb;
+  oss_eff_emb << "textfiles/eff_emb_r.txt";
+  std::string var = oss_eff_emb.str();
+
+  std::ofstream eff_emb_r_file;
+  eff_emb_r_file.open(var);
+  for (int r = 0; r < parameters.steps; r++) {
+    eff_emb_r_file << parameters.energy.at(r) << "  "
+                  << embedding_eff_r.at(r).real() << "   "
+                  << embedding_eff_r.at(r).imag() << " \n";
+
+    // std::cout << leads.self_energy_left.at(r) << "\n";
+  }
+  eff_emb_r_file.close();
+  
+
   for (int i = 0; i < parameters.num_ins_right; i++) {
-      voltage_i = parameters.voltage_l[voltage_step] - (double)(i + parameters.num_ins_left + 1) / (double)(num_ins + 1.0) * potential_bias;
-      double effective_onsite = voltage_i + parameters.onsite_ins_r * (1 - 2 * i % 2);
+      voltage_i = parameters.voltage_l[voltage_step] - (double)(parameters.num_ins_left + parameters.num_ins_right - i) / (double)(num_ins + 1.0) * potential_bias;
+      double effective_onsite = voltage_i - parameters.onsite_ins_r * (1 - 2 * (i % 2));
       if (i == 0) {
           for (int r = 0; r < parameters.steps; r++) {
-              surface_gf_r.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - effective_onsite - 2.0 * parameters.hopping_ry * cos(this->ky()) - 2.0 * parameters.hopping_rx * cos(this->kx()) - (this->self_energy_right.at(r)));
+              surface_gf_r.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - effective_onsite - (this->self_energy_right.at(r)) - 2.0 * parameters.hopping_ry * cos(this->ky()) - 2.0 * parameters.hopping_rx * cos(this->kx())); 
               pdos.at(i + parameters.num_ins_left).at(r) = - 2.0 * surface_gf_r.at(r).imag();              
           }
       } else {
           for (int r = 0; r < parameters.steps; r++) {
-              surface_gf_r.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - effective_onsite - 2.0 * parameters.hopping_ry * cos(this->ky()) - 2.0 * parameters.hopping_rx * cos(this->kx()) - parameters.hopping_ins_r * surface_gf_r.at(r) * parameters.hopping_ins_r);
+              surface_gf_r.at(r) = 1.0 / (parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - effective_onsite - parameters.hopping_ins_r * surface_gf_r.at(r) * parameters.hopping_ins_r - 2.0 * parameters.hopping_ry * cos(this->ky()) - 2.0 * parameters.hopping_rx * cos(this->kx()));
               pdos.at(i + parameters.num_ins_left).at(r) = - 2.0 * surface_gf_r.at(r).imag(); 
           }        
       }
