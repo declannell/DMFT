@@ -85,35 +85,36 @@ int main() {
   std::vector<dcomp> current_down_right(parameters.NIV_points, 0);
   std::vector<dcomp> current_down_left(parameters.NIV_points, 0);
 
-  std::vector<std::vector<Eigen::MatrixXd>> hamiltonian(
-      parameters.num_kx_points,
-      std::vector<Eigen::MatrixXd>(
-          parameters.num_ky_points,
-          Eigen::MatrixXd::Zero(parameters.chain_length,
-                                parameters.chain_length)));
+  for (int m = 0; m < parameters.NIV_points; m++) {
+    std::vector<std::vector<Eigen::MatrixXd>> hamiltonian(
+        parameters.num_kx_points,
+        std::vector<Eigen::MatrixXd>(
+            parameters.num_ky_points,
+            Eigen::MatrixXd::Zero(parameters.chain_length,
+                                  parameters.chain_length)));
 
-  std::vector<Eigen::MatrixXcd> gf_local_up(
-      parameters.steps,
-      Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-  std::vector<Eigen::MatrixXcd> gf_local_down(
-      parameters.steps,
-      Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-  std::vector<Eigen::MatrixXcd> gf_local_lesser_up(
-      parameters.steps,
-      Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-  std::vector<Eigen::MatrixXcd> gf_local_lesser_down(
-      parameters.steps,
-      Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-  std::vector<std::vector<dcomp>> self_energy_mb_up(
-      parameters.chain_length, std::vector<dcomp>(parameters.steps)),
-      self_energy_mb_lesser_up(parameters.chain_length,
-                               std::vector<dcomp>(parameters.steps, 0));
-  std::vector<std::vector<dcomp>> self_energy_mb_down(
-      parameters.chain_length, std::vector<dcomp>(parameters.steps)),
-      self_energy_mb_lesser_down(parameters.chain_length,
-                                 std::vector<dcomp>(parameters.steps, 0));
+    std::vector<Eigen::MatrixXcd> gf_local_up(
+        parameters.steps,
+        Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+    std::vector<Eigen::MatrixXcd> gf_local_down(
+        parameters.steps,
+        Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+    std::vector<Eigen::MatrixXcd> gf_local_lesser_up(
+        parameters.steps,
+        Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+    std::vector<Eigen::MatrixXcd> gf_local_lesser_down(
+        parameters.steps,
+        Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+    std::vector<std::vector<dcomp>> self_energy_mb_up(
+        parameters.chain_length, std::vector<dcomp>(parameters.steps)),
+        self_energy_mb_lesser_up(parameters.chain_length,
+                                std::vector<dcomp>(parameters.steps, 0));
+    std::vector<std::vector<dcomp>> self_energy_mb_down(
+        parameters.chain_length, std::vector<dcomp>(parameters.steps)),
+        self_energy_mb_lesser_down(parameters.chain_length,
+                                  std::vector<dcomp>(parameters.steps, 0));
 
-  for (int m = 1; m < parameters.NIV_points; m++) {
+
     if (m != 0 &&
         parameters.leads_3d == true) { // this has already been initialised for
                                        // the equilibrium case in line 19-33
@@ -210,7 +211,8 @@ int main() {
          spins_occup, hamiltonian);
 
     std::cout << "got self energy " << std::endl;
-
+    std::cout << "The converged spin up occupation is " << spins_occup.at(2) << std::endl;
+    std::cout << "The converged spin down occupation is " << spins_occup.at(5) << std::endl;    
     if (parameters.hubbard_interaction == 0 && parameters.chain_length == 1 &&
         parameters.num_kx_points == 1 && m == 0) {
       get_analytic_gf_1_site(parameters, gf_local_up, m);
@@ -249,7 +251,7 @@ int main() {
     }
 
 
-     for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++) {
+    for (int i = 0; i < parameters.chain_length; i++)  {
        std::ostringstream ossgf;
        ossgf << "textfiles/" << m << "." << i << ".gf.txt";
        std::string var = ossgf.str();
