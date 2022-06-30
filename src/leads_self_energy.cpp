@@ -164,7 +164,7 @@ void EmbeddingSelfEnergy::add_left_insulating_layers(const Parameters &parameter
       voltage_i = parameters.voltage_l[voltage_step] -
           (double)(i + 1) / (double)(num_ins + 1.0) * potential_bias;
       double effective_onsite = voltage_i + parameters.onsite_ins_l * (1 - 2 * (i % 2));
-      std::cout << "i is " << i << "effective onsite is " << effective_onsite <<std::endl;
+      //std::cout << "i is " << i << "effective onsite is " << effective_onsite <<std::endl;
       if (i == 0) {
 
           for (int r = 0; r < parameters.steps; r++) {
