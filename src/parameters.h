@@ -46,6 +46,9 @@ struct Parameters
     double delta_leads; //delta in the leads
     double delta_gf; //delta in the scattering region
     bool leads_3d;//if true, this will attach 3d leads to a 1d scattering region
+    double spin_up_occup;
+    double spin_down_occup;
+    double convergence;
     int chain_length;   // the number of atoms in the z direction of the scattering region
     int interaction_order; // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
     std::string path_of_self_energy_up;

@@ -6,9 +6,9 @@
 Parameters Parameters::init()
 {
     Parameters parameters =  {
-        .onsite_cor = -0.0,
-        .onsite_ins_l = -0.45,
-        .onsite_ins_r = -0.45,
+        .onsite_cor = -.0,
+        .onsite_ins_l = -0.55,
+        .onsite_ins_r = -0.55,
         .onsite_l = -0.0,
         .onsite_r = -0.0,
         .hopping_cor = -0.10,
@@ -27,23 +27,26 @@ Parameters Parameters::init()
         .hopping_ins_l_cor = -0.1,
         .hopping_ins_r_cor = -0.1,        
         .num_cor = 1, //this is the number of correlated atoms between the insulating atoms.
-        .num_ins_left  = 0, //this is the number of insulating layers on the left side.    
-        .num_ins_right = 0,
-        .num_ky_points = 100,
-        .num_kx_points = 100,
+        .num_ins_left  = 2, //this is the number of insulating layers on the left side.    
+        .num_ins_right = 2,
+        .num_ky_points = 75,
+        .num_kx_points = 75,
         .chemical_potential = 0.0,
         .temperature = 00.0,
-        .e_upper_bound = 4.0,
-        .e_lower_bound = -4.0,
-        .hubbard_interaction = 0.03,
+        .e_upper_bound = 6.0,
+        .e_lower_bound = -6.0,
+        .hubbard_interaction = 0.00,
         .voltage_step = 0,
-        .self_consistent_steps = 40,
+        .self_consistent_steps = 100,
         .read_in_self_energy = false,
-        .NIV_points = 1,
-        .delta_v = 0.01,
-        .delta_leads = 0.000000001,
-        .delta_gf = 0.0001,
-        .leads_3d = false
+        .NIV_points = 6,
+        .delta_v = 0.1,
+        .delta_leads = 0.00000001,
+        .delta_gf = 0.005,
+        .leads_3d = false,
+        .spin_up_occup = 0.0,
+        .spin_down_occup = 0.0,       
+        .convergence = 0.00001 
     
     };
 
@@ -64,12 +67,12 @@ Parameters Parameters::init()
     }
     else
     {
-        parameters.interaction_order = 1;
+        parameters.interaction_order = 2;
     }
 
     parameters.chain_length = parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
 
-    parameters.steps = 601; //you must make sure the energy spacing is less than delta_v
+    parameters.steps = 1601; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;

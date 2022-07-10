@@ -10,7 +10,8 @@
 
 void get_transmission(
     const Parameters &parameters, 
-    const std::vector<std::vector<dcomp>> &self_energy_mb,
+    const std::vector<std::vector<dcomp>> &self_energy_mb_up,
+	const std::vector<std::vector<dcomp>> &self_energy_mb_down,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
     std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
     const int voltage_step, std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian);

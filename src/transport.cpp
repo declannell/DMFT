@@ -13,7 +13,8 @@
 
 void get_transmission(
     const Parameters &parameters, 
-    const std::vector<std::vector<dcomp>> &self_energy_mb,
+    const std::vector<std::vector<dcomp>> &self_energy_mb_up,
+	const std::vector<std::vector<dcomp>> &self_energy_mb_down,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
     std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
     const int voltage_step, std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian)
@@ -32,11 +33,11 @@ void get_transmission(
 
 	for (int kx_i = 0; kx_i < n_x; kx_i++) {
 		for (int ky_i = 0; ky_i < n_y; ky_i++) {
-			Interacting_GF gf_interacting_up(parameters, self_energy_mb,
+			Interacting_GF gf_interacting_up(parameters, self_energy_mb_up,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
-			Interacting_GF gf_interacting_down(parameters, self_energy_mb,
+			Interacting_GF gf_interacting_down(parameters, self_energy_mb_down,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
