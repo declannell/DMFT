@@ -19,11 +19,17 @@ void fluctuation_dissipation(Parameters &parameters, const std::vector<dcomp> &g
 dcomp integrate(Parameters &parameters, std::vector<dcomp> &gf_1, std::vector<dcomp> &gf_2,
             std::vector<dcomp> &gf_3, int r);
 
+double integrate_equilibrium(Parameters& parameters, std::vector<double>& gf_1, std::vector<double>& gf_2, std::vector<double>& gf_3, int r);
+
+void self_energy_2nd_order_kramers_kronig(Parameters& parameters, std::vector<dcomp>& impurity_gf_up, std::vector<dcomp>& impurity_gf_down,
+    std::vector<dcomp>& impurity_gf_up_lesser, std::vector<dcomp>& impurity_gf_down_lesser, std::vector<dcomp>& impurity_self_energy,
+    std::vector<dcomp>& impurity_self_energy_lesser_up);
+
 void self_energy_2nd_order(Parameters &parameters, std::vector<dcomp> &impurity_gf_up, std::vector<dcomp> &impurity_gf_down, 
         std::vector<dcomp> &impurity_gf_up_lesser, std::vector<dcomp> &impurity_gf_down_lesser, std::vector<dcomp> &impurity_self_energy,
         std::vector<dcomp> &impurity_self_energy_lesser_up);
 
-void impurity_solver(Parameters &parameters, std::vector<dcomp>  &impurity_gf_up, std::vector<dcomp>  &impurity_gf_down,
+void impurity_solver(Parameters &parameters, int voltage_step, std::vector<dcomp>  &impurity_gf_up, std::vector<dcomp>  &impurity_gf_down,
     std::vector<dcomp>  &impurity_gf_lesser_up, std::vector<dcomp>  &impurity_gf_lesser_down,
     std::vector<dcomp>  &impurity_self_energy_up, std::vector<dcomp>  &impurity_self_energy_down, 
     std::vector<dcomp>  &impurity_self_energy_lesser_up, std::vector<dcomp>  &impurity_self_energy_lesser_down,

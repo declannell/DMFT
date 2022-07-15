@@ -100,6 +100,7 @@ int main()
 		std::vector<std::vector<Eigen::MatrixXd>> hamiltonian(
 		    parameters.num_kx_points, std::vector<Eigen::MatrixXd>(parameters.num_ky_points, Eigen::MatrixXd::Zero(parameters.chain_length, parameters.chain_length)));
 
+
 		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
 		std::vector<Eigen::MatrixXcd> gf_local_down(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
 		std::vector<Eigen::MatrixXcd> gf_local_lesser_up(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
@@ -162,9 +163,9 @@ int main()
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
 				get_hamiltonian(parameters, m, kx.at(kx_i), ky.at(ky_i), hamiltonian.at(kx_i).at(ky_i));
-				// std::cout << "The hamiltonian is " <<  std::endl;
-				// std::cout << hamiltonian.at(kx_i).at(ky_i) << std::endl;
-				// std::cout << std::endl;
+				//std::cout << "The hamiltonian is " <<  std::endl;
+				//std::cout << hamiltonian.at(kx_i).at(ky_i) << std::endl;
+				//std::cout << std::endl;
 			}
 		}
 		get_spectral_embedding_self_energy(parameters, leads, m);
@@ -233,7 +234,6 @@ int main()
 		          << "\n";
 
 		std::cout << "\n";
-
 		for (int i = 0; i < parameters.chain_length; i++) {
 			std::ostringstream ossgf;
 			ossgf << "textfiles/" << m << "." << i << ".gf.txt";
@@ -242,11 +242,12 @@ int main()
 			std::ofstream gf_local_file;
 
 			gf_local_file.open(var);
-			for (int r = 0; r < parameters.steps; r++) {
-				if (abs(gf_local_up.at(r)(i, 3).imag() - gf_local_up.at(r)(3, i).imag()) > 0.00001
-				    || abs(gf_local_up.at(r)(i, 3).real() - gf_local_up.at(r)(3, i).real()) > 0.00001) {
 
-					  std::cout << gf_local_up.at(r)(i, 3) << " " << gf_local_up.at(r)(3, i) << " " << gf_local_up.at(r)(i, 3) - gf_local_up.at(r)(3, i) << std::endl;
+			for (int r = 0; r < parameters.steps; r++) {
+				if (abs(gf_local_up.at(r)(i, parameters.num_ins_left).imag() - gf_local_up.at(r)(parameters.num_ins_left, i).imag()) > 0.00001
+				    || abs(gf_local_up.at(r)(i, parameters.num_ins_left).real() - gf_local_up.at(r)(parameters.num_ins_left, i).real()) > 0.00001) {
+
+					  std::cout << gf_local_up.at(r)(i, parameters.num_ins_left) << " " << gf_local_up.at(r)(parameters.num_ins_left, i) << " " << gf_local_up.at(r)(i, parameters.num_ins_left) - gf_local_up.at(r)(parameters.num_ins_left, i) << std::endl;
 				}
         
 				gf_local_file << parameters.energy.at(r) << "  " << gf_local_up.at(r)(i, i).real() << "   " << gf_local_up.at(r)(i, i).imag() << "   "
@@ -256,7 +257,6 @@ int main()
 			}
 			gf_local_file.close();
 		}
-
 		for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++) {
 			std::ostringstream ossgf;
 			ossgf << "textfiles/" << m << "." << i << ".gf_lesser.txt";
@@ -280,11 +280,10 @@ int main()
 		transmission_file.open(var);
 		// myfile << parameters.steps << std::endl;
 		for (int r = 0; r < parameters.steps; r++) {
-			transmission_file << parameters.energy.at(r) << "  " << transmission_up.at(r).real() << "  " << transmission_up.at(r).imag() << "  " << transmission_down.at(r).real()
+			transmission_file << parameters.energy.at(r) << "  " << transmission_up.at(r).real() << "  " << transmission_down.at(r).real()
 			                  << "\n";
 		}
 		transmission_file.close();
-
 		std::ostringstream oss1;
 		oss1 << "textfiles/" << m << ".dos.txt";
 		var = oss1.str();
@@ -302,7 +301,6 @@ int main()
 			dos_file << parameters.energy.at(r) << "  " << dos_total_up << "   " << dos_total_down << " \n";
 		}
 		dos_file.close();
-
 		for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++) {
 			std::ostringstream ossser;
 			ossser << "textfiles/" << m << "." << i << ".se_r.txt";
@@ -330,7 +328,6 @@ int main()
 			se_lesser_file.close();
 		}
 	}
-
 	if (parameters.hubbard_interaction == 0) {
 		std::ofstream current_file;
 		current_file.open(
@@ -338,7 +335,7 @@ int main()
 		    "current.txt");
 		// myfile << parameters.steps << std::endl;
 		for (int m = 0; m < parameters.NIV_points; m++) {
-			std::cout << "The spin up current is " << current_up.at(m) << "The spin down current is " << current_down.at(m) << "\n";
+			//std::cout << "The spin up current is " << current_up.at(m) << "The spin down current is " << current_down.at(m) << "\n";
 
 			std::cout << "The spin up left current is " << current_up_left.at(m) << "The spin up right current is " << current_up_right.at(m) << "The spin down left current is "
 			          << current_down_left.at(m) << "The spin up right current is " << current_down_right.at(m) << "\n";

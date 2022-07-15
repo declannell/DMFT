@@ -136,7 +136,6 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
     integrand_file.open(
         "textfiles/"
         "integrand.txt");
-    // myfile << parameters.steps << std::endl;
 
 	for (int r = 0; r < parameters.steps; r++) {
 		coupling_left = parameters.j1 * (left_lead_se.at(r) - std::conj(left_lead_se.at(r)));

@@ -137,6 +137,27 @@ double kramer_kronig_relation(Parameters& parameters, std::vector<double>& impur
 	return real_self_energy / M_PI;
 }
 
+double integrate_equilibrium(Parameters& parameters, std::vector<double>& gf_1, std::vector<double>& gf_2, std::vector<double>& gf_3, int r)
+{
+	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
+	double result = 0;
+	for (int i = 0; i < parameters.steps; i++) {
+		for (int j = 0; j < parameters.steps; j++) {
+			if (((i + j - r) > 0) && ((i + j - r) < parameters.steps)) {
+				double prefactor = fermi_function(parameters.energy.at(i), parameters) * fermi_function(parameters.energy.at(j), parameters) 
+					+ (1 - fermi_function(parameters.energy.at(i), parameters) - fermi_function(parameters.energy.at(j), parameters)) 
+					* fermi_function(parameters.energy.at(j) + parameters.energy.at(i) - parameters.energy.at(r), parameters); 
+				//this integrates the equation in PHYSICAL REVIEW B 74, 155125 2006
+				//I say the green function is zero outside e_lower_bound and e_upper_bound. This means I need the final green function in the integral to be within an energy of e_lower_bound
+				//and e_upper_bound. The index of 0 corresponds to e_lower_bound. Hence we need i+J-r>0 but in order to be less an energy of e_upper_bound we need i+j-r<steps.
+				//These conditions ensure the enrgy of the gf3 greens function to be within (e_upper_bound, e_lower_bound)
+				result += prefactor * (delta_energy / (M_PI)) * (delta_energy / (M_PI)) * gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r);
+			}
+		}
+	}
+	return result;
+}
+
 void self_energy_2nd_order_kramers_kronig(Parameters& parameters, std::vector<dcomp>& impurity_gf_up, std::vector<dcomp>& impurity_gf_down,
     std::vector<dcomp>& impurity_gf_up_lesser, std::vector<dcomp>& impurity_gf_down_lesser, std::vector<dcomp>& impurity_self_energy,
     std::vector<dcomp>& impurity_self_energy_lesser_up)
@@ -144,18 +165,22 @@ void self_energy_2nd_order_kramers_kronig(Parameters& parameters, std::vector<dc
 	std::vector<double> impurity_self_energy_real(parameters.steps), impurity_self_energy_imag(parameters.steps);
 
 	std::vector<dcomp> impurity_gf_down_advanced_imag(parameters.steps), gf_greater_down(parameters.steps);
-	std::vector<dcomp> impurity_gf_up_imag(parameters.steps), impurity_gf_up_real(parameters.steps), impurity_gf_down_imag(parameters.steps),
-	    impurity_gf_down_real(parameters.steps);
+	std::vector<double> impurity_gf_up_imag(parameters.steps), impurity_gf_down_imag(parameters.steps);
+	//std::vector<double> impurity_gf_up_real(parameters.steps), impurity_gf_down_real(parameters.steps);
 	for (int r = 0; r < parameters.steps; r++) {
-		impurity_gf_down_advanced_imag.at(r) = parameters.j1 * std::conj(impurity_gf_down.at(r)).imag();
+		//impurity_gf_down_advanced_imag.at(r) = parameters.j1 * std::conj(impurity_gf_down.at(r)).imag();
 		gf_greater_down.at(r) = impurity_gf_down_lesser.at(r) + (impurity_gf_down.at(r) - std::conj(impurity_gf_down.at(r)));
-		impurity_gf_up_imag.at(r) = parameters.j1 * impurity_gf_up.at(r).imag();
-		impurity_gf_down_imag.at(r) = parameters.j1 * impurity_gf_down.at(r).imag();
-		impurity_gf_up_real.at(r) = impurity_gf_up.at(r).real();
-		impurity_gf_down_real.at(r) = impurity_gf_down.at(r).real();
+		impurity_gf_up_imag.at(r) = impurity_gf_up.at(r).imag();
+		impurity_gf_down_imag.at(r) = impurity_gf_down.at(r).imag();
+		//impurity_gf_up_real.at(r) = impurity_gf_up.at(r).real();
+		//impurity_gf_down_real.at(r) = impurity_gf_down.at(r).real();
     }
     //I only want to calculate the imaginary part of the self energy.
-	for (int r = 0; r < parameters.steps; r++) {
+
+	for (int r = 0; r < parameters.steps; r++){
+		impurity_self_energy_imag.at(r) = parameters.hubbard_interaction * parameters.hubbard_interaction
+		    * integrate_equilibrium(parameters, impurity_gf_up_imag, impurity_gf_down_imag, impurity_gf_down_imag, r); 		
+		/*
 		impurity_self_energy_imag.at(r) = parameters.hubbard_interaction * parameters.hubbard_interaction
 		    * (integrate(parameters, impurity_gf_up_real, impurity_gf_down_real, impurity_gf_down_lesser, r).imag());  // line 
 		impurity_self_energy_imag.at(r) += parameters.hubbard_interaction * parameters.hubbard_interaction
@@ -170,6 +195,7 @@ void self_energy_2nd_order_kramers_kronig(Parameters& parameters, std::vector<dc
 		impurity_self_energy_imag.at(r) += parameters.hubbard_interaction * parameters.hubbard_interaction
 		    * (integrate(parameters, impurity_gf_up_lesser, impurity_gf_down_lesser, impurity_gf_down_advanced_imag, r).imag());  //line 4
 		//there could be a problem here with the constant multiplying sigma lesser
+	*/
 		impurity_self_energy_lesser_up.at(r) =
 		    parameters.hubbard_interaction * parameters.hubbard_interaction * (integrate(parameters, impurity_gf_up_lesser, impurity_gf_down_lesser, gf_greater_down, r));
 	}
@@ -230,7 +256,10 @@ void self_energy_2nd_order(Parameters& parameters, std::vector<dcomp>& impurity_
 	}
 }
 
-void impurity_solver(Parameters& parameters, std::vector<dcomp>& impurity_gf_up, std::vector<dcomp>& impurity_gf_down, std::vector<dcomp>& impurity_gf_up_lesser,
+
+
+
+void impurity_solver(Parameters& parameters, int voltage_step, std::vector<dcomp>& impurity_gf_up, std::vector<dcomp>& impurity_gf_down, std::vector<dcomp>& impurity_gf_up_lesser,
     std::vector<dcomp>& impurity_gf_down_lesser, std::vector<dcomp>& impurity_self_energy_up, std::vector<dcomp>& impurity_self_energy_down,
     std::vector<dcomp>& impurity_self_energy_lesser_up, std::vector<dcomp>& impurity_self_energy_lesser_down, double* spin_up, double* spin_down)
 {
@@ -241,10 +270,18 @@ void impurity_solver(Parameters& parameters, std::vector<dcomp>& impurity_gf_up,
 	if (parameters.interaction_order == 2) {
 
         //one can choose a normal intergation (self_energy_2nd_order) or a krammer kronig method (self_energy_2nd_order_krammer_kronig)
-		self_energy_2nd_order(
+		if (voltage_step == 0){
+		self_energy_2nd_order_kramers_kronig(
 		    parameters, impurity_gf_up, impurity_gf_down, impurity_gf_up_lesser, impurity_gf_down_lesser, impurity_self_energy_up, impurity_self_energy_lesser_up);
-		self_energy_2nd_order(
+		self_energy_2nd_order_kramers_kronig(
 		    parameters, impurity_gf_down, impurity_gf_up, impurity_gf_down_lesser, impurity_gf_up_lesser, impurity_self_energy_down, impurity_self_energy_lesser_down);
+		} else {
+			self_energy_2nd_order(
+		    	parameters, impurity_gf_up, impurity_gf_down, impurity_gf_up_lesser, impurity_gf_down_lesser, impurity_self_energy_up, impurity_self_energy_lesser_up);
+			self_energy_2nd_order(
+			    parameters, impurity_gf_down, impurity_gf_up, impurity_gf_down_lesser, impurity_gf_up_lesser, impurity_self_energy_down, impurity_self_energy_lesser_down);
+	
+		}
 
 		for (int r = 0; r < parameters.steps; r++) {
 			impurity_self_energy_up.at(r) += parameters.hubbard_interaction * (*spin_down);
@@ -289,7 +326,7 @@ void dmft(Parameters& parameters, int voltage_step, std::vector<std::vector<dcom
 				diag_gf_local_lesser_down.at(r) = gf_local_lesser_down.at(r)(i, i);
 			}
 
-			impurity_solver(parameters, diag_gf_local_up, diag_gf_local_down, diag_gf_local_lesser_up, diag_gf_local_lesser_down, impurity_self_energy_up,
+			impurity_solver(parameters, voltage_step, diag_gf_local_up, diag_gf_local_down, diag_gf_local_lesser_up, diag_gf_local_lesser_down, impurity_self_energy_up,
 			    impurity_self_energy_down, impurity_self_energy_lesser_up, impurity_self_energy_lesser_down, &spins_occup.at(i), &spins_occup.at(i + parameters.chain_length));
 
             if(count == 0){
@@ -307,7 +344,7 @@ void dmft(Parameters& parameters, int voltage_step, std::vector<std::vector<dcom
                     self_energy_mb_lesser_down.at(i).at(r) = (impurity_self_energy_lesser_down.at(r) + self_energy_mb_lesser_down.at(i).at(r)) * 0.5;
                 }
             }
-                
+		
 		}
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);

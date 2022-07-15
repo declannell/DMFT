@@ -116,14 +116,18 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
                 cos(ky) + voltage_i;
     }
 
-    if(parameters.num_ins_left == 0){
+    if(parameters.num_ins_left == 0 && parameters.num_ins_right != 0){
         voltage_i = parameters.voltage_l[voltage_step];
-    } else if (parameters.num_ins_right == 0){
+    } else if (parameters.num_ins_right == 0 && parameters.num_ins_left != 0){
         voltage_i = parameters.voltage_r[voltage_step];
-    } else {
+    } else if (parameters.num_ins_right == 0 && parameters.num_ins_left == 0){
+        voltage_i = (parameters.voltage_l[voltage_step] + parameters.voltage_r[voltage_step]) * 0.5;
+    } else { 
         voltage_i = parameters.voltage_l[voltage_step] - (double)(parameters.num_ins_left + 0.5) / (double)(num_ins + 1.0) * potential_bias;
         //the voltage is constant in the correlated metal
     }
+
+    //std::cout << "The voltage on the correlated atom is " << voltage_i << std::endl;
 
     for (int i = 0; i < parameters.num_cor; i++){
         int j = i + parameters.num_ins_left;
@@ -243,16 +247,15 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
     }
 
     Eigen::MatrixXcd delta_term = Eigen::MatrixXd::Zero(parameters.chain_length, parameters.chain_length);
-
         //std::cout << "The lesser green function is" << "\n";
     for(int r = 0; r < parameters.steps; r++) {   
+    
         delta_term = 2.0 * parameters.j1 * parameters.delta_gf * fermi_function(parameters.energy.at(r), parameters) 
             * gf_retarded.at(r) * gf_retarded.at(r).adjoint();
 
         for(int i = 0; i < parameters.chain_length; i++ ) {
             for(int j = 0; j < parameters.chain_length; j++) {  
                 for(int k = 0; k < parameters.chain_length; k++){
-                   
                     gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (self_energy_mb_lesser.at(k).at(r)) * std::conj(gf_retarded.at(r)(j, k));
                     if (k == 0){
                         gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (- 2.0 * parameters.j1) * fermi_function(parameters.energy.at(r) - parameters.voltage_l.at(voltage_step), parameters) * 
@@ -262,6 +265,8 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
                         //std::cout <<  parameters.voltage_r.at(voltage_step) << std::endl;
                         gf_lesser.at(r)(i, j) += gf_retarded.at(r)(i, k) * (- 2.0 * parameters.j1)  * fermi_function(parameters.energy.at(r) - parameters.voltage_r.at(voltage_step), parameters) * 
                             (self_energy_right.at(r)).imag() * std::conj(gf_retarded.at(r)(j, k));
+                        
+                        
                     }
                 } 
             }
@@ -286,14 +291,11 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
     std::vector<Eigen::MatrixXcd> &gf_local_lesser, const int voltage_step, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian){
 
-    
 
     for(int r = 0; r < parameters.steps; r++){
         gf_local.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
         gf_local_lesser.at(r) = (Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
     }
-
-    
 
     int n_x, n_y;
 
@@ -313,11 +315,12 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
                 leads.at(kx_i).at(ky_i).self_energy_left,
                 leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
+
             get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, 
                 self_energy_mb_lesser, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
                 gf_lesser, voltage_step);
 
-            //get_gf_lesser_fd(parameters, gf_interacting.interacting_gf, gf_lesser);
+
 
             for(int r = 0; r < parameters.steps; r++){
                 for(int i = 0; i < parameters.chain_length; i++){
