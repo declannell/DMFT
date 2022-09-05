@@ -27,26 +27,26 @@ Parameters Parameters::init()
         .hopping_ins_l_cor = -2.5,
         .hopping_ins_r_cor = -2.5,        
         .num_cor = 1, //this is the number of correlated atoms between the insulating atoms.
-        .num_ins_left  = 2, //this is the number of insulating layers on the left side.    
-        .num_ins_right = 2,
-        .num_ky_points = 200,
-        .num_kx_points = 200,
+        .num_ins_left  = 0, //this is the number of insulating layers on the left side.    
+        .num_ins_right = 0,
+        .num_ky_points = 1,
+        .num_kx_points = 1,
         .chemical_potential = 0.0,
         .temperature = 00.0,
         .e_upper_bound = 40.0,
         .e_lower_bound = -40.0,
-        .hubbard_interaction = 20,
+        .hubbard_interaction = 2.5,
         .voltage_step = 0,
-        .self_consistent_steps = 20,
+        .self_consistent_steps = 30,
         .read_in_self_energy = false,
-        .NIV_points = 1,
-        .delta_v = 0.1,
+        .NIV_points = 6,
+        .delta_v = 0.5,
         .delta_leads = 0.00000001,
-        .delta_gf = 0.01,
+        .delta_gf = 0.0000000001,
         .leads_3d = false,
-        .spin_up_occup = 1.0,
+        .spin_up_occup = 0.0,
         .spin_down_occup = 0.0,       
-        .convergence = 0.001 
+        .convergence = 0.0001 
     
     };
 
@@ -72,7 +72,7 @@ Parameters Parameters::init()
 
     parameters.chain_length = parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
 
-    parameters.steps = 1601; //you must make sure the energy spacing is less than delta_v
+    parameters.steps = 401; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;
