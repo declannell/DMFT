@@ -196,6 +196,7 @@ void impurity_solver(const Parameters &parameters, const int voltage_step,
 	}
 }
 
+
 void dmft(const Parameters &parameters, const int voltage_step, 
         std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down, 
         std::vector<std::vector<dcomp>> &self_energy_mb_lesser_up, std::vector<std::vector<dcomp>> &self_energy_mb_lesser_down,
@@ -208,6 +209,10 @@ void dmft(const Parameters &parameters, const int voltage_step,
 
 	std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
 
+	std::vector<dcomp> diag_gf_local_up(parameters.steps), diag_gf_local_down(parameters.steps), diag_gf_local_lesser_up(parameters.steps),
+	    diag_gf_local_lesser_down(parameters.steps), impurity_self_energy_up(parameters.steps), impurity_self_energy_down(parameters.steps),
+	    impurity_self_energy_lesser_up(parameters.steps), impurity_self_energy_lesser_down(parameters.steps);
+
 	while (difference > parameters.convergence && count < parameters.self_consistent_steps) {
 
 		get_difference(parameters, gf_local_up, old_green_function, difference, index);
@@ -218,21 +223,23 @@ void dmft(const Parameters &parameters, const int voltage_step,
 
 		for (int j = 0; j < parameters.num_cor; j++) {  //we only do the dmft loop over the correlated metal.
 			int i = parameters.num_ins_left + j;
-			std::vector<dcomp> diag_gf_local_up(parameters.steps), diag_gf_local_down(parameters.steps), diag_gf_local_lesser_up(parameters.steps),
-			    diag_gf_local_lesser_down(parameters.steps), impurity_self_energy_up(parameters.steps), impurity_self_energy_down(parameters.steps),
-			    impurity_self_energy_lesser_up(parameters.steps), impurity_self_energy_lesser_down(parameters.steps);
-
-			std::cout << "atom which we put on correlation" << i << std::endl;
 
 			for (int r = 0; r < parameters.steps; r++) {
 				diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
 				diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);
 				diag_gf_local_lesser_up.at(r) = gf_local_lesser_up.at(r)(i, i);
 				diag_gf_local_lesser_down.at(r) = gf_local_lesser_down.at(r)(i, i);
+				impurity_self_energy_up.at(r) = self_energy_mb_up.at(i).at(r);
+				impurity_self_energy_down.at(r) = self_energy_mb_down.at(i).at(r);
+				impurity_self_energy_lesser_up.at(r) = self_energy_mb_lesser_up.at(i).at(r);
+				impurity_self_energy_lesser_down.at(r) = self_energy_mb_lesser_down.at(i).at(r);
 			}
+
+			std::cout << "atom which we put on correlation" << i << std::endl;
 
     		AIM aim_up(parameters, diag_gf_local_up, diag_gf_local_lesser_up, impurity_self_energy_up, impurity_self_energy_lesser_up, voltage_step);
     		AIM aim_down(parameters, diag_gf_local_down, diag_gf_local_lesser_down, impurity_self_energy_down, impurity_self_energy_lesser_down, voltage_step);
+			
 			std::cout << "AIM was created" << std::endl;
 			impurity_solver(parameters, voltage_step, aim_up, aim_down, &spins_occup.at(i), &spins_occup.at(i + parameters.chain_length));
 

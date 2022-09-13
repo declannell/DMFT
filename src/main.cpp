@@ -96,7 +96,7 @@ int main()
 	std::vector<dcomp> current_down_right(parameters.NIV_points, 0);
 	std::vector<dcomp> current_down_left(parameters.NIV_points, 0);
 
-	for (int m = 1; m < parameters.NIV_points; m++) {
+	for (int m = 0; m < parameters.NIV_points; m++) {
 		std::vector<std::vector<Eigen::MatrixXd>> hamiltonian(
 		    parameters.num_kx_points, std::vector<Eigen::MatrixXd>(parameters.num_ky_points, Eigen::MatrixXd::Zero(parameters.chain_length, parameters.chain_length)));
 
@@ -182,6 +182,19 @@ int main()
 				}
 			}
 		}
+
+		std::ostringstream oss1gf;
+		oss1gf << "textfiles/" << m << "." << 0 << ".gf_initial.txt";
+		std::string var1 = oss1gf.str();
+		std::ofstream gf_local_file;
+		gf_local_file.open(var1);
+		for (int r = 0; r < parameters.steps; r++) {  
+			gf_local_file << parameters.energy.at(r) << "  " << gf_local_up.at(r)(0, 0).real() << "   " << gf_local_up.at(r)(0, 0).imag() << "   "
+			              << gf_local_down.at(r)(0, 0).real() << "   " << gf_local_down.at(r)(0, 0).imag() << " \n";
+			// std::cout << leads.self_energy_left.at(r) << "\n";
+		}
+		gf_local_file.close();
+
 
 		double difference;
 		int index;

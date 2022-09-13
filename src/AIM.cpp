@@ -30,14 +30,14 @@ AIM::AIM(const Parameters &parameters, const std::vector<dcomp> &local_gf_retard
 
 	//std::cout << "AIM retarded_dynamical_field was created without seg fault" << std::endl;  
 
-    if (voltage_step != 0){
+    if (voltage_step == 0){
         this->hybridisation_lesser.resize(parameters.steps);
-        get_effective_fermi_function(parameters);
+
 
         //std::cout << "AIM effective_fermi was created without seg fault" << std::endl;  
 
         get_lesser_hybridisation(parameters);
-    
+        get_effective_fermi_function(parameters);    
         //std::cout << "AIM lesser_hybridisation was created without seg fault" << std::endl;  
     }
 
@@ -78,7 +78,8 @@ void AIM::get_retarded_dynamical_field(const Parameters &parameters, const std::
 
     for (int r = 0; r < parameters.steps; r++){
         this->dynamical_field_retarded.at(r) = 1.0 / (1.0 / local_gf_retarded.at(r) + self_energy_retarded.at(r));
-        mb_imp_gf << parameters.energy.at(r) << "  " << this->dynamical_field_retarded.at(r).real() << "  " << this->dynamical_field_retarded.at(r).imag() << " \n";
+        mb_imp_gf << parameters.energy.at(r) << "  " << this->dynamical_field_retarded.at(r).real() << "  " << this->dynamical_field_retarded.at(r).imag() << " " 
+                << self_energy_retarded.at(r) << " \n";
     }
 
 	mb_imp_gf.close();
@@ -96,8 +97,13 @@ void AIM::get_effective_fermi_function(const Parameters &parameters){
     for (int r = 0; r < parameters.steps; r++){
         dcomp advanced = std::conj(this->impurity_gf_mb_retarded.at(r));
         this->fermi_function_eff.at(r) = (this->impurity_gf_mb_lesser.at(r) / (this->impurity_gf_mb_retarded.at(r) - advanced)).imag();
+
+        dcomp fermi_hybridisation = this->hybridisation_lesser.at(r) / (2.0 * parameters.j1 * parameters.delta_gf +
+                                            (1.0 / advanced) - 1.0 / (this->dynamical_field_retarded.at(r)));
         //std::cout << r << " " << fermi_function_eff.at(r) << std::endl;
-        effective_fermi_function << parameters.energy.at(r) << "  " << this->fermi_function_eff.at(r).real() << " \n";
+        effective_fermi_function << parameters.energy.at(r) << "  " << this->fermi_function_eff.at(r).real() << " " << fermi_hybridisation.imag() << "  " 
+                << this->hybridisation_lesser.at(r) << "    " <<  (2.0 * parameters.j1 * parameters.delta_gf +
+                                            (1.0 / advanced) - 1.0 / (this->dynamical_field_retarded.at(r))) << " \n";
     }
 	effective_fermi_function.close();
 }
