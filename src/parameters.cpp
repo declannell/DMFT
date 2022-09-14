@@ -27,10 +27,11 @@ Parameters Parameters::init()
         .hopping_ins_l_cor = -2.5,
         .hopping_ins_r_cor = -2.5,        
         .num_cor = 1, //this is the number of correlated atoms between the insulating atoms.
-        .num_ins_left  = 4, //this is the number of insulating layers on the left side.    
-        .num_ins_right = 4,
-        .num_ky_points = 100,
-        .num_kx_points = 100,
+        .num_ins_left  = 0, //this is the number of insulating layers on the left side.    
+        .num_ins_right = 0,
+        .ins_metal_ins = true, 
+        .num_ky_points = 10,
+        .num_kx_points = 10,
         .chemical_potential = 0.0,
         .temperature = 00.0,
         .e_upper_bound = 40.0,
@@ -69,8 +70,37 @@ Parameters Parameters::init()
     {
         parameters.interaction_order = 2;
     }
+    if (parameters.ins_metal_ins == true){
+        parameters.chain_length = parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
+    } else {
+        parameters.chain_length = parameters.num_ins_left + 2 * parameters.num_cor;
+    }
 
-    parameters.chain_length = parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
+    if (parameters.ins_metal_ins == true){
+        for (int i = 0; i < parameters.num_ins_left; i++){
+            parameters.atom_type.push_back(0);
+        }
+        for (int i = 0; i < parameters.num_cor; i++){
+            parameters.atom_type.push_back(1);
+        }
+        for (int i = 0; i < parameters.num_ins_right; i++){
+            parameters.atom_type.push_back(0);
+        }
+    } else {
+        for (int i = 0; i < parameters.num_cor; i++){
+            parameters.atom_type.push_back(1);
+        }
+        for (int i = 0; i < parameters.num_ins_left; i++){
+            parameters.atom_type.push_back(0);
+        }
+        for (int i = 0; i < parameters.num_cor; i++){
+            parameters.atom_type.push_back(1);
+        }
+    }
+
+    for (int i = 0; i < parameters.chain_length; i++) {
+        std::cout << parameters.atom_type.at(i) << std::endl;
+    }
 
     parameters.steps = 401; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);

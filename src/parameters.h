@@ -31,6 +31,8 @@ struct Parameters
     int num_cor; //this is the number of correlated atoms between the insulating atoms.
     int num_ins_left; //this is the number of insulating layers on the left side.    
     int num_ins_right; //this is the number of insulating layers on the right side.
+    bool ins_metal_ins;//if false, the arrangment will be metal_ins_metal and the values for the hamiltonian of the insulating sites are set by ins_l. ins_r are never called.
+    //if true the arrangement is ins_metal_ins and both ins_l and ins_r have an effect.
     int num_ky_points; // this is the number of k in the y direction for the scattering region
     int num_kx_points; // This is the number of points in the x direction.
     double chemical_potential;
@@ -50,6 +52,7 @@ struct Parameters
     double spin_down_occup;
     double convergence;
     int chain_length;   // the number of atoms in the z direction of the scattering region
+    std::vector<int> atom_type; //this is a list of whether the atom is an insulator (=0) or a metal (= 1)
     int interaction_order; // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
     std::string path_of_self_energy_up;
     std::string path_of_self_energy_down;

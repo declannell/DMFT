@@ -221,9 +221,10 @@ void dmft(const Parameters &parameters, const int voltage_step,
 			break;
 		}
 
-		for (int j = 0; j < parameters.num_cor; j++) {  //we only do the dmft loop over the correlated metal.
-			int i = parameters.num_ins_left + j;
-
+		for (int i = 0; i < parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
+			if (parameters.atom_type.at(i) == 0){
+				continue;
+			}
 			for (int r = 0; r < parameters.steps; r++) {
 				diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
 				diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);

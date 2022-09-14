@@ -54,42 +54,7 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Eige
 }
 
 void get_hamiltonian(Parameters const &parameters, const int voltage_step, const double kx, const double ky, Eigen::MatrixXd &hamiltonian){
-    for (int i = 0; i < parameters.num_ins_left - 1; i++){
-        hamiltonian(i, i + 1) = parameters.hopping_ins_l;
-        hamiltonian(i + 1, i) = parameters.hopping_ins_l;
-    }
-    //std::cout << "failed here 1 \n"; 
-    for (int i = 0; i < parameters.num_cor - 1; i++){
-        int j = i + parameters.num_ins_left;
-        //std::cout << j << std::endl;
-        hamiltonian(j, j + 1) = parameters.hopping_cor;
-        hamiltonian(j + 1, j) = parameters.hopping_cor;
-    }
-
-    //std::cout << "failed here 2 \n"; 
-
-    for (int i = 0; i < parameters.num_ins_right - 1; i++){
-        int j = i + parameters.num_cor + parameters.num_ins_left;
-        hamiltonian(j, j + 1) = parameters.hopping_ins_r;
-        hamiltonian(j + 1, j) = parameters.hopping_ins_r;
-    }
-
-    //std::cout << "failed here 3 \n"; 
-
-    if(parameters.num_ins_left != 0 && parameters.num_cor != 0){
-        hamiltonian(parameters.num_ins_left, parameters.num_ins_left - 1) = parameters.hopping_ins_l_cor;
-        hamiltonian(parameters.num_ins_left - 1, parameters.num_ins_left) = parameters.hopping_ins_l_cor;
-    }
-
-    //std::cout << "failed here 4 \n"; 
-
-    if(parameters.num_ins_right != 0 && parameters.num_cor != 0){
-        int i = parameters.num_ins_left + parameters.num_cor;
-        hamiltonian(i, i - 1) = parameters.hopping_ins_r_cor;
-        hamiltonian(i - 1, i) = parameters.hopping_ins_r_cor;
-    }
-
-
+        
     std::ofstream potential_file;
     potential_file.open(
         "textfiles/"
@@ -100,54 +65,68 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
     potential_file << -2 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
     potential_file << -1 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
     potential_file << 0 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
-
-
     double potential_bias = (parameters.voltage_l[voltage_step] -
-                             parameters.voltage_r[voltage_step]);
-
+                            parameters.voltage_r[voltage_step]);
     double voltage_i;
 
-    int num_ins = parameters.num_ins_left + parameters.num_ins_right;
-    //std::cout << "failed here 5 \n"; 
-    for (int i = 0; i < parameters.num_ins_left; i++){
-        voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) / (double)(num_ins + 1.0) * potential_bias;
-        potential_file << i + 1 << "  " << voltage_i <<  "\n";        
-        hamiltonian(i, i) = parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
-                cos(ky) + voltage_i;
-    }
+    if (parameters.ins_metal_ins == true){
+        for (int i = 0; i < parameters.chain_length - 1; i++){
+            if(parameters.atom_type.at(i) == 0 && parameters.atom_type.at(i + 1) == 0){
+                hamiltonian(i, i + 1) = parameters.hopping_ins_l;
+                hamiltonian(i + 1, i) = parameters.hopping_ins_l;
+            } else if (parameters.atom_type.at(i) == 1 && parameters.atom_type.at(i + 1) == 1){
+                hamiltonian(i, i + 1) = parameters.hopping_cor;
+                hamiltonian(i + 1, i) = parameters.hopping_cor;            
+            } else {
+                hamiltonian(i, i + 1) = parameters.hopping_ins_l_cor;
+                hamiltonian(i + 1, i) = parameters.hopping_ins_l_cor;              
+            }
+        }
 
-    if(parameters.num_ins_left == 0 && parameters.num_ins_right != 0){
-        voltage_i = parameters.voltage_l[voltage_step];
-    } else if (parameters.num_ins_right == 0 && parameters.num_ins_left != 0){
-        voltage_i = parameters.voltage_r[voltage_step];
-    } else if (parameters.num_ins_right == 0 && parameters.num_ins_left == 0){
-        voltage_i = (parameters.voltage_l[voltage_step] + parameters.voltage_r[voltage_step]) * 0.5;
-    } else { 
-        voltage_i = parameters.voltage_l[voltage_step] - (double)(parameters.num_ins_left + 0.5) / (double)(num_ins + 1.0) * potential_bias;
-        //the voltage is constant in the correlated metal
-    }
+        int num_ins = parameters.num_ins_left + parameters.num_ins_right;
+        
+        double delta_v = potential_bias / (double)(num_ins + 1.0);
 
-    //std::cout << "The voltage on the correlated atom is " << voltage_i << std::endl;
+        //std::cout << "failed here 5 \n"; 
+        for (int i = 0; i < parameters.num_ins_left; i++){
+            voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) * delta_v;
+            potential_file << i + 1 << "  " << voltage_i <<  "\n";  
+            hamiltonian(i, i) = parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
+                        cos(ky) + voltage_i;
+        }
 
-    for (int i = 0; i < parameters.num_cor; i++){
-        int j = i + parameters.num_ins_left;
-        potential_file << j + 1 << "  " << voltage_i <<  "\n";          
-        hamiltonian(j, j) = parameters.onsite_cor + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
-                cos(ky) + voltage_i;
-    }
+        if(parameters.num_ins_left == 0 && parameters.num_ins_right != 0){
+            voltage_i = parameters.voltage_l[voltage_step];
+        } else if (parameters.num_ins_right == 0 && parameters.num_ins_left != 0){
+            voltage_i = parameters.voltage_r[voltage_step];
+        } else if (parameters.num_ins_right == 0 && parameters.num_ins_left == 0){
+            voltage_i = (parameters.voltage_l[voltage_step] + parameters.voltage_r[voltage_step]) * 0.5;
+        } else { 
+            voltage_i = parameters.voltage_l[voltage_step] - (double)(parameters.num_ins_left + 0.5) / (double)(num_ins + 1.0) * potential_bias;
+            //the voltage is constant in the correlated metal
+        }
 
-    for (int i = 0; i < parameters.num_ins_right; i++){
-        int j = i + parameters.num_cor + parameters.num_ins_left;
-        voltage_i = parameters.voltage_l[voltage_step] - (double)(i + parameters.num_ins_left + 1) / (double)(num_ins + 1.0) * potential_bias;
-        potential_file << j + 1 << "  " << voltage_i <<  "\n";  
-        hamiltonian(j, j) = parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
-                cos(ky) + voltage_i;
+        //std::cout << "The voltage on the correlated atom is " << voltage_i << std::endl;
+
+        for (int i = 0; i < parameters.num_cor; i++){
+            int j = i + parameters.num_ins_left;
+            potential_file << j + 1 << "  " << voltage_i <<  "\n";          
+            hamiltonian(j, j) = parameters.onsite_cor + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
+                    cos(ky) + voltage_i;
+        }
+
+        for (int i = 0; i < parameters.num_ins_right; i++){
+            int j = i + parameters.num_cor + parameters.num_ins_left;
+            voltage_i = parameters.voltage_l[voltage_step] - (double)(i + parameters.num_ins_left + 1) / (double)(num_ins + 1.0) * potential_bias;
+            potential_file << j + 1 << "  " << voltage_i <<  "\n";  
+            hamiltonian(j, j) = parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r + 2 * parameters.hopping_x * cos(kx) + 2 * parameters.hopping_y * 
+                    cos(ky) + voltage_i;
+        }
     }
 
     //std::cout << "The hamiltonian is " <<  std::endl;
     //std::cout << hamiltonian << std::endl;
     //std::cout << std::endl;
-
     potential_file << parameters.chain_length + 1  << "  " << parameters.voltage_r[voltage_step] <<  "\n";
     potential_file << parameters.chain_length + 2  << "  " << parameters.voltage_r[voltage_step] <<  "\n";
     potential_file << parameters.chain_length + 3  << "  " << parameters.voltage_r[voltage_step] <<  "\n";

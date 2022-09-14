@@ -59,6 +59,31 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.spin_down_occup = " << parameters.spin_down_occup << std::endl;
 }
 
+void set_initial_spin(Parameters &parameters, std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down){
+	if (parameters.ins_metal_ins == true){
+		for (int i = parameters.num_ins_left; i < parameters.num_cor + parameters.num_ins_left; i++) {
+			for (int r = 0; r < parameters.steps; r++) {
+				self_energy_mb_up.at(i).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;
+				self_energy_mb_down.at(i).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;
+			}
+		}
+	} else {
+		for(int i = 0; i < parameters.num_cor; i++) {
+			for (int r = 0; r < parameters.steps; r++) {
+				self_energy_mb_up.at(i).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;
+				self_energy_mb_down.at(i).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;
+			}
+		}
+
+		for(int i = parameters.num_cor + parameters.num_ins_left; i < parameters.chain_length; i++) {
+			for (int r = 0; r < parameters.steps; r++) {
+				self_energy_mb_up.at(i).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;
+				self_energy_mb_down.at(i).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;
+			}			
+		}
+	}
+}
+
 int main()
 {
 	Parameters parameters = Parameters::init();
@@ -110,14 +135,7 @@ int main()
 		std::vector<std::vector<dcomp>> self_energy_mb_down(parameters.chain_length, std::vector<dcomp>(parameters.steps)),
 		    self_energy_mb_lesser_down(parameters.chain_length, std::vector<dcomp>(parameters.steps, 0));
 
-		for (int i = parameters.num_ins_left; i < parameters.num_cor + parameters.num_ins_left; i++) {
-			for (int r = 0; r < parameters.steps; r++) {
-				self_energy_mb_up.at(i).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;
-				self_energy_mb_down.at(i).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;
-			}
-			std::cout << parameters.spin_down_occup * parameters.hubbard_interaction << std::endl;
-			std::cout << parameters.spin_up_occup * parameters.hubbard_interaction << std::endl;
-		}
+		set_initial_spin(parameters, self_energy_mb_up, self_energy_mb_down);
 
 		if (m != 0 && parameters.leads_3d == true) {  // this has already been initialised for
 			// the equilibrium case in line 19-33
