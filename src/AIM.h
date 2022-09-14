@@ -19,7 +19,7 @@ public:
     std::vector<double> impurity_gf_mb_lesser;
     std::vector<double> hybridisation_lesser;
     std::vector<double> dynamical_field_lesser;
-    std::vector<dcomp> fermi_function_eff;
+    std::vector<double> fermi_function_eff;
     std::vector<dcomp> self_energy_mb_retarded;
     std::vector<double> self_energy_mb_lesser;
 

@@ -96,7 +96,7 @@ int main()
 	std::vector<dcomp> current_down_right(parameters.NIV_points, 0);
 	std::vector<dcomp> current_down_left(parameters.NIV_points, 0);
 
-	for (int m = 0; m < parameters.NIV_points; m++) {
+	for (int m = 1; m < parameters.NIV_points; m++) {
 		std::vector<std::vector<Eigen::MatrixXd>> hamiltonian(
 		    parameters.num_kx_points, std::vector<Eigen::MatrixXd>(parameters.num_ky_points, Eigen::MatrixXd::Zero(parameters.chain_length, parameters.chain_length)));
 
