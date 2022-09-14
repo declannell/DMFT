@@ -153,19 +153,19 @@ void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim
 
 		//std::cout << aim_up.self_energy_mb_lesser.at(r) << std::endl;
 	}
-	std::ostringstream ossser;
-	ossser << "textfiles/"
-	       << "se_krammer_kronig.txt";
-	std::string var = ossser.str();
-	std::ofstream se_krammer_kronig;
-	se_krammer_kronig.open(var);
+	//std::ostringstream ossser;
+	//ossser << "textfiles/"
+	//       << "se_krammer_kronig.txt";
+	//std::string var = ossser.str();
+	//std::ofstream se_krammer_kronig;
+	//se_krammer_kronig.open(var);
 	for (int r = 0; r < parameters.steps; r++) {
 		impurity_self_energy_real.at(r) = kramer_kronig_relation(parameters, impurity_self_energy_imag, r);
 		aim_up.self_energy_mb_retarded.at(r) = impurity_self_energy_real.at(r) + parameters.j1 * impurity_self_energy_imag.at(r);
 
-		se_krammer_kronig << parameters.energy.at(r) << "  " << aim_up.self_energy_mb_retarded.at(r).real() << "  " << aim_up.self_energy_mb_retarded.at(r).imag() << "\n";
+		//se_krammer_kronig << parameters.energy.at(r) << "  " << aim_up.self_energy_mb_retarded.at(r).real() << "  " << aim_up.self_energy_mb_retarded.at(r).imag() << "\n";
 	}
-	se_krammer_kronig.close();
+	//se_krammer_kronig.close();
 }
 
 void impurity_solver(const Parameters &parameters, const int voltage_step, 

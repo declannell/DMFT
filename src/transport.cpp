@@ -132,10 +132,10 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 	double delta_energy =
 	    (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
 	dcomp trace_left, trace_right, coupling_left, coupling_right, spectral_left, spectral_right;
-    std::ofstream integrand_file;
-    integrand_file.open(
-        "textfiles/"
-        "integrand.txt");
+    //std::ofstream integrand_file;
+    //integrand_file.open(
+    //    "textfiles/"
+    //    "integrand.txt");
 
 	for (int r = 0; r < parameters.steps; r++) {
 		coupling_left = parameters.j1 * (left_lead_se.at(r) - std::conj(left_lead_se.at(r)));
@@ -162,17 +162,17 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		trace_left = trace_left_a + trace_left_b;
 		trace_right = trace_right_a + trace_right_b;		
 
-		integrand_file << parameters.energy.at(r) << "  "
-				<< trace_left_a.real() << "  "
-				<< trace_right_a.real() << "  "
-				<< trace_left_b.real() << "  "
-				<< trace_right_b.real() << "  "
-				<< trace_left.real() << "  "
-				<< trace_right.real() <<"\n";
+		//integrand_file << parameters.energy.at(r) << "  "
+		//		<< trace_left_a.real() << "  "
+		//		<< trace_right_a.real() << "  "
+		//		<< trace_left_b.real() << "  "
+		//		<< trace_right_b.real() << "  "
+		//		<< trace_left.real() << "  "
+		//		<< trace_right.real() <<"\n";
 				
 		*current_left -= delta_energy * trace_left;
 		*current_right -= delta_energy * trace_right;
 	}
 
-	integrand_file.close();
+	//integrand_file.close();
 }

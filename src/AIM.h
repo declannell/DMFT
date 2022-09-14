@@ -32,7 +32,7 @@ public:
 
     void get_effective_fermi_function(const Parameters &parameters);
 
-    void get_lesser_hybridisation(const Parameters &parameters);
+    void get_lesser_hybridisation(const Parameters &parameters, const std::vector<dcomp> &self_energy_lesser);
 
     void get_dynamical_field_lesser(const Parameters &parameters, const int voltage_step);
 };

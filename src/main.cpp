@@ -173,37 +173,24 @@ int main()
 		std::cout << "leads complete" << std::endl;
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);
-		std::cout << "got local green function " << std::endl;
-		std::vector<Eigen::MatrixXcd> gf_local_lesser_up_FD(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-		for (int r = 0; r < parameters.steps; r++) {
-			for (int i = 0; i < parameters.chain_length; i++) {
-				for (int j = 0; j < parameters.chain_length; j++) {
-					gf_local_lesser_up_FD.at(r)(i, j) = -1.0 * fermi_function(parameters.energy.at(r), parameters) * (gf_local_up.at(r)(i, j) - std::conj(gf_local_up.at(r)(j, i)));
-				}
-			}
-		}
 
 		std::ostringstream oss1gf;
-		oss1gf << "textfiles/" << m << "." << 0 << ".gf_initial.txt";
+		oss1gf << "textfiles/" << m << ".dos_non_int.txt";
 		std::string var1 = oss1gf.str();
-		std::ofstream gf_local_file;
-		gf_local_file.open(var1);
-		for (int r = 0; r < parameters.steps; r++) {  
-			gf_local_file << parameters.energy.at(r) << "  " << gf_local_up.at(r)(0, 0).real() << "   " << gf_local_up.at(r)(0, 0).imag() << "   "
-			              << gf_local_down.at(r)(0, 0).real() << "   " << gf_local_down.at(r)(0, 0).imag() << " \n";
-			// std::cout << leads.self_energy_left.at(r) << "\n";
+		std::ofstream dos_file_non_int;
+		dos_file_non_int.open(var1);
+		// myfile << parameters.steps << std::endl;
+		for (int r = 0; r < parameters.steps; r++) {
+			double dos_total_up = 0.0;
+			double dos_total_down = 0.0;
+			for (int i = 0; i < parameters.chain_length; i++) {
+				dos_total_up += -gf_local_up.at(r)(i, i).imag();
+				dos_total_down += -gf_local_down.at(r)(i, i).imag();
+			}
+			dos_file_non_int << parameters.energy.at(r) << "  " << dos_total_up << "   " << dos_total_down << " \n";
 		}
-		gf_local_file.close();
+		dos_file_non_int.close();
 
-
-		double difference;
-		int index;
-		if (m == 0) {
-			get_difference(parameters, gf_local_lesser_up, gf_local_lesser_up_FD, difference, index);
-			std::cout << "The difference between the fD and other is " << difference << std::endl;
-			std::cout << "The index is " << index << std::endl;
-			std::cout << "got local green function" << std::endl;
-		}
 
 		std::vector<double> spins_occup(2 * parameters.chain_length);
 
@@ -239,12 +226,14 @@ int main()
 			noncoherent_current_down.at(m) = 0.5 * (current_down_left.at(m) - current_down_right.at(m)) - coherent_current_down.at(m);
 		}
 
-		std::cout << "The spin up left current is " << current_up_left.at(m) << "The spin up right current is " << current_up_right.at(m) << "The spin down left current is "
-		          << current_down_left.at(m) << "The spin up right current is " << current_down_right.at(m) << "The total current is "
-		          << 0.5 * (current_down_left.at(m) - current_down_right.at(m)) << "The coherent current is " << coherent_current_down.at(m) << "The noncoherent current is "
-		          << noncoherent_current_down.at(m)
 
-		          << "\n";
+		std::cout << "The spin up left current is " << current_up_left.at(m) << "\n" <<
+					 "The spin up right current is " << current_up_right.at(m) << "\n" <<
+					 "The spin down left current is " << current_down_left.at(m) << "\n" <<
+					 "The spin up right current is " << current_down_right.at(m) << "\n" <<
+					 "The total current is " << 0.5 * (current_down_left.at(m) - current_down_right.at(m)) << "\n" <<
+					 "The coherent current is " << coherent_current_down.at(m) << "\n" <<
+					 "The noncoherent current is " << noncoherent_current_down.at(m) << "\n";
 
 		std::cout << "\n";
 		for (int i = 0; i < parameters.chain_length; i++) {
@@ -370,10 +359,14 @@ int main()
 		    "textfiles/"
 		    "current.txt");
 		for (int m = 0; m < parameters.NIV_points; m++) {
-			std::cout << "The spin up left current is " << current_up_left.at(m) << "The spin up right current is " << current_up_right.at(m) << "The spin down left current is "
-			          << current_down_left.at(m) << "The spin up right current is " << current_down_right.at(m) << "The total current is "
-			          << 0.5 * (current_down_left.at(m) - current_down_right.at(m)) << "The coherent current is " << coherent_current_down.at(m) << "The noncoherent current is "
-			          << noncoherent_current_down.at(m) << "\n";
+
+			std::cout << "The spin up left current is " << current_up_left.at(m) << "\n" <<
+					 "The spin up right current is " << current_up_right.at(m) << "\n" <<
+					 "The spin down left current is " << current_down_left.at(m) << "\n" <<
+					 "The spin up right current is " << current_down_right.at(m) << "\n" <<
+					 "The total current is " << 0.5 * (current_down_left.at(m) - current_down_right.at(m)) << "\n" <<
+					 "The coherent current is " << coherent_current_down.at(m) << "\n" <<
+					 "The noncoherent current is " << noncoherent_current_down.at(m) << "\n";
 
 			std::cout << "\n";
 

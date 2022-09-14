@@ -30,16 +30,16 @@ AIM::AIM(const Parameters &parameters, const std::vector<dcomp> &local_gf_retard
 
 	//std::cout << "AIM retarded_dynamical_field was created without seg fault" << std::endl;  
 
-    if (voltage_step == 0){
+
         this->hybridisation_lesser.resize(parameters.steps);
 
 
-        //std::cout << "AIM effective_fermi was created without seg fault" << std::endl;  
+        std::cout << "AIM effective_fermi was created without seg fault" << std::endl;  
 
-        get_lesser_hybridisation(parameters);
+        get_lesser_hybridisation(parameters, self_energy_lesser);
         get_effective_fermi_function(parameters);    
         //std::cout << "AIM lesser_hybridisation was created without seg fault" << std::endl;  
-    }
+
 
     get_dynamical_field_lesser(parameters, voltage_step);
 	
@@ -108,7 +108,7 @@ void AIM::get_effective_fermi_function(const Parameters &parameters){
 	effective_fermi_function.close();
 }
 
-void AIM::get_lesser_hybridisation(const Parameters &parameters)
+void AIM::get_lesser_hybridisation(const Parameters &parameters, const std::vector<dcomp> &self_energy_lesser)
 {  
     std::ostringstream ossgf;
 	ossgf << "textfiles/" << 1 << "."  << ".hybridisation_lesser.txt";
@@ -121,8 +121,13 @@ void AIM::get_lesser_hybridisation(const Parameters &parameters)
     for (int r = 0; r < parameters.steps; r++){
         dcomp advanced = std::conj(this->dynamical_field_retarded.at(r));
 
-        this->hybridisation_lesser.at(r) = ((1.0 / this->impurity_gf_mb_retarded.at(r)) * this->impurity_gf_mb_lesser.at(r) * 
-                            std::conj((1.0 / this->impurity_gf_mb_retarded.at(r))) - this->impurity_gf_mb_lesser.at(r)).real();
+        this->hybridisation_lesser.at(r) = ((1.0 / this->impurity_gf_mb_retarded.at(r)) * parameters.j1 * this->impurity_gf_mb_lesser.at(r) *
+                                           std::conj(1.0 / this->impurity_gf_mb_retarded.at(r)) - self_energy_lesser.at(r)).imag();
+
+
+
+        //this->hybridisation_lesser.at(r) = ((1.0 / this->impurity_gf_mb_retarded.at(r)) * this->impurity_gf_mb_lesser.at(r) * 
+        //                    std::conj((1.0 / this->impurity_gf_mb_retarded.at(r))) - this->impurity_gf_mb_lesser.at(r)).real();
         //this->hybridisation_lesser.at(r) =  - (this->fermi_function_eff.at(r) * (2.0 * parameters.j1 * parameters.delta_gf +
         //                                    (1.0 / advanced) - 1.0 / (this->dynamical_field_retarded.at(r)))).imag();
 
