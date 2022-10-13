@@ -6,7 +6,7 @@
 Parameters Parameters::init()
 {
     Parameters parameters =  {
-        .onsite_cor = -1.25,
+        .onsite_cor = -4,
         .onsite_ins_l = 10,
         .onsite_ins_r = 10,
         .onsite_l = -0.0,
@@ -25,29 +25,29 @@ Parameters Parameters::init()
         .hopping_lc = -2.5,
         .hopping_rc = -2.5,
         .hopping_ins_l_cor = -2.5,
-        .hopping_ins_r_cor = -2.5,        
+        .hopping_ins_r_cor = -2.5,
         .num_cor = 1, //this is the number of correlated atoms between the insulating atoms.
         .num_ins_left  = 0, //this is the number of insulating layers on the left side.    
         .num_ins_right = 0,
         .ins_metal_ins = true, 
-        .num_ky_points = 10,
-        .num_kx_points = 10,
+        .num_ky_points = 1,
+        .num_kx_points = 1,
         .chemical_potential = 0.0,
         .temperature = 00.0,
-        .e_upper_bound = 40.0,
-        .e_lower_bound = -40.0,
-        .hubbard_interaction = 2.5,
+        .e_upper_bound = 15.0,
+        .e_lower_bound = -15.0,
+        .hubbard_interaction = 0,
         .voltage_step = 0,
         .self_consistent_steps = 50,
         .read_in_self_energy = false,
-        .NIV_points = 2,
-        .delta_v = 0.25,
+        .NIV_points = 1,
+        .delta_v = 0.0,
         .delta_leads = 0.00000001,
-        .delta_gf = 0.000000000,
+        .delta_gf = 0.001,
         .leads_3d = false,
         .spin_up_occup = 0.0,
         .spin_down_occup = 0.0,       
-        .convergence = 0.0001 
+        .convergence = 0.00001 
     
     };
 
@@ -102,7 +102,7 @@ Parameters Parameters::init()
         std::cout << parameters.atom_type.at(i) << std::endl;
     }
 
-    parameters.steps = 401; //you must make sure the energy spacing is less than delta_v
+    parameters.steps = 40451; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;

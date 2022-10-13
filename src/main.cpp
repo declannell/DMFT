@@ -11,6 +11,7 @@
 #include "leads_self_energy.h"
 #include "parameters.h"
 #include "transport.h"
+#include "analytic_gf.h"
 
 void print_parameters(Parameters& parameters)
 {
@@ -84,6 +85,25 @@ void set_initial_spin(Parameters &parameters, std::vector<std::vector<dcomp>> &s
 	}
 }
 
+void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
+	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
+	for( int i = 0; i < parameters.chain_length; i++){
+		double result = 0.0;
+		for (int r = 0; r < parameters.steps; r++) {
+
+			double spectral = (parameters.j1 * (gf_local.at(r)(i, i) - std::conj(gf_local.at(r)(i, i)))).real();
+			result += spectral;
+ 		}
+
+		result = result * delta_energy / (2.0 * M_PI);
+
+		std::cout << "For the atom number "<< i << " the spectral function integrates to " << result << std::endl;
+	}
+}
+
+
+
+
 int main()
 {
 	Parameters parameters = Parameters::init();
@@ -121,7 +141,7 @@ int main()
 	std::vector<dcomp> current_down_right(parameters.NIV_points, 0);
 	std::vector<dcomp> current_down_left(parameters.NIV_points, 0);
 
-	for (int m = 1; m < parameters.NIV_points; m++) {
+	for (int m = 0; m < parameters.NIV_points; m++) {
 		std::vector<std::vector<Eigen::MatrixXd>> hamiltonian(
 		    parameters.num_kx_points, std::vector<Eigen::MatrixXd>(parameters.num_ky_points, Eigen::MatrixXd::Zero(parameters.chain_length, parameters.chain_length)));
 
@@ -170,13 +190,14 @@ int main()
 			leads.push_back(vy);
 		}
 
-		if (parameters.leads_3d == true) {
-			get_k_averaged_embedding_self_energy(parameters, leads);
-			kx.resize(1);
-			ky.resize(1);
-			kx.at(0) = M_PI / 2.0;
-			ky.at(0) = M_PI / 2.0;
-		}
+		get_k_averaged_embedding_self_energy(parameters, leads);
+		//if (parameters.leads_3d == true) {
+		//	get_k_averaged_embedding_self_energy(parameters, leads);
+		//	kx.resize(1);
+		//	ky.resize(1);
+		//	kx.at(0) = M_PI / 2.0;
+		//	ky.at(0) = M_PI / 2.0;
+		//}
 
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
@@ -192,6 +213,7 @@ int main()
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);
 
+		/*
 		std::ostringstream oss1gf;
 		oss1gf << "textfiles/" << m << ".dos_non_int.txt";
 		std::string var1 = oss1gf.str();
@@ -208,7 +230,12 @@ int main()
 			dos_file_non_int << parameters.energy.at(r) << "  " << dos_total_up << "   " << dos_total_down << " \n";
 		}
 		dos_file_non_int.close();
+		*/
 
+		if(parameters.num_kx_points == 1 && parameters.num_ky_points == 1 &&
+			parameters.chain_length == 1) {
+				analytic_gf(parameters, gf_local_up, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right);
+			}
 
 		std::vector<double> spins_occup(2 * parameters.chain_length);
 
@@ -216,8 +243,14 @@ int main()
 		    gf_local_lesser_down, leads, spins_occup, hamiltonian);
 
 		std::cout << "got self energy " << std::endl;
-		std::cout << "The converged spin up occupation is " << spins_occup.at(parameters.num_ins_left) << std::endl;
-		std::cout << "The converged spin down occupation is " << spins_occup.at(parameters.chain_length + parameters.num_ins_left) << std::endl;
+
+		for (int i = 0; i < parameters.chain_length; i++) {
+			if (parameters.atom_type.at(i) != 0) {
+				std::cout << "The spin up occupation at atom " << i << " is " << spins_occup.at(i) << std::endl;
+				std::cout << "The spin down occupation at atom " << i << " is " << spins_occup.at(i + parameters.chain_length) << std::endl;				
+			}
+		}
+
 		if (parameters.hubbard_interaction == 0 && parameters.chain_length == 1 && parameters.num_kx_points == 1 && m == 0) {
 			get_analytic_gf_1_site(parameters, gf_local_up, m);
 		}
@@ -226,18 +259,13 @@ int main()
 		std::vector<dcomp> transmission_down(parameters.steps, 0);
 		if (parameters.hubbard_interaction == 0) {
 			get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
-
 			get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &current_up.at(m), &current_down.at(m), m);
-
 			get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left.at(m), &current_up_right.at(m), hamiltonian);
-
 			get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left.at(m), &current_down_right.at(m), hamiltonian);
 		} else {
 			get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left.at(m), &current_up_right.at(m), hamiltonian);
 			get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left.at(m), &current_down_right.at(m), hamiltonian);
-
 			get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
-
 			get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up.at(m), &coherent_current_down.at(m), m);
 
 			noncoherent_current_up.at(m) = 0.5 * (current_up_left.at(m) - current_up_right.at(m)) - coherent_current_up.at(m);
@@ -277,7 +305,7 @@ int main()
 			}
 			gf_local_file.close();
 		}
-		for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++) {
+		for (int i = 0; i < parameters.chain_length; i++) {
 			std::ostringstream ossgf;
 			ossgf << "textfiles/" << m << "." << i << ".gf_lesser.txt";
 			std::string var = ossgf.str();
@@ -291,6 +319,8 @@ int main()
 			}
 			gf_lesser_file.close();
 		}
+
+		integrate_spectral(parameters, gf_local_up);
 
 		std::ostringstream oss;
 		oss << "textfiles/" << m << ".tranmission.txt";
@@ -321,8 +351,12 @@ int main()
 			dos_file << parameters.energy.at(r) << "  " << dos_total_up << "   " << dos_total_down << " \n";
 		}
 		dos_file.close();
-		for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++) {
+
+		for (int i = 0; i < parameters.chain_length; i++) {
 			std::ostringstream ossser;
+			if (parameters.atom_type.at(i) == 0){
+				continue;
+			}
 			ossser << "textfiles/" << m << "." << i << ".se_r.txt";
 			var = ossser.str();
 			std::ofstream se_r_file;
@@ -334,10 +368,13 @@ int main()
 			se_r_file.close();
 		}
 
-		for (int i = parameters.num_ins_left; i < parameters.num_ins_left + parameters.num_cor; i++) {
-			std::ostringstream osssel;
-			osssel << "textfiles/" << m << "." << i << ".se_l.txt";
-			var = osssel.str();
+		for (int i = 0; i < parameters.chain_length; i++) {
+			std::ostringstream ossser;
+			if (parameters.atom_type.at(i) == 0){
+				continue;
+			}
+			ossser << "textfiles/" << m << "." << i << ".se_l.txt";
+			var = ossser.str();
 			std::ofstream se_lesser_file;
 			se_lesser_file.open(var);
 			for (int r = 0; r < parameters.steps; r++) {

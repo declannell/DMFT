@@ -149,7 +149,7 @@ void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim
 
 		aim_up.self_energy_mb_lesser.at(r) =
 		     - parameters.hubbard_interaction * parameters.hubbard_interaction * (integrate(parameters, aim_up.dynamical_field_lesser,
-			aim_down.dynamical_field_lesser, gf_greater_down, r)); //the minus is here causes the lesser GF is real
+			aim_down.dynamical_field_lesser, gf_greater_down, r)); //the minus is here causes the lesser GF is real, as i^3 = -i, but we store the imaginary part.
 
 		//std::cout << aim_up.self_energy_mb_lesser.at(r) << std::endl;
 	}
@@ -236,12 +236,12 @@ void dmft(const Parameters &parameters, const int voltage_step,
 				impurity_self_energy_lesser_down.at(r) = self_energy_mb_lesser_down.at(i).at(r);
 			}
 
-			std::cout << "atom which we put on correlation" << i << std::endl;
+			std::cout << "atom which we put on correlation is " << i << std::endl;
 
     		AIM aim_up(parameters, diag_gf_local_up, diag_gf_local_lesser_up, impurity_self_energy_up, impurity_self_energy_lesser_up, voltage_step);
     		AIM aim_down(parameters, diag_gf_local_down, diag_gf_local_lesser_down, impurity_self_energy_down, impurity_self_energy_lesser_down, voltage_step);
 			
-			std::cout << "AIM was created" << std::endl;
+			std::cout << "AIM was created for atom " << i << std::endl;
 			impurity_solver(parameters, voltage_step, aim_up, aim_down, &spins_occup.at(i), &spins_occup.at(i + parameters.chain_length));
 
             if(count == 0){

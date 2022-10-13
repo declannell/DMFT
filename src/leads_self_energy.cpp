@@ -149,16 +149,16 @@ void get_k_averaged_embedding_self_energy(const Parameters parameters, std::vect
         }
     }
 
-    std::cout << "core has not being dumped yet 1\n";
-    std::vector<EmbeddingSelfEnergy> vy;
-    vy.push_back(EmbeddingSelfEnergy(parameters, 0.0, 0.0, 0));
- 
-
-    leads.resize(1, vy);
-    for(int r = 0; r < parameters.steps; r++) {
-        leads.at(0).at(0).self_energy_left.at(r) = k_averaged_self_energy_left.at(r);
-        leads.at(0).at(0).self_energy_right.at(r) = k_averaged_self_energy_right.at(r);
-    }
+    //std::cout << "core has not being dumped yet 1\n";
+    //std::vector<EmbeddingSelfEnergy> vy;
+    //vy.push_back(EmbeddingSelfEnergy(parameters, 0.0, 0.0, 0));
+ //
+//
+    //leads.resize(1, vy);
+    //for(int r = 0; r < parameters.steps; r++) {
+    //    leads.at(0).at(0).self_energy_left.at(r) = k_averaged_self_energy_left.at(r);
+    //    leads.at(0).at(0).self_energy_right.at(r) = k_averaged_self_energy_right.at(r);
+    //}
 
     std::ofstream embedding_se_file;
     embedding_se_file.open(
@@ -168,10 +168,10 @@ void get_k_averaged_embedding_self_energy(const Parameters parameters, std::vect
 
 	for (int r = 0; r < parameters.steps; r++) {
 		embedding_se_file << parameters.energy.at(r) << "  "
-				<< leads.at(0).at(0).self_energy_left.at(r).real() << "  "
-				<< leads.at(0).at(0).self_energy_left.at(r).imag() << "  "
-				<< leads.at(0).at(0).self_energy_right.at(r).real() << "  " 
-                << leads.at(0).at(0).self_energy_right.at(r).imag() <<"\n";
+				<< k_averaged_self_energy_left.at(r).real() << "  "
+				<< k_averaged_self_energy_left.at(r).imag() << "  "
+				<< k_averaged_self_energy_right.at(r).real() << "  " 
+                << k_averaged_self_energy_right.at(r).imag() <<"\n";
 	}
 	embedding_se_file.close();
 }

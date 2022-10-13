@@ -92,6 +92,15 @@ void average_self_energy(std::vector<dcomp> &self_energy_up, std::vector<dcomp> 
 	my_file.close(); 
 }
 
+void convert_to_electron_volts(std::vector<dcomp> &self_energy_up, std::vector<dcomp> &self_energy_down, std::vector<double> &energy, int number_energy_points){
+
+    for (int r = 0; r < number_energy_points; r++){
+        energy.at(r) = energy.at(r) * 13.6056980659;
+        self_energy_down.at(r) = self_energy_down.at(r) * 13.6056980659;
+        self_energy_up.at(r) = self_energy_up.at(r) * 13.6056980659;       
+    }
+}
+
 int main(){
     //compile by g++  -O3 -g  src/average_self_energy.cpp
     std::vector<dcomp> self_energy_up;
@@ -99,7 +108,7 @@ int main(){
     std::vector<double> energy;
     int number_energy_points = 3240;
     average_self_energy(self_energy_up, self_energy_down, energy, number_energy_points);
-
+    convert_to_electron_volts(self_energy_up, self_energy_down, energy, number_energy_points);
     std::ostringstream oss;
     oss << "/home/declan/Downloads/averaged_self_energy.txt";
     std::string var = oss.str();
