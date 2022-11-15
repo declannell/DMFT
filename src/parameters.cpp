@@ -6,49 +6,51 @@
 Parameters Parameters::init()
 {
     Parameters parameters =  {
-        .onsite_cor = -4,
+        .onsite_cor = 0.0,
         .onsite_ins_l = 10,
         .onsite_ins_r = 10,
         .onsite_l = -0.0,
         .onsite_r = -0.0,
-        .hopping_cor = -2.5,
-        .hopping_ins_l = -2.5,
-        .hopping_ins_r = -2.5,
-        .hopping_y = -2.5,
-        .hopping_x = -2.5,
-        .hopping_lz = -2.5,
-        .hopping_ly = -2.5,
-        .hopping_lx = -2.5,
-        .hopping_rz = -2.5,
-        .hopping_ry = -2.5,
-        .hopping_rx = -2.5,
-        .hopping_lc = -2.5,
-        .hopping_rc = -2.5,
-        .hopping_ins_l_cor = -2.5,
-        .hopping_ins_r_cor = -2.5,
+        .hopping_cor = -1.0,
+        .hopping_ins_l = -1.0,
+        .hopping_ins_r = -1.0,
+        .hopping_y = -1.0,
+        .hopping_x = -1.0,
+        .hopping_lz = -1.0,
+        .hopping_ly = -1.0,
+        .hopping_lx = -1.0,
+        .hopping_rz = -1.0,
+        .hopping_ry = -1.0,
+        .hopping_rx = -1.0,
+        .hopping_lc = -1.0,
+        .hopping_rc = -1.0,
+        .hopping_ins_l_cor = -1.0,
+        .hopping_ins_r_cor = -1.0,
         .num_cor = 1, //this is the number of correlated atoms between the insulating atoms.
         .num_ins_left  = 0, //this is the number of insulating layers on the left side.    
         .num_ins_right = 0,
         .ins_metal_ins = true, 
-        .num_ky_points = 1,
-        .num_kx_points = 1,
+        .num_ky_points = 10,
+        .num_kx_points = 10,
         .chemical_potential = 0.0,
         .temperature = 00.0,
-        .e_upper_bound = 15.0,
-        .e_lower_bound = -15.0,
-        .hubbard_interaction = 0,
+        .e_upper_bound = 200.0,
+        .e_lower_bound = -200.0,
+        .hubbard_interaction = 1,
         .voltage_step = 0,
-        .self_consistent_steps = 50,
+        .self_consistent_steps = 1,
         .read_in_self_energy = false,
-        .NIV_points = 1,
-        .delta_v = 0.0,
+        .NIV_points = 2,
+        .delta_v = 0.8,
         .delta_leads = 0.00000001,
-        .delta_gf = 0.001,
+        .delta_gf = 0.00,
         .leads_3d = false,
         .spin_up_occup = 0.0,
         .spin_down_occup = 0.0,       
-        .convergence = 0.00001 
-    
+        .convergence = 0.00001,
+        .gamma = -0.5,
+        .wbl_approx = true,
+        .kk_relation = false
     };
 
     parameters.path_of_self_energy_up = "textfiles/local_se_up_1_k_points_81_energy.txt";
@@ -76,7 +78,19 @@ Parameters Parameters::init()
         parameters.chain_length = parameters.num_ins_left + 2 * parameters.num_cor;
     }
 
+    //the atom is correlated if atom typ equals to 1. This how we know to apply sigma two to certain atoms.
     if (parameters.ins_metal_ins == true){
+        for (int i = 0; i < parameters.num_ins_left; i++){
+            parameters.atom_type.push_back(0);
+        }
+        for (int i = 0; i < parameters.num_cor; i++){
+            parameters.atom_type.push_back(1);
+        }
+        for (int i = 0; i < parameters.num_ins_right; i++){
+            parameters.atom_type.push_back(0);
+        }
+        //we repeat this a second time as there are two horizontal layers within the unit cell. atoms 0 to chain_length -1 are th e first layer.
+        //the second layer is atoms chain_length to 2 * chain_length -1.
         for (int i = 0; i < parameters.num_ins_left; i++){
             parameters.atom_type.push_back(0);
         }
@@ -96,13 +110,23 @@ Parameters Parameters::init()
         for (int i = 0; i < parameters.num_cor; i++){
             parameters.atom_type.push_back(1);
         }
+        //repeating for the second layer.
+        for (int i = 0; i < parameters.num_cor; i++){
+            parameters.atom_type.push_back(1);
+        }
+        for (int i = 0; i < parameters.num_ins_left; i++){
+            parameters.atom_type.push_back(0);
+        }
+        for (int i = 0; i < parameters.num_cor; i++){
+            parameters.atom_type.push_back(1);
+        }
     }
 
-    for (int i = 0; i < parameters.chain_length; i++) {
+    for (int i = 0; i < 2 * parameters.chain_length; i++) {
         std::cout << parameters.atom_type.at(i) << std::endl;
     }
 
-    parameters.steps = 40451; //you must make sure the energy spacing is less than delta_v
+    parameters.steps = 8000; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;

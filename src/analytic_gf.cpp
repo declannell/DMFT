@@ -15,6 +15,44 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
+void analytic_gf(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
+    std::vector<Eigen::MatrixXcd> gf_analytic(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
+    std::vector<dcomp> spectral(parameters.steps, 0);
+
+    double diff = 0.0;
+    for (int r = 0; r < parameters.steps; r++){
+        double a = parameters.energy.at(r) - parameters.onsite_cor;
+        double b =  a * a - parameters.gamma * parameters.gamma - parameters.hopping_cor * parameters.hopping_cor;
+
+        double demoninator = b * b + 4 * parameters.gamma * parameters.gamma * a * a;
+        double real_gf = (a * b + 2  * parameters.gamma * parameters.gamma * a) / (demoninator);
+        double imag_gf = (2 * parameters.gamma * a * a - parameters.gamma * b) / demoninator;
+
+        
+        gf_analytic.at(r)(0, 0) = real_gf + parameters.j1 * imag_gf;
+        gf_analytic.at(r)(1, 1) = real_gf + parameters.j1 * imag_gf; 
+        gf_analytic.at(r)(0, 1) = parameters.hopping_cor/ demoninator;
+        gf_analytic.at(r)(1, 0) = parameters.hopping_cor/ demoninator;               
+
+        if (abs(gf_local.at(r)(0, 0) - gf_analytic.at(r)(0, 0)) > diff){
+            diff = abs(gf_local.at(r)(0, 0) - gf_analytic.at(r)(0, 0));
+        }
+        //std::cout << parameters.energy.at(r) << "  " << gf_analytic.at(r).real() << " " << gf_analytic.at(r).imag() << " "
+		//               << gf_local.at(r)(0, 0).real() << " " << gf_local.at(r)(0, 0).imag() << " " << diff << "\n";
+    }
+	std::ofstream analytic_gf_file;
+	analytic_gf_file.open("textfiles/analutic_gf.txt");
+	for (int r = 0; r < parameters.steps; r++) {
+		analytic_gf_file << parameters.energy.at(r) << "  " << gf_analytic.at(r)(0, 0).real() << " " << gf_analytic.at(r)(0, 0).imag() << " "
+		               << gf_local.at(r)(0, 0).real() << " " << gf_local.at(r)(0, 0).imag() << "\n";
+	}
+		analytic_gf_file.close();
+    std::cout << "The largest difference between the analytic noninteracting gf and the numerical noninteracting gf is " << diff << std::endl;
+
+}
+
+
+/*
 void analytic_gf(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local, std::vector<dcomp> const &self_energy_left, std::vector<dcomp> const &self_energy_right){
     std::vector<dcomp> gf_analytic(parameters.steps, 0);
     std::vector<dcomp> spectral(parameters.steps, 0);
@@ -108,4 +146,4 @@ void integrate_spectral(Parameters &parameters, std::vector<dcomp> const &self_e
 	analytic_gf_file.close();
 
 }
-
+*/

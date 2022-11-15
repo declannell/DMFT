@@ -5,7 +5,6 @@
 #include "AIM.h"
 #include <iostream>
 #include <vector>
-#include <mpi.h>
 #include <eigen3/Eigen/Dense>
 
 void get_hybridisation();
@@ -29,6 +28,8 @@ dcomp integrate(const Parameters& parameters, const std::vector<dcomp>& gf_1, co
 
 double kramer_kronig_relation(const Parameters& parameters, std::vector<double>& impurity_self_energy_imag, int r);
 
+void self_energy_2nd_order(const Parameters& parameters, AIM &aim_up, AIM &aim_down);
+
 void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim_up, AIM &aim_down, const int voltage_step);
 
 void impurity_solver(const Parameters &parameters, const int voltage_step, 
@@ -39,6 +40,6 @@ void dmft(const Parameters &parameters, const int voltage_step,
         std::vector<std::vector<dcomp>> &self_energy_mb_lesser_up, std::vector<std::vector<dcomp>> &self_energy_mb_lesser_down,
         std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down,
         std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_lesser_down,
-        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian);
+        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian);
 
 

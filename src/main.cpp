@@ -1,17 +1,15 @@
-#include <mpi.h>
-
 #include <eigen3/Eigen/Dense>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <vector>
-
-#include "dmft.h"
-#include "interacting_gf.h"
-#include "leads_self_energy.h"
 #include "parameters.h"
+#include "leads_self_energy.h"
+#include "interacting_gf.h"
+#include "dmft.h"
 #include "transport.h"
 #include "analytic_gf.h"
+#include "AIM.h"
 
 void print_parameters(Parameters& parameters)
 {
@@ -66,20 +64,26 @@ void set_initial_spin(Parameters &parameters, std::vector<std::vector<dcomp>> &s
 			for (int r = 0; r < parameters.steps; r++) {
 				self_energy_mb_up.at(i).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;
 				self_energy_mb_down.at(i).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;
+				self_energy_mb_up.at(i + parameters.chain_length).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;//this is for the second layer in unit cell
+				self_energy_mb_down.at(i + parameters.chain_length).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;//this is for the second layer in unit cell
 			}
 		}
-	} else {
+	} else { //this is for the metal-ins-metal junction. These are the atoms on the left side of the insulator
 		for(int i = 0; i < parameters.num_cor; i++) {
 			for (int r = 0; r < parameters.steps; r++) {
 				self_energy_mb_up.at(i).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;
 				self_energy_mb_down.at(i).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;
+				self_energy_mb_up.at(i + parameters.chain_length).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;
+				self_energy_mb_down.at(i + parameters.chain_length).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;
 			}
 		}
-
+		//These are the atoms on the left side of the insulator
 		for(int i = parameters.num_cor + parameters.num_ins_left; i < parameters.chain_length; i++) {
 			for (int r = 0; r < parameters.steps; r++) {
 				self_energy_mb_up.at(i).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;
 				self_energy_mb_down.at(i).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;
+				self_energy_mb_up.at(i + parameters.chain_length).at(r) = parameters.spin_down_occup * parameters.hubbard_interaction;
+				self_energy_mb_down.at(i + parameters.chain_length).at(r) = parameters.spin_up_occup * parameters.hubbard_interaction;
 			}			
 		}
 	}
@@ -87,16 +91,13 @@ void set_initial_spin(Parameters &parameters, std::vector<std::vector<dcomp>> &s
 
 void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
 	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
-	for( int i = 0; i < parameters.chain_length; i++){
+	for(int i = 0; i < 2 * parameters.chain_length; i++){
 		double result = 0.0;
 		for (int r = 0; r < parameters.steps; r++) {
-
 			double spectral = (parameters.j1 * (gf_local.at(r)(i, i) - std::conj(gf_local.at(r)(i, i)))).real();
 			result += spectral;
  		}
-
 		result = result * delta_energy / (2.0 * M_PI);
-
 		std::cout << "For the atom number "<< i << " the spectral function integrates to " << result << std::endl;
 	}
 }
@@ -141,45 +142,25 @@ int main()
 	std::vector<dcomp> current_down_right(parameters.NIV_points, 0);
 	std::vector<dcomp> current_down_left(parameters.NIV_points, 0);
 
-	for (int m = 0; m < parameters.NIV_points; m++) {
-		std::vector<std::vector<Eigen::MatrixXd>> hamiltonian(
-		    parameters.num_kx_points, std::vector<Eigen::MatrixXd>(parameters.num_ky_points, Eigen::MatrixXd::Zero(parameters.chain_length, parameters.chain_length)));
+	for (int m = 1; m < parameters.NIV_points; m++) {
+		std::vector<std::vector<Eigen::MatrixXcd>> hamiltonian(
+		    parameters.num_kx_points, std::vector<Eigen::MatrixXcd>(parameters.num_ky_points, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length)));
 
 
-		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-		std::vector<Eigen::MatrixXcd> gf_local_down(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-		std::vector<Eigen::MatrixXcd> gf_local_lesser_up(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-		std::vector<Eigen::MatrixXcd> gf_local_lesser_down(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
-		std::vector<std::vector<dcomp>> self_energy_mb_up(parameters.chain_length, std::vector<dcomp>(parameters.steps)),
-		    self_energy_mb_lesser_up(parameters.chain_length, std::vector<dcomp>(parameters.steps, 0));
-		std::vector<std::vector<dcomp>> self_energy_mb_down(parameters.chain_length, std::vector<dcomp>(parameters.steps)),
-		    self_energy_mb_lesser_down(parameters.chain_length, std::vector<dcomp>(parameters.steps, 0));
+		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
+		std::vector<Eigen::MatrixXcd> gf_local_down(parameters.steps, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
+		std::vector<Eigen::MatrixXcd> gf_local_lesser_up(parameters.steps, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
+		std::vector<Eigen::MatrixXcd> gf_local_lesser_down(parameters.steps, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
+		std::vector<std::vector<dcomp>> self_energy_mb_up(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps)),
+		    self_energy_mb_lesser_up(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps, 0));
+		std::vector<std::vector<dcomp>> self_energy_mb_down(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps)),
+		    self_energy_mb_lesser_down(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps, 0));
 
 		set_initial_spin(parameters, self_energy_mb_up, self_energy_mb_down);
 
-		if (m != 0 && parameters.leads_3d == true) {  // this has already been initialised for
-			// the equilibrium case in line 19-33
-
-			kx.resize(parameters.num_kx_points);
-			ky.resize(parameters.num_ky_points);
-			for (int i = 0; i < parameters.num_kx_points; i++) {
-				if (parameters.num_kx_points != 1) {
-					kx.at(i) = 2 * M_PI * i / parameters.num_kx_points;
-				} else if (parameters.num_kx_points == 1) {
-					kx.at(i) = M_PI / 2.0;
-				}
-			}
-
-			for (int i = 0; i < parameters.num_ky_points; i++) {
-				if (parameters.num_ky_points != 1) {
-					ky.at(i) = 2 * M_PI * i / parameters.num_ky_points;
-				} else if (parameters.num_ky_points == 1) {
-					ky.at(i) = M_PI / 2.0;
-				}
-			}
-		}
 		std::cout << "\n";
 		std::cout << std::setprecision(15) << "The voltage difference is " << parameters.voltage_l[m] - parameters.voltage_r[m] << std::endl;
+
 
 		std::vector<std::vector<EmbeddingSelfEnergy>> leads;
 		for (int i = 0; i < parameters.num_kx_points; i++) {
@@ -190,14 +171,8 @@ int main()
 			leads.push_back(vy);
 		}
 
-		get_k_averaged_embedding_self_energy(parameters, leads);
-		//if (parameters.leads_3d == true) {
-		//	get_k_averaged_embedding_self_energy(parameters, leads);
-		//	kx.resize(1);
-		//	ky.resize(1);
-		//	kx.at(0) = M_PI / 2.0;
-		//	ky.at(0) = M_PI / 2.0;
-		//}
+		std::cout << "leads size: " << leads.at(0).size() << '\n';
+		//get_k_averaged_embedding_self_energy(parameters, leads);
 
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
@@ -207,11 +182,12 @@ int main()
 				//std::cout << std::endl;
 			}
 		}
-		get_spectral_embedding_self_energy(parameters, leads, m);
+		//get_spectral_embedding_self_energy(parameters, leads, m);
 
 		std::cout << "leads complete" << std::endl;
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);
+		std::cout << "got local retarded and lesser gf" << std::endl;
 
 		/*
 		std::ostringstream oss1gf;
@@ -232,36 +208,42 @@ int main()
 		dos_file_non_int.close();
 		*/
 
-		if(parameters.num_kx_points == 1 && parameters.num_ky_points == 1 &&
-			parameters.chain_length == 1) {
-				analytic_gf(parameters, gf_local_up, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right);
-			}
 
-		std::vector<double> spins_occup(2 * parameters.chain_length);
+		std::vector<double> spins_occup(4 * parameters.chain_length); //the first 2 * chain_length is the spin up, the next 2 * chain_length is spin down.
 
 		dmft(parameters, m, self_energy_mb_up, self_energy_mb_down, self_energy_mb_lesser_up, self_energy_mb_lesser_down, gf_local_up, gf_local_down, gf_local_lesser_up,
 		    gf_local_lesser_down, leads, spins_occup, hamiltonian);
 
 		std::cout << "got self energy " << std::endl;
 
-		for (int i = 0; i < parameters.chain_length; i++) {
-			if (parameters.atom_type.at(i) != 0) {
-				std::cout << "The spin up occupation at atom " << i << " is " << spins_occup.at(i) << std::endl;
-				std::cout << "The spin down occupation at atom " << i << " is " << spins_occup.at(i + parameters.chain_length) << std::endl;				
-			}
+		std::cout << "The difference between G-lesser and the fluctuation dissaption theorem is " << 
+			get_gf_lesser_fd(parameters, gf_local_up, gf_local_lesser_up) << std::endl;
+
+		if(parameters.hubbard_interaction == 0.0 && parameters.num_kx_points == 1 && parameters.num_ky_points == 1 && 
+			parameters.num_ins_left == 0 && parameters.ins_metal_ins == true){
+				analytic_gf(parameters, gf_local_up);
 		}
 
-		if (parameters.hubbard_interaction == 0 && parameters.chain_length == 1 && parameters.num_kx_points == 1 && m == 0) {
-			get_analytic_gf_1_site(parameters, gf_local_up, m);
+
+
+		for (int i = 0; i < 2 * parameters.chain_length; i++) {
+			if (parameters.atom_type.at(i) != 0) {
+				std::cout << "The spin up occupation at atom " << i << " is " << spins_occup.at(i) << std::endl;
+				std::cout << "The spin down occupation at atom " << i << " is " << spins_occup.at(i + 2 * parameters.chain_length) << std::endl;				
+			}
 		}
 
 		std::vector<dcomp> transmission_up(parameters.steps, 0);
 		std::vector<dcomp> transmission_down(parameters.steps, 0);
 		if (parameters.hubbard_interaction == 0) {
 			get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
+			std::cout << "got transmission\n";
 			get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &current_up.at(m), &current_down.at(m), m);
 			get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left.at(m), &current_up_right.at(m), hamiltonian);
 			get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left.at(m), &current_down_right.at(m), hamiltonian);
+	
+			std::cout << "The spin up current is " << current_up.at(m) << "\n" <<
+					 "The spin down current is " << current_down.at(m) << "\n" << "\n";		
 		} else {
 			get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left.at(m), &current_up_right.at(m), hamiltonian);
 			get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left.at(m), &current_down_right.at(m), hamiltonian);
@@ -282,7 +264,7 @@ int main()
 					 "The noncoherent current is " << noncoherent_current_down.at(m) << "\n";
 
 		std::cout << "\n";
-		for (int i = 0; i < parameters.chain_length; i++) {
+		for (int i = 0; i < 2 * parameters.chain_length; i++) {
 			std::ostringstream ossgf;
 			ossgf << "textfiles/" << m << "." << i << ".gf.txt";
 			std::string var = ossgf.str();
@@ -305,7 +287,7 @@ int main()
 			}
 			gf_local_file.close();
 		}
-		for (int i = 0; i < parameters.chain_length; i++) {
+		for (int i = 0; i < 2 * parameters.chain_length; i++) {
 			std::ostringstream ossgf;
 			ossgf << "textfiles/" << m << "." << i << ".gf_lesser.txt";
 			std::string var = ossgf.str();
@@ -315,7 +297,7 @@ int main()
 			for (int r = 0; r < parameters.steps; r++) {
 				gf_lesser_file << parameters.energy.at(r) << "  " << gf_local_lesser_up.at(r)(i, i).real() << "   " << gf_local_lesser_up.at(r)(i, i).imag() << "   "
 				               << gf_local_lesser_down.at(r)(i, i).real() << "   " << gf_local_lesser_down.at(r)(i, i).imag() << " "
-				               << -2.0 * parameters.j1 * fermi_function(parameters.energy.at(r), parameters) * gf_local_down.at(r)(i, i).imag() << "\n";
+				               << -2.0 * fermi_function(parameters.energy.at(r), parameters) * gf_local_down.at(r)(i, i).imag() << "\n";
 			}
 			gf_lesser_file.close();
 		}
@@ -344,7 +326,7 @@ int main()
 		for (int r = 0; r < parameters.steps; r++) {
 			double dos_total_up = 0.0;
 			double dos_total_down = 0.0;
-			for (int i = 0; i < parameters.chain_length; i++) {
+			for (int i = 0; i < 2 * parameters.chain_length; i++) {
 				dos_total_up += -gf_local_up.at(r)(i, i).imag();
 				dos_total_down += -gf_local_down.at(r)(i, i).imag();
 			}
@@ -352,7 +334,7 @@ int main()
 		}
 		dos_file.close();
 
-		for (int i = 0; i < parameters.chain_length; i++) {
+		for (int i = 0; i < 2 * parameters.chain_length; i++) {
 			std::ostringstream ossser;
 			if (parameters.atom_type.at(i) == 0){
 				continue;
@@ -368,7 +350,7 @@ int main()
 			se_r_file.close();
 		}
 
-		for (int i = 0; i < parameters.chain_length; i++) {
+		for (int i = 0; i < 2 * parameters.chain_length; i++) {
 			std::ostringstream ossser;
 			if (parameters.atom_type.at(i) == 0){
 				continue;
@@ -394,8 +376,15 @@ int main()
 		for (int m = 0; m < parameters.NIV_points; m++) {
 			//std::cout << "The spin up current is " << current_up.at(m) << "The spin down current is " << current_down.at(m) << "\n";
 
-			std::cout << "The spin up left current is " << current_up_left.at(m) << "The spin up right current is " << current_up_right.at(m) << "The spin down left current is "
-			          << current_down_left.at(m) << "The spin up right current is " << current_down_right.at(m) << "\n";
+			if (parameters.hubbard_interaction == 0.0) {
+				std::cout << "The spin up current is " << current_up.at(m) << 
+				"\n The spin down current is " << current_down.at(m) << "\n";
+			}
+
+			std::cout << "The spin up left current is " << current_up_left.at(m) << 
+			"\n The spin up right current is " << current_up_right.at(m) << 
+			"\n The spin down left current is " << current_down_left.at(m) <<
+			 "\n The spin up right current is " << current_down_right.at(m) << "\n";
 
 			std::cout << "\n";
 			current_file << parameters.voltage_l[m] - parameters.voltage_r[m]

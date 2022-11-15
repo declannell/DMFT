@@ -33,12 +33,12 @@ void get_spin_occupation(const Parameters &parameters, const std::vector<double>
 
 void get_difference(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &old_green_function,
                 double &difference, int &index){
-	difference = -std::numeric_limits<double>::infinity();
+	difference = - std::numeric_limits<double>::infinity();
 	double old_difference = 0;
 	double real_difference, imag_difference;
 	for (int r = 0; r < parameters.steps; r++) {
-		for (int i = 0; i < parameters.chain_length; i++) {
-			for (int j = 0; j < parameters.chain_length; j++) {
+		for (int i = 0; i < 2 * parameters.chain_length; i++) {
+			for (int j = 0; j < 2 * parameters.chain_length; j++) {
 				real_difference = abs(gf_local_up.at(r)(i, j).real() - old_green_function.at(r)(i, j).real());
 				imag_difference = abs(gf_local_up.at(r)(i, j).imag() - old_green_function.at(r)(i, j).imag());
 				//std::cout << real_difference << "  " << imag_difference << "  "  << difference << "\n";
@@ -62,10 +62,10 @@ void fluctuation_dissipation(const Parameters &parameters, const std::vector<dco
 	}
 }
 
-double integrate(const Parameters& parameters, const std::vector<double>& gf_1, const std::vector<double>& gf_2, const std::vector<double>& gf_3, const int r)
+dcomp integrate(const Parameters& parameters, const std::vector<dcomp>& gf_1, const std::vector<dcomp>& gf_2, const std::vector<dcomp>& gf_3, const int r)
 {
 	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
-	double result = 0;
+	dcomp result = 0;
 	for (int i = 0; i < parameters.steps; i++) {
 		for (int j = 0; j < parameters.steps; j++) {
 			if (((i + j - r) > 0) && ((i + j - r) < parameters.steps)) {
@@ -78,6 +78,33 @@ double integrate(const Parameters& parameters, const std::vector<double>& gf_1, 
 		}
 	}
 	return result;
+}
+
+void self_energy_2nd_order(const Parameters& parameters, AIM &aim_up, AIM &aim_down)
+{
+	std::vector<dcomp> advanced_down(parameters.steps), gf_lesser_up(parameters.steps), gf_lesser_down(parameters.steps),
+		 impurity_self_energy_lesser(parameters.steps), gf_greater_down(parameters.steps);
+	
+	for (int r = 0; r < parameters.steps; r++) {
+		advanced_down.at(r) = std::conj(aim_down.dynamical_field_retarded.at(r));
+		gf_lesser_down.at(r) = parameters.j1 * aim_down.dynamical_field_lesser.at(r);
+		gf_lesser_up.at(r) = parameters.j1 * aim_up.dynamical_field_lesser.at(r);
+		gf_greater_down.at(r) = parameters.j1 * aim_down.dynamical_field_lesser.at(r) + aim_down.dynamical_field_retarded.at(r) - std::conj(aim_down.dynamical_field_retarded.at(r));
+	}
+
+	for (int r = 0; r < parameters.steps; r++){
+		aim_up.self_energy_mb_retarded.at(r) = parameters.hubbard_interaction * parameters.hubbard_interaction
+		    * integrate(parameters, aim_up.dynamical_field_retarded, aim_down.dynamical_field_retarded, gf_lesser_down, r); //this resets the self energy	
+		aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * parameters.hubbard_interaction
+		    * integrate(parameters, aim_up.dynamical_field_retarded, gf_lesser_down, gf_lesser_down, r); 
+		aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * parameters.hubbard_interaction
+		    * integrate(parameters, gf_lesser_up, aim_down.dynamical_field_retarded, gf_lesser_down, r); 
+		aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * parameters.hubbard_interaction
+		    * integrate(parameters, gf_lesser_up, gf_lesser_down, advanced_down, r); 
+
+		aim_up.self_energy_mb_lesser.at(r) = (parameters.hubbard_interaction * parameters.hubbard_interaction
+		    * integrate(parameters, gf_lesser_up, gf_lesser_down, gf_greater_down, r)).imag(); 	
+	}
 }
 
 double kramer_kronig_relation(const Parameters& parameters, std::vector<double>& impurity_self_energy_imag, int r)
@@ -133,11 +160,19 @@ void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim
 {
 	std::vector<double> impurity_self_energy_real(parameters.steps), impurity_self_energy_imag(parameters.steps);
 
-	std::vector<double> impurity_gf_down_advanced_imag(parameters.steps), gf_greater_down(parameters.steps);
+	std::vector<double> impurity_gf_down_advanced_imag(parameters.steps);
 	std::vector<double> impurity_gf_up_imag(parameters.steps), impurity_gf_down_imag(parameters.steps);
 
+	std::vector<dcomp> gf_lesser_up(parameters.steps), gf_lesser_down(parameters.steps), gf_greater_down(parameters.steps);
+	
 	for (int r = 0; r < parameters.steps; r++) {
-		gf_greater_down.at(r) = aim_down.dynamical_field_lesser.at(r) + (aim_down.dynamical_field_retarded.at(r) - std::conj(aim_down.dynamical_field_retarded.at(r))).imag();
+		gf_lesser_down.at(r) = parameters.j1 * aim_down.dynamical_field_lesser.at(r);
+		gf_lesser_up.at(r) = parameters.j1 * aim_up.dynamical_field_lesser.at(r);
+		gf_greater_down.at(r) = parameters.j1 * aim_down.dynamical_field_lesser.at(r) + aim_down.dynamical_field_retarded.at(r) - std::conj(aim_down.dynamical_field_retarded.at(r));
+	}
+
+	for (int r = 0; r < parameters.steps; r++) {
+		//gf_greater_down.at(r) = aim_down.dynamical_field_lesser.at(r) + (aim_down.dynamical_field_retarded.at(r) - std::conj(aim_down.dynamical_field_retarded.at(r))).imag();
 		impurity_gf_up_imag.at(r) = aim_up.dynamical_field_retarded.at(r).imag();
 		impurity_gf_down_imag.at(r) = aim_down.dynamical_field_retarded.at(r).imag();
     }
@@ -147,9 +182,8 @@ void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim
 		impurity_self_energy_imag.at(r) = parameters.hubbard_interaction * parameters.hubbard_interaction
 		    * integrate_equilibrium(parameters, impurity_gf_up_imag, impurity_gf_down_imag, impurity_gf_down_imag, r, aim_up, aim_down, voltage_step); 	
 
-		aim_up.self_energy_mb_lesser.at(r) =
-		     - parameters.hubbard_interaction * parameters.hubbard_interaction * (integrate(parameters, aim_up.dynamical_field_lesser,
-			aim_down.dynamical_field_lesser, gf_greater_down, r)); //the minus is here causes the lesser GF is real, as i^3 = -i, but we store the imaginary part.
+		aim_up.self_energy_mb_lesser.at(r) = (parameters.hubbard_interaction * parameters.hubbard_interaction * (integrate(parameters, gf_lesser_up,
+			gf_lesser_down, gf_greater_down, r))).imag(); 
 
 		//std::cout << aim_up.self_energy_mb_lesser.at(r) << std::endl;
 	}
@@ -162,7 +196,6 @@ void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim
 	for (int r = 0; r < parameters.steps; r++) {
 		impurity_self_energy_real.at(r) = kramer_kronig_relation(parameters, impurity_self_energy_imag, r);
 		aim_up.self_energy_mb_retarded.at(r) = impurity_self_energy_real.at(r) + parameters.j1 * impurity_self_energy_imag.at(r);
-
 		//se_krammer_kronig << parameters.energy.at(r) << "  " << aim_up.self_energy_mb_retarded.at(r).real() << "  " << aim_up.self_energy_mb_retarded.at(r).imag() << "\n";
 	}
 	//se_krammer_kronig.close();
@@ -177,9 +210,16 @@ void impurity_solver(const Parameters &parameters, const int voltage_step,
 
 	if (parameters.interaction_order == 2) {
 
+		if (parameters.kk_relation == true || voltage_step == 0){
+			std::cout << "using the kramer-kronig relation \n";
+			self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
+			self_energy_2nd_order_kramers_kronig(parameters, aim_down, aim_up, voltage_step);
+		} else {
+			self_energy_2nd_order(parameters, aim_up, aim_down);
+			self_energy_2nd_order(parameters, aim_down, aim_up);
+		}
         //one can choose a normal intergation (self_energy_2nd_order) or a krammer kronig method (self_energy_2nd_order_krammer_kronig)
-		self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
-		self_energy_2nd_order_kramers_kronig(parameters, aim_down, aim_up, voltage_step);
+
 
 		for (int r = 0; r < parameters.steps; r++) {
 			aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
@@ -202,12 +242,12 @@ void dmft(const Parameters &parameters, const int voltage_step,
         std::vector<std::vector<dcomp>> &self_energy_mb_lesser_up, std::vector<std::vector<dcomp>> &self_energy_mb_lesser_down,
         std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down,
         std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_lesser_down,
-        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, const std::vector<std::vector<Eigen::MatrixXd>> &hamiltonian)
+        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian)
 {
 	double difference = std::numeric_limits<double>::infinity();
 	int index, count = 0;
 
-	std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps, Eigen::MatrixXcd::Zero(parameters.chain_length, parameters.chain_length));
+	std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
 
 	std::vector<dcomp> diag_gf_local_up(parameters.steps), diag_gf_local_down(parameters.steps), diag_gf_local_lesser_up(parameters.steps),
 	    diag_gf_local_lesser_down(parameters.steps), impurity_self_energy_up(parameters.steps), impurity_self_energy_down(parameters.steps),
@@ -221,7 +261,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 			break;
 		}
 
-		for (int i = 0; i < parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
+		for (int i = 0; i < 2 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
 			if (parameters.atom_type.at(i) == 0){
 				continue;
 			}
@@ -241,8 +281,8 @@ void dmft(const Parameters &parameters, const int voltage_step,
     		AIM aim_up(parameters, diag_gf_local_up, diag_gf_local_lesser_up, impurity_self_energy_up, impurity_self_energy_lesser_up, voltage_step);
     		AIM aim_down(parameters, diag_gf_local_down, diag_gf_local_lesser_down, impurity_self_energy_down, impurity_self_energy_lesser_down, voltage_step);
 			
+			impurity_solver(parameters, voltage_step, aim_up, aim_down, &spins_occup.at(i), &spins_occup.at(i + 2 * parameters.chain_length));
 			std::cout << "AIM was created for atom " << i << std::endl;
-			impurity_solver(parameters, voltage_step, aim_up, aim_down, &spins_occup.at(i), &spins_occup.at(i + parameters.chain_length));
 
             if(count == 0){
                 for (int r = 0; r < parameters.steps; r++) {

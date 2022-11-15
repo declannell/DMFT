@@ -1,5 +1,4 @@
 #pragma once
-#include <mpi.h>
 #include <eigen3/Eigen/Dense>
 #include <iomanip>
 #include <iostream>
@@ -12,5 +11,5 @@
 #include "transport.h"
 
 
-void integrate_spectral(Parameters &parameters, std::vector<dcomp> const &self_energy_left, std::vector<dcomp> const &self_energy_right);
-void analytic_gf(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local, std::vector<dcomp> const &self_energy_left, std::vector<dcomp> const &self_energy_right);
+void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> const &self_energy_left, std::vector<Eigen::MatrixXcd> const &self_energy_right);
+void analytic_gf(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local);
