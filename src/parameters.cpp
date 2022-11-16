@@ -30,12 +30,12 @@ Parameters Parameters::init()
         .num_ins_left  = 0, //this is the number of insulating layers on the left side.    
         .num_ins_right = 0,
         .ins_metal_ins = true, 
-        .num_ky_points = 10,
-        .num_kx_points = 10,
+        .num_ky_points = 1,
+        .num_kx_points = 1,
         .chemical_potential = 0.0,
         .temperature = 00.0,
-        .e_upper_bound = 200.0,
-        .e_lower_bound = -200.0,
+        .e_upper_bound = 20.0,
+        .e_lower_bound = -20.0,
         .hubbard_interaction = 1,
         .voltage_step = 0,
         .self_consistent_steps = 1,
@@ -50,7 +50,7 @@ Parameters Parameters::init()
         .convergence = 0.00001,
         .gamma = -0.5,
         .wbl_approx = true,
-        .kk_relation = false
+        .kk_relation = true
     };
 
     parameters.path_of_self_energy_up = "textfiles/local_se_up_1_k_points_81_energy.txt";
@@ -70,7 +70,7 @@ Parameters Parameters::init()
     }
     else
     {
-        parameters.interaction_order = 2;
+        parameters.interaction_order = 1;
     }
     if (parameters.ins_metal_ins == true){
         parameters.chain_length = parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
@@ -126,7 +126,7 @@ Parameters Parameters::init()
         std::cout << parameters.atom_type.at(i) << std::endl;
     }
 
-    parameters.steps = 8000; //you must make sure the energy spacing is less than delta_v
+    parameters.steps = 200; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;
@@ -156,3 +156,49 @@ double fermi_function(double energy, const Parameters &parameters) {
         return 1.0 / (1.0 + exp((energy - parameters.chemical_potential) / parameters.temperature));
 }
 //Parameters params = Parameters::init();
+void print_parameters(Parameters& parameters)
+{
+	std::cout << " .onsite_cor = " << parameters.onsite_cor << std::endl;
+	std::cout << "onsite_ins_l = " << parameters.onsite_ins_l << std::endl;
+	std::cout << "onsite_ins_r = " << parameters.onsite_ins_r << std::endl;
+	std::cout << "onsite_l = " << parameters.onsite_l << std::endl;
+	std::cout << "onsite_r = " << parameters.onsite_r << std::endl;
+	std::cout << "hopping_cor = " << parameters.hopping_cor << std::endl;
+	std::cout << "hopping_ins_l = " << parameters.hopping_ins_l << std::endl;
+	std::cout << "hopping_ins_r = " << parameters.hopping_ins_r << std::endl;
+	std::cout << "hopping_y = " << parameters.hopping_y << std::endl;
+	std::cout << "hopping_x = " << parameters.hopping_x << std::endl;
+	std::cout << "hopping_lz = " << parameters.hopping_lz << std::endl;
+	std::cout << "hopping_ly = " << parameters.hopping_ly << std::endl;
+	std::cout << "hopping_lx = " << parameters.hopping_lx << std::endl;
+	std::cout << "hopping_rz = " << parameters.hopping_rz << std::endl;
+	std::cout << "hopping_ry = " << parameters.hopping_ry << std::endl;
+	std::cout << "hopping_rx = " << parameters.hopping_rx << std::endl;
+	std::cout << "hopping_lc = " << parameters.hopping_lc << std::endl;
+	std::cout << "hopping_rc = " << parameters.hopping_rc << std::endl;
+	std::cout << "hopping_ins_l_cor = " << parameters.hopping_ins_l_cor << std::endl;
+	std::cout << "hopping_ins_r_cor = " << parameters.hopping_ins_r_cor << std::endl;
+	std::cout << "num_cor = " << parameters.num_cor << std::endl;
+	std::cout << "parameters.num_ins_left  =" << parameters.num_ins_left << std::endl;
+	std::cout << "num_ins_right = " << parameters.num_ins_right << std::endl;
+	std::cout << "num_ky_points = " << parameters.num_ky_points << std::endl;
+	std::cout << "num_kx_points = " << parameters.num_kx_points << std::endl;
+	std::cout << "chemical_potential = " << parameters.chemical_potential << std::endl;
+	std::cout << "temperature = " << parameters.temperature << std::endl;
+	std::cout << "e_upper_bound = " << parameters.e_upper_bound << std::endl;
+	std::cout << "e_lower_bound = " << parameters.e_lower_bound << std::endl;
+	std::cout << "hubbard_interaction = " << parameters.hubbard_interaction << std::endl;
+	std::cout << "voltage_step = " << parameters.voltage_step << std::endl;
+	std::cout << "self_consistent_steps = " << parameters.self_consistent_steps << std::endl;
+	std::cout << "read_in_self_energy = " << parameters.read_in_self_energy << std::endl;
+	std::cout << "NIV_points = " << parameters.NIV_points << std::endl;
+	std::cout << "delta_v = " << parameters.delta_v << std::endl;
+	std::cout << "delta_leads = " << parameters.delta_leads << std::endl;
+	std::cout << "delta_gf = " << parameters.delta_gf << std::endl;
+	std::cout << "leads_3d = " << parameters.leads_3d << std::endl;
+	std::cout << "parameters.interaction_order = " << parameters.interaction_order << std::endl;
+	std::cout << "parameters.steps = " << parameters.steps << std::endl;
+	std::cout << "parameters.chain_length = " << parameters.chain_length << std::endl;
+	std::cout << "parameters.spin_up_occup = " << parameters.spin_up_occup << std::endl;
+	std::cout << "parameters.spin_down_occup = " << parameters.spin_down_occup << std::endl;
+}

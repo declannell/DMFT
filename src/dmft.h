@@ -19,10 +19,11 @@ void get_difference(const Parameters &parameters, std::vector<Eigen::MatrixXcd> 
 
 void fluctuation_dissipation(const Parameters &parameters, const std::vector<dcomp> &green_function, std::vector<dcomp> &lesser_green_function);
 
-double get_prefactor(const int i, const int j, const int r, const int voltage_step, const Parameters &parameters, AIM &aim_up, AIM &aim_down);
+double get_prefactor(const int i, const int j, const int r, const int voltage_step, const Parameters &parameters,
+	 std::vector<double> &fermi_up, std::vector<double> &fermi_down);
 
-double integrate_equilibrium(const Parameters& parameters, const std::vector<double>& gf_1, const std::vector<double>& gf_2, const std::vector<double>& gf_3, 
-    const int r, AIM &aim_up, AIM &aim_down, int voltage_step);
+double integrate_equilibrium(const Parameters& parameters, const std::vector<double>& gf_1, const std::vector<double>& gf_2, const std::vector<double>& gf_3, const int r,
+    std::vector<double> &fermi_up, std::vector<double> &fermi_down, int voltage_step);
 
 dcomp integrate(const Parameters& parameters, const std::vector<dcomp>& gf_1, const std::vector<dcomp>& gf_2, const std::vector<dcomp>& gf_3, const int r);
 

@@ -21,7 +21,7 @@ void get_coupling(const Parameters &parameters, const Eigen::MatrixXcd &self_ene
 void get_landauer_buttiker_current(const Parameters &parameters,
                                    const std::vector<dcomp> &transmission_up,
                                    const std::vector<dcomp> &transmission_down,
-                                   dcomp *current_up, dcomp *current_down,
+                                   double *current_up, double *current_down,
                                    const int votlage_step);
 
 void get_meir_wingreen_current(
@@ -29,7 +29,7 @@ void get_meir_wingreen_current(
     const std::vector<std::vector<dcomp>> &self_energy_mb,
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, const int voltage_step,
-    dcomp *current_left, dcomp *current_right, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian);
+    double *current_left, double *current_right, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian);
     
 void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
     std::vector<Eigen::MatrixXcd>& green_function,

@@ -65,8 +65,15 @@ struct Parameters
     std::vector<double> energy;
     static Parameters init();
     dcomp j1; // this is a complex number class defined within the complex library
+    int size; //the size of the communicator
+    int myid; //the id of the process
+    std::vector<int> start; //the starting index of the energy array for each process
+    std::vector<int> end; //the ending index of the energy array for each process
+    int steps_myid; //this is the number of steps the process has
+    std::vector<int> steps_proc; //this is the number of steps the other processes have
 };
 
 
 
 double fermi_function(double energy, const Parameters &parameters);
+void print_parameters(Parameters& parameters);

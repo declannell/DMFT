@@ -17,7 +17,7 @@ double Interacting_GF::ky() const { return ky_value; }
 Interacting_GF::Interacting_GF(const Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<Eigen::MatrixXcd> 
     &self_energy_left, const std::vector<Eigen::MatrixXcd> &self_energy_right, const int voltage_step, const  Eigen::MatrixXcd &hamiltonian)
 {
-    this->interacting_gf.resize(parameters.steps, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
+    this->interacting_gf.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
     get_interacting_gf(parameters, hamiltonian, self_energy_mb, self_energy_left, self_energy_right, voltage_step);
 }
 
@@ -32,13 +32,13 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Eige
     //dos_file_non_int.open(var1);
     // myfile << parameters.steps << std::endl;
 
-    for(int r = 0; r < parameters.steps; r++){
+    for(int r = 0; r < parameters.steps_myid; r++){
         inverse_gf = Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length);
 
         for (int i = 0; i < 2 *parameters.chain_length; i++){
             for (int j = 0; j < 2 * parameters.chain_length; j++){
                 if(i == j){
-                    inverse_gf(i, j) = parameters.energy.at(r) + parameters.j1 * parameters.delta_gf - hamiltonian(i, j) - self_energy_mb.at(i).at(r);
+                    inverse_gf(i, j) = parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.j1 * parameters.delta_gf - hamiltonian(i, j) - self_energy_mb.at(i).at(r);
                 } else {
                     inverse_gf(i, j) = - hamiltonian(i, j);
                 }
@@ -279,7 +279,7 @@ void get_local_gf(Parameters &parameters, std::vector<std::vector<dcomp>> &self_
                 leads.at(kx_i).at(ky_i).self_energy_left,
                 leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
-            for(int r = 0; r < parameters.steps; r++){
+            for(int r = 0; r < parameters.steps_myid; r++){
                 gf_local.at(r) = (Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
                 for(int i = 0; i < 2 * parameters.chain_length; i++){
                     for(int j = 0; j < 2 * parameters.chain_length; j++){
@@ -333,10 +333,13 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<Eigen::MatrixXcd> &self_energy_left, 
     const std::vector<Eigen::MatrixXcd> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser, int voltage_step){
 
-    std::ofstream embedding_file;
-	embedding_file.open("textfiles/embedding.txt");
+    //std::ofstream embedding_file;
+    //std::ostringstream oss;
+	//oss << "textfiles/" << parameters.myid << ".embedding.txt";
+	//std::string var = oss.str();
+	//embedding_file.open(var);
 
-    for(int r = 0; r < parameters.steps; r++) {
+    for(int r = 0; r < parameters.steps_myid; r++) {
         gf_lesser.at(r) = (Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
     }
     //I commented this out cause the wide band limit should stop any bound states.
@@ -345,16 +348,16 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
 
     Eigen::MatrixXcd delta_term = (Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
 			
-    for(int r = 0; r < parameters.steps; r++) {   
-        delta_term = 2.0 * parameters.j1 * parameters.delta_gf * fermi_function(parameters.energy.at(r), parameters) 
+    for(int r = 0; r < parameters.steps_myid; r++) {   
+        delta_term = 2.0 * parameters.j1 * parameters.delta_gf * fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)), parameters) 
             * gf_retarded.at(r) * gf_retarded.at(r).adjoint();
 
 
         Eigen::MatrixXcd embedding_self_energy = Eigen::MatrixXd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length);
-        get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy, r, voltage_step);
+        get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy, r + parameters.start.at(parameters.myid), voltage_step);
         
-	    embedding_file << parameters.energy.at(r) << "  " << embedding_self_energy(0, 0).real() << "   " << embedding_self_energy(0, 0).imag() << "   "
-		    << embedding_self_energy(1, 1).real() << "   " << embedding_self_energy(1, 1).imag() << " \n";    
+	    //embedding_file << parameters.energy.at(r + parameters.start.at(parameters.myid)) << "  " << embedding_self_energy(0, 0).real() << "   " << embedding_self_energy(0, 0).imag() << "   "
+		//    << embedding_self_energy(1, 1).real() << "   " << embedding_self_energy(1, 1).imag() << " \n";    
 
         Eigen::MatrixXcd gf_advanced = Eigen::MatrixXd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length);
 
@@ -377,24 +380,26 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
         }
         gf_lesser.at(r) = gf_lesser.at(r) + delta_term;
     }
-    embedding_file.close();
+    //embedding_file.close();
 }
 
 double get_gf_lesser_fd(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, const std::vector<Eigen::MatrixXcd> &gf_lesser){
     std::vector<Eigen::MatrixXcd> gf_fd(parameters.steps, Eigen::MatrixXd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length)); 
     double difference = - std::numeric_limits<double>::infinity();
 	double old_difference = 0;
-	for (int r = 0; r < parameters.steps; r++) {
+
+	for (int r = 0; r < parameters.steps_myid; r++) {
 		for (int i = 0; i < 2 * parameters.chain_length; i++) {
 			for (int j = 0; j < 2 * parameters.chain_length; j++) {
 
-                gf_fd.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r), parameters) *
+                gf_fd.at(r)(i, j) = - 1.0 * fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)), parameters) *
                     (gf_retarded.at(r)(i, j) - std::conj(gf_retarded.at(r)(j, i)));
 
 				old_difference = abs(gf_fd.at(r)(i, j).imag() - gf_lesser.at(r)(i, j).imag());
 				//std::cout << real_difference << "  " << imag_difference << "  "  << difference << "\n";
 				difference = std::max(difference, old_difference);
 				old_difference = difference;
+                
 			}
 		}
     }
@@ -406,18 +411,17 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
     std::vector<Eigen::MatrixXcd> &gf_local_lesser, const int voltage_step, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian){
 
-    for(int r = 0; r < parameters.steps; r++){
+    for(int r = 0; r < parameters.steps_myid; r++){
         gf_local.at(r) = (Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
         gf_local_lesser.at(r) = (Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
     }
 
     int n_x = parameters.num_kx_points, n_y = parameters.num_ky_points;
 
-    std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length)); 
+    std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps_myid, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length)); 
     double num_k_points = n_x * n_y;
     for(int kx_i = 0; kx_i < n_x; kx_i++) {
         for(int ky_i = 0; ky_i < n_y; ky_i++) {
-
             Interacting_GF gf_interacting(parameters, self_energy_mb,
                 leads.at(kx_i).at(ky_i).self_energy_left,
                 leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));    
@@ -426,7 +430,7 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
                 self_energy_mb_lesser, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
                 gf_lesser, voltage_step);
 
-            for(int r = 0; r < parameters.steps; r++){
+            for(int r = 0; r < parameters.steps_myid; r++){
                 for(int i = 0; i < 2 * parameters.chain_length; i++){
                     for(int j = 0; j < 2 * parameters.chain_length; j++){
                         gf_local.at(r)(i, j) += gf_interacting.interacting_gf.at(r)(i, j) / num_k_points;

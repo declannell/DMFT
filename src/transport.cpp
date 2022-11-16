@@ -40,12 +40,13 @@ void get_transmission(
 
 			
 
-			for (int r = 0; r < parameters.steps; r++) {
+			for (int r = 0; r < parameters.steps_myid; r++) {
 				Eigen::MatrixXcd coupling_left = Eigen::MatrixXd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length);
 				Eigen::MatrixXcd coupling_right = Eigen::MatrixXd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length);
 				get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left.at(r), 
-					leads.at(kx_i).at(ky_i).self_energy_right.at(r), coupling_left, coupling_right, r);
+					leads.at(kx_i).at(ky_i).self_energy_right.at(r), coupling_left, coupling_right, r + parameters.start.at(parameters.myid));
 				
+
 				for( int i = 0; i < 2 * parameters.chain_length; i ++){
 					for (int p = 0; p < 2 * parameters.chain_length; p++){
 						for (int m = 0; m < 2 * parameters.chain_length; m++){
@@ -103,24 +104,24 @@ void get_coupling(const Parameters &parameters, const Eigen::MatrixXcd &self_ene
 
 void get_landauer_buttiker_current(const Parameters& parameters,
     const std::vector<dcomp>& transmission_up, const std::vector<dcomp>& transmission_down,
-    dcomp* current_up, dcomp* current_down, const int votlage_step)
+    double* current_up, double* current_down, const int votlage_step)
 {
 	double delta_energy =
 	    (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
 	
-	for (int r = 0; r < parameters.steps; r++) {
-		*current_up -= delta_energy * transmission_up.at(r)
-		    * (fermi_function(parameters.energy.at(r) + parameters.voltage_l[votlage_step],
+	for (int r = 0; r < parameters.steps_myid; r++) {
+		*current_up -= (delta_energy * transmission_up.at(r)
+		    * (fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step],
 		           parameters)
-		        - fermi_function(parameters.energy.at(r)
+		        - fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid))
 		                + parameters.voltage_r[votlage_step],
-		            parameters));
-		*current_down -= delta_energy * transmission_down.at(r)
-		    * (fermi_function(parameters.energy.at(r) + parameters.voltage_l[votlage_step],
+		            parameters))).real();
+		*current_down -= (delta_energy * transmission_down.at(r)
+		    * (fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step],
 		           parameters)
-		        - fermi_function(parameters.energy.at(r)
+		        - fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid))
 		                + parameters.voltage_r[votlage_step],
-		            parameters));	
+		            parameters))).real();	
 	}
 }
 
@@ -129,22 +130,21 @@ void get_meir_wingreen_current(
     const std::vector<std::vector<dcomp>> &self_energy_mb,
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, const int voltage_step,
-    dcomp *current_left, dcomp *current_right, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian)
+    double *current_left, double *current_right, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian)
 {
 	int n_x, n_y;
 
     n_x =  parameters.num_kx_points; //number of k points to take in x direction
     n_y =  parameters.num_ky_points; //number of k points to take in y direction
 
-	std::cout << "The voltage step is " << voltage_step << std::endl;
-    double num_k_points = n_x * n_y;
+	double num_k_points = n_x * n_y;
 	for (int kx_i = 0; kx_i < n_x; kx_i++) {
 		for (int ky_i = 0; ky_i < n_y; ky_i++) {
 			Interacting_GF gf_interacting(parameters, self_energy_mb,
 			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
-			std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps,
+			std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps_myid,
 			    Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
 
 			get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser,
@@ -158,8 +158,8 @@ void get_meir_wingreen_current(
 			    gf_lesser, leads.at(kx_i).at(ky_i).self_energy_left,
 			    leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, &current_k_resolved_left, &current_k_resolved_right);
 
-			*current_left -= current_k_resolved_left / num_k_points;
-			*current_right -= current_k_resolved_right / num_k_points;
+			*current_left -= (current_k_resolved_left).real() / num_k_points;
+			*current_right -= (current_k_resolved_right).real() / num_k_points;
 		}
 	}
 }
@@ -174,10 +174,11 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 
 	dcomp trace_left = 0.0, trace_right = 0.0;
 
-	std::ofstream integrand_file;
-	integrand_file.open(
-		    "textfiles/"
-		    "integrand_file.txt");
+	//std::ostringstream oss;
+	//oss << "textfiles/" << parameters.myid << ".integrand_file.txt";
+	//std::string var = oss.str();
+	//std::ofstream integrand_file;
+	//integrand_file.open(var);
 
 	Eigen::MatrixXcd coupling_left = Eigen::MatrixXd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length);
 	Eigen::MatrixXcd coupling_right = Eigen::MatrixXd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length);
@@ -189,20 +190,20 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 
 
 
-	for (int r = 0; r < parameters.steps; r++) {
+	for (int r = 0; r < parameters.steps_myid; r++) {
 		trace_left = 0, trace_right = 0;
 		if (parameters.wbl_approx == false) {
 			get_coupling(parameters, self_energy_left.at(r), 
-				self_energy_right.at(r), coupling_left, coupling_right, r);
+				self_energy_right.at(r), coupling_left, coupling_right, r + parameters.start.at(parameters.myid));
 		}
 		//this formula is from PHYSICAL REVIEW B 72, 125114 2005
 		for (int i = 0; i < 2 * parameters.chain_length; i++){
 			for (int j = 0; j < 2 * parameters.chain_length; j++){
 
-				trace_left += fermi_function(parameters.energy.at(r) - parameters.voltage_l.at(voltage_step),
+				trace_left += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) - parameters.voltage_l.at(voltage_step),
 		        	parameters) * coupling_left(i, j) * parameters.j1 * (green_function.at(r)(j, i) - conj(green_function.at(r)(i, j)));
 
-				trace_right += fermi_function(parameters.energy.at(r) - parameters.voltage_r.at(voltage_step),
+				trace_right += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) - parameters.voltage_r.at(voltage_step),
 		        	parameters) * coupling_right(i, j) * parameters.j1 * (green_function.at(r)(j, i) - conj(green_function.at(r)(i, j)));
 	
 				trace_left += parameters.j1 * coupling_left(i, j) * green_function_lesser.at(r)(j, i);
@@ -213,13 +214,13 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 
 
 
-		integrand_file << parameters.energy.at(r) << "  "
-				<< trace_left.real() << "  "
-				<< trace_right.real() <<"\n";
+		//integrand_file << parameters.energy.at(r) << "  "
+		//		<< trace_left.real() << "  "
+		//		<< trace_right.real() <<"\n";
 				
 		*current_left -= delta_energy * trace_left;
 		*current_right -= delta_energy * trace_right;
 	}
 
-	integrand_file.close();
+	//integrand_file.close();
 }

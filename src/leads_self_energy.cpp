@@ -19,11 +19,11 @@ double EmbeddingSelfEnergy::ky() const { return ky_value; }
 
 EmbeddingSelfEnergy::EmbeddingSelfEnergy(const Parameters &parameters, double kx, double ky, int voltage_step) : kx_value(kx), ky_value(ky) // type is implied, it knows this is a constructor
 {
-    this->self_energy_left.resize(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
-    this->self_energy_right.resize(parameters.steps, Eigen::MatrixXcd::Zero(2, 2)); 
+    this->self_energy_left.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
+    this->self_energy_right.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2)); 
 
     if(parameters.wbl_approx == true){
-        for (int r = 0; r < parameters.steps; r++){
+        for (int r = 0; r < parameters.steps_myid; r++){
             for (int i = 0; i < 2; i++){
                 self_energy_left.at(r)(i, i) = parameters.j1 * parameters.gamma * 0.5;
                 self_energy_right.at(r)(i, i) = parameters.j1 * parameters.gamma * 0.5;               
@@ -32,8 +32,8 @@ EmbeddingSelfEnergy::EmbeddingSelfEnergy(const Parameters &parameters, double kx
     } else { //this calculate the self energy via the method in sanchez paper. This is not tested.
         Eigen::MatrixXcd hamiltonian(2, 2);
         get_hamiltonian_for_leads(parameters, hamiltonian);
-        std::vector<Eigen::MatrixXcd> transfer_matrix_l(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
-        std::vector<Eigen::MatrixXcd> transfer_matrix_r(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
+        std::vector<Eigen::MatrixXcd> transfer_matrix_l(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
+        std::vector<Eigen::MatrixXcd> transfer_matrix_r(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
         get_transfer_matrix(parameters, transfer_matrix_l, transfer_matrix_r, hamiltonian, voltage_step);
         get_self_energy(parameters, transfer_matrix_l, transfer_matrix_r, hamiltonian, voltage_step);
     }
@@ -58,19 +58,19 @@ void EmbeddingSelfEnergy::get_hamiltonian_for_leads(const Parameters &parameters
 void EmbeddingSelfEnergy::get_transfer_matrix(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &transfer_matrix_l, 
     std::vector<Eigen::MatrixXcd> &transfer_matrix_r, Eigen::MatrixXcd &hamiltonian, int voltage_step)
 {
-    std::vector<Eigen::MatrixXcd> t_next_l(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
-    std::vector<Eigen::MatrixXcd> t_next_r(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
-    std::vector<Eigen::MatrixXcd> t_product_l(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
-    std::vector<Eigen::MatrixXcd> t_product_r(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
+    std::vector<Eigen::MatrixXcd> t_next_l(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
+    std::vector<Eigen::MatrixXcd> t_next_r(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
+    std::vector<Eigen::MatrixXcd> t_product_l(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
+    std::vector<Eigen::MatrixXcd> t_product_r(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
     Eigen::Matrix2d identity;
     identity = Eigen::Matrix2d::Identity();
 
-    for (int r = 0; r < parameters.steps; r++)
+    for (int r = 0; r < parameters.steps_myid; r++)
     {
-        Eigen::Matrix2cd inverse_l = (parameters.energy.at(r) + parameters.j1 * parameters.delta_leads 
+        Eigen::Matrix2cd inverse_l = (parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.j1 * parameters.delta_leads 
             - parameters.voltage_l[voltage_step]) * identity - hamiltonian;
         
-        Eigen::Matrix2cd inverse_r = (parameters.energy.at(r) + parameters.j1 * parameters.delta_leads 
+        Eigen::Matrix2cd inverse_r = (parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.j1 * parameters.delta_leads 
             - parameters.voltage_r[voltage_step]) * identity - hamiltonian;
 
         t_next_l.at(r) = parameters.hopping_lz * inverse_l.inverse();
@@ -89,7 +89,7 @@ void EmbeddingSelfEnergy::get_transfer_matrix(const Parameters &parameters, std:
     do
     {
         difference = -std::numeric_limits<double>::infinity();
-        for (int r = 0; r < parameters.steps; r++)
+        for (int r = 0; r < parameters.steps_myid; r++)
         {
             Eigen::Matrix2cd t_l_squared = t_next_l.at(r) * t_next_l.at(r);
             Eigen::Matrix2cd t_r_squared = t_next_r.at(r) * t_next_r.at(r); 
@@ -125,15 +125,15 @@ void EmbeddingSelfEnergy::get_self_energy(const Parameters &parameters, std::vec
     Eigen::Matrix2d identity;
     identity = Eigen::Matrix2d::Identity();
     
-    std::vector<Eigen::MatrixXcd> surface_gf_l(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
-    std::vector<Eigen::MatrixXcd> surface_gf_r(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
+    std::vector<Eigen::MatrixXcd> surface_gf_l(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
+    std::vector<Eigen::MatrixXcd> surface_gf_r(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
 
-    for (int r = 0; r < parameters.steps; r++)
+    for (int r = 0; r < parameters.steps_myid; r++)
     {
-        surface_gf_l.at(r) = ((parameters.j1 * parameters.delta_leads + parameters.energy.at(r) - parameters.voltage_l[voltage_step]) * identity - hamiltonian 
+        surface_gf_l.at(r) = ((parameters.j1 * parameters.delta_leads + parameters.energy.at(r + parameters.steps) - parameters.voltage_l[voltage_step]) * identity - hamiltonian 
             - parameters.hopping_lz * transfer_matrix_l.at(r)).inverse(); 
 
-        surface_gf_r.at(r) = ((parameters.j1 * parameters.delta_leads + parameters.energy.at(r) - parameters.voltage_r[voltage_step]) * identity - hamiltonian 
+        surface_gf_r.at(r) = ((parameters.j1 * parameters.delta_leads + parameters.energy.at(r + parameters.steps) - parameters.voltage_r[voltage_step]) * identity - hamiltonian 
             - parameters.hopping_rz * transfer_matrix_r.at(r)).inverse(); 
 
         this->self_energy_left.at(r) = parameters.hopping_lc * parameters.hopping_lc * surface_gf_l.at(r);
