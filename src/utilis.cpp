@@ -101,7 +101,6 @@ void write_to_file(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_up,
 }
 
 void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vector<dcomp> &gf_down, std::string filename, int voltage_step){
-	for (int i = 0; i < parameters.chain_length * 2; i++){
 		MPI_Barrier(MPI_COMM_WORLD);
 		std::vector<dcomp> vec_1_up, vec_2_up;
 		std::vector<dcomp> vec_1_down, vec_2_down;
@@ -115,8 +114,8 @@ void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vecto
 				vec_1_down.at(r) = gf_down.at(r);
 			}
 			for (int a = 1; a < parameters.size; a++){
-				MPI_Recv(&vec_1_up.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Recv(&vec_1_down.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, i + 100, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(&vec_1_up.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, 300, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+				MPI_Recv(&vec_1_down.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, 300 + 100, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				//std::cout << "I, rank 0, recieved part of vec_1 from rank " << a << std::endl; 
 				//for (int r = parameters.start.at(a); r < parameters.start.at(a) + parameters.steps_proc.at(a); r ++){
 				//	std::cout << "This part has a value of " << vec_1.at(r) << " " << r << std::endl; 
@@ -131,8 +130,8 @@ void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vecto
 				vec_2_down.at(r) = gf_down.at(r);
 				//std::cout << "On rank " << parameters.myid << " vector has a value of " << vec_2.at(r)  << std::endl;
 			}
-			MPI_Send(&(vec_2_up.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, i, MPI_COMM_WORLD);
-			MPI_Send(&(vec_2_down.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, i + 100, MPI_COMM_WORLD);
+			MPI_Send(&(vec_2_up.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, 300, MPI_COMM_WORLD);
+			MPI_Send(&(vec_2_down.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, 300 + 100, MPI_COMM_WORLD);
 			//std::cout << "I, rank " << parameters.myid << " sent my part of the GF to rank 0 \n"; 
 		}
 
@@ -142,7 +141,7 @@ void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vecto
 			//	std::cout << vec_1.at(r) << std::endl;
 			//}
 			std::ostringstream ossgf;
-			ossgf << "textfiles/" << voltage_step << "." << i << "." << filename;
+			ossgf << "textfiles/" << voltage_step << "." << filename;
 			std::string var = ossgf.str();
 			std::ofstream gf_local_file;
 			gf_local_file.open(var);
@@ -154,7 +153,6 @@ void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vecto
 			}
 			gf_local_file.close();					
 		}
-	}
 }
 
 
@@ -255,19 +253,16 @@ void distribute_to_procs(const Parameters &parameters, std::vector<double> &vec_
 				vec_1.at(r) = vec_2.at(r);  
 			}
 			for (int a = 1; a < parameters.size; a++){
-				MPI_Recv(&vec_1.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, 200, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				//std::cout << "I, rank 0, recieved part of vec_1 from rank " << a << std::endl; 
+				MPI_Recv(&vec_1.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE, a, 200, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 				//for (int r = parameters.start.at(a); r < parameters.start.at(a) + parameters.steps_proc.at(a); r ++){
 				//	std::cout << "This part has a value of " << vec_1.at(r) << " " << r << std::endl; 
 				//}
 			}
 		} else {
 			//std::cout << "rank " << parameters.myid << " enters where parameters.myid != 0 \n";
-			MPI_Send(&(vec_2.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, 200, MPI_COMM_WORLD);
-			//std::cout << "I, rank " << parameters.myid << " sent my part of the GF to rank 0 \n"; 
+			MPI_Send(&(vec_2.at(0)), parameters.steps_myid, MPI_DOUBLE, 0, 200, MPI_COMM_WORLD);
 		}
 
 		MPI_Barrier(MPI_COMM_WORLD);
-		MPI_Bcast(&(vec_1.at(0)), parameters.steps, MPI_DOUBLE_COMPLEX, 0, MPI_COMM_WORLD);
-
+		MPI_Bcast(&(vec_1.at(0)), parameters.steps, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 }

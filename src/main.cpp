@@ -74,15 +74,14 @@ int main(int argc, char **argv)
 {
 	MPI_Init(&argc, &argv);
 	Parameters parameters = Parameters::init();
-	
+
 	if (parameters.myid == 0) {
 		print_parameters(parameters);
 	}
 
 	MPI_Comm_size(MPI_COMM_WORLD, &parameters.size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &parameters.myid);
-
-	std::cout << "My myid is " << parameters.myid << std::endl;
+	MPI_Barrier(MPI_COMM_WORLD);
 
 	parameters.steps_proc.resize(parameters.size, 0);
 	parameters.end.resize(parameters.size, 0);
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
 	decomp(parameters.steps, parameters.size, parameters.myid, &parameters.start.at(parameters.myid), &parameters.end.at(parameters.myid));
 	parameters.steps_myid = parameters.end.at(parameters.myid) - parameters.start.at(parameters.myid) + 1;
 
-	std::cout << "My myid is " << parameters.myid << " in a world of size " << parameters.size << 
+	std::cout << std::setprecision(15) << "My myid is " << parameters.myid << " in a world of size " << parameters.size << 
 		". There are " << parameters.steps<< " energy steps in my parameters class." 
 		" The starting point and end point of my array are " << parameters.start.at(parameters.myid) << " and " << parameters.end.at(parameters.myid) << 
 		". The number of points in my process are " << parameters.steps_myid << "\n";
@@ -120,8 +119,10 @@ int main(int argc, char **argv)
 		 coherent_current_down(parameters.NIV_points, 0), noncoherent_current_up(parameters.NIV_points, 0), noncoherent_current_down(parameters.NIV_points, 0),
 		 current_up_right(parameters.NIV_points, 0), current_up_left(parameters.NIV_points, 0), current_down_right(parameters.NIV_points, 0)
 		 , current_down_left(parameters.NIV_points, 0);
-
-	for (int m = 1; m < parameters.NIV_points; m++) {
+	
+	MPI_Barrier(MPI_COMM_WORLD); //this is just so the code prints nicely to the out file.
+	
+	for (int m = 0; m < parameters.NIV_points; m++) {
 		std::cout << "\n";
 		if (parameters.myid == 0) {
 			std::cout << std::setprecision(15) << "The voltage difference is " << parameters.voltage_l[m] - parameters.voltage_r[m] << std::endl;
