@@ -2,3 +2,9 @@ target/
 .vscode/
 src/.vscode/
 textfiles/
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+myscript.sh
+

@@ -2,6 +2,7 @@
 #include <complex>
 #include <cmath>
 #include <vector>
+#include <mpi.h>
 
 typedef std::complex<double> dcomp;
 
@@ -71,6 +72,7 @@ struct Parameters
     std::vector<int> end; //the ending index of the energy array for each process
     int steps_myid; //this is the number of steps the process has
     std::vector<int> steps_proc; //this is the number of steps the other processes have
+    MPI_Comm comm;
 };
 
 
