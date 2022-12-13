@@ -6,9 +6,9 @@
 Parameters Parameters::init()
 {
     Parameters parameters =  {
-        .onsite_cor = 0.0,
-        .onsite_ins_l = 10,
-        .onsite_ins_r = 10,
+        .onsite_cor = -0.50,
+        .onsite_ins_l = 10.0,
+        .onsite_ins_r = 10.0,
         .onsite_l = -0.0,
         .onsite_r = -0.0,
         .hopping_cor = -3.0,
@@ -30,25 +30,25 @@ Parameters Parameters::init()
         .num_ins_left  = 2, //this is the number of insulating layers on the left side.    
         .num_ins_right = 2,
         .ins_metal_ins = true, 
-        .num_ky_points = 100,
-        .num_kx_points = 100,
+        .num_ky_points = 50,
+        .num_kx_points = 50,
         .chemical_potential = 0.0,
         .temperature = 00.0,
-        .e_upper_bound = 150.0,
-        .e_lower_bound = -150.0,
-        .hubbard_interaction = 3.0,
+        .e_upper_bound = 80.0,
+        .e_lower_bound = -80.0,
+        .hubbard_interaction = 0.0,
         .voltage_step = 0,
         .self_consistent_steps = 5,
         .read_in_self_energy = false,
-        .NIV_points = 1,
-        .delta_v = 0.0,
+        .NIV_points = 6,
+        .delta_v = 0.25,
         .delta_leads = 0.00000001,
         .delta_gf = 0.00,
         .leads_3d = false,
         .spin_up_occup = 0.0,
         .spin_down_occup = 0.0,       
         .convergence = 0.005,
-        .gamma = -5,
+        .gamma = -2.5,
         .wbl_approx = true,
         .kk_relation = true
     };
@@ -122,11 +122,11 @@ Parameters Parameters::init()
         }
     }
 
-    for (int i = 0; i < 2 * parameters.chain_length; i++) {
-        std::cout << parameters.atom_type.at(i) << std::endl;
-    }
+    //for (int i = 0; i < 2 * parameters.chain_length; i++) {
+    //    std::cout << parameters.atom_type.at(i) << std::endl;
+    //}
 
-    parameters.steps = 10000; //you must make sure the energy spacing is less than delta_v
+    parameters.steps = 8000; //you must make sure the energy spacing is less than delta_v
     parameters.energy.resize(parameters.steps);
 
     parameters.j1 = -1;

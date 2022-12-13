@@ -108,6 +108,9 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         }
         //hopping in the second layer of the hamiltonian
     }    
+//    if (parameters.myid == 0) {
+        //std::cout << "initialised the hoppings for first layer \n";
+    //}
 
     //we now sort out the hopping on the off diagonal blocks. This doesn't work if I want the hopping of the left and right blocks to be different.
     dcomp multiple_upper = 1.0, multiple_lower = 1.0; //this is the multiple that goes in front of the term for the off diagonal blocks of the green function. 
@@ -134,6 +137,9 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         //hopping in the second layer of the hamiltonian
     }    
 
+    //if (parameters.myid == 0) {
+    //    std::cout << "initialised the hoppings for second layer \n";
+    //}
     if (parameters.ins_metal_ins == true){
         int num_ins = parameters.num_ins_left + parameters.num_ins_right;      
         double delta_v = potential_bias / (double)(num_ins + 1.0);

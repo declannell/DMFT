@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include <vector>
-
+#include <cstdlib>
 #include "interacting_gf.h"
 #include "leads_self_energy.h"
 #include "parameters.h"
@@ -36,17 +36,22 @@ void get_spin_occupation(const Parameters &parameters, const std::vector<double>
 	MPI_Allreduce(&result_down, spin_down, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 }
 
+double absolute_value(double num1) {
+	return std::sqrt((num1 ) * (num1));
+
+}
 
 void get_difference(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &old_green_function,
                 double &difference, int &index){
 	double difference_proc = - std::numeric_limits<double>::infinity();
 	double old_difference = 0;
-	double real_difference, imag_difference;
+	double real_difference = 0, imag_difference = 0;
 	for (int r = 0; r < parameters.steps_myid; r++) {
 		for (int i = 0; i < 2 * parameters.chain_length; i++) {
 			for (int j = 0; j < 2 * parameters.chain_length; j++) {
-				real_difference = abs(gf_local_up.at(r)(i, j).real() - old_green_function.at(r)(i, j).real());
-				imag_difference = abs(gf_local_up.at(r)(i, j).imag() - old_green_function.at(r)(i, j).imag());
+				real_difference = absolute_value(gf_local_up.at(r)(i, j).real() - old_green_function.at(r)(i, j).real());
+				imag_difference = absolute_value(gf_local_up.at(r)(i, j).imag() - old_green_function.at(r)(i, j).imag());
+				//std::cout << gf_local_up.at(r)(i, j).real() << " " << old_green_function.at(r)(i, j).real() << std::endl;
 				//std::cout << real_difference << "  " << imag_difference << "  "  << difference << "\n";
 				difference_proc = std::max(difference_proc, std::max(real_difference, imag_difference));
 				old_green_function.at(r)(i, j) = gf_local_up.at(r)(i, j);
@@ -298,8 +303,10 @@ void dmft(const Parameters &parameters, const int voltage_step,
 	    impurity_self_energy_lesser_up(parameters.steps_myid), impurity_self_energy_lesser_down(parameters.steps_myid);
 
 	while (difference > parameters.convergence && count < parameters.self_consistent_steps) {
-
+		//MPI_Barrier(MPI_COMM_WORLD);
+		//std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
 		get_difference(parameters, gf_local_up, old_green_function, difference, index);
+		MPI_Barrier(MPI_COMM_WORLD);
 		if (parameters.myid == 0) {
 			std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
 		}

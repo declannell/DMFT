@@ -72,17 +72,24 @@ void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dco
 
 int main(int argc, char **argv)
 {
-	MPI_Init(&argc, &argv);
+    MPI_Init(&argc, &argv);
+	
 	Parameters parameters = Parameters::init();
+	MPI_Comm_size(MPI_COMM_WORLD, &parameters.size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &parameters.myid);
+	parameters.comm = MPI_COMM_WORLD;
 
 	if (parameters.myid == 0) {
 		print_parameters(parameters);
 	}
-
-	MPI_Comm_size(MPI_COMM_WORLD, &parameters.size);
-	MPI_Comm_rank(MPI_COMM_WORLD, &parameters.myid);
 	MPI_Barrier(MPI_COMM_WORLD);
 
+	if (parameters.myid == 0) {
+		std::cout << std::endl;
+		std::cout << std::endl;
+		std::cout << std::endl;
+	}
+	
 	parameters.steps_proc.resize(parameters.size, 0);
 	parameters.end.resize(parameters.size, 0);
 	parameters.start.resize(parameters.size, 0);
@@ -94,8 +101,14 @@ int main(int argc, char **argv)
 		". There are " << parameters.steps<< " energy steps in my parameters class." 
 		" The starting point and end point of my array are " << parameters.start.at(parameters.myid) << " and " << parameters.end.at(parameters.myid) << 
 		". The number of points in my process are " << parameters.steps_myid << "\n";
-
+		
 	parameters.steps_proc.at(parameters.myid) = parameters.steps_myid;
+
+	if (parameters.myid == 0) {
+		std::cout << std::endl;
+		std::cout << std::endl;
+		std::cout << std::endl;
+	}
 
 	for (int a = 0; a < parameters.size; a++){
 		MPI_Bcast(&parameters.start.at(a), 1, MPI_INT, a, MPI_COMM_WORLD);
@@ -111,6 +124,7 @@ int main(int argc, char **argv)
 	//	}
 	//}
 
+
 	std::vector<double> kx(parameters.num_kx_points, 0);
 	std::vector<double> ky(parameters.num_ky_points, 0);
 	get_momentum_vectors(kx, ky, parameters);
@@ -121,12 +135,13 @@ int main(int argc, char **argv)
 		 , current_down_left(parameters.NIV_points, 0);
 	
 	MPI_Barrier(MPI_COMM_WORLD); //this is just so the code prints nicely to the out file.
-	
+
 	for (int m = 0; m < parameters.NIV_points; m++) {
 		std::cout << "\n";
 		if (parameters.myid == 0) {
 			std::cout << std::setprecision(15) << "The voltage difference is " << parameters.voltage_l[m] - parameters.voltage_r[m] << std::endl;
 			std::cout << "intialising hamiltonian \n";
+			std::cout << "The number of orbitals we have is " << 2 * parameters.chain_length << "\n";
 		}
 
 		std::vector<std::vector<Eigen::MatrixXcd>> hamiltonian(
@@ -152,6 +167,7 @@ int main(int argc, char **argv)
 		}
 
 		if (parameters.myid == 0) {
+			std::cout << "leads complete" << std::endl;
 			std::cout << "leads size: " << leads.at(0).size() << '\n';
 		}
 		//get_k_averaged_embedding_self_energy(parameters, leads);
@@ -159,16 +175,22 @@ int main(int argc, char **argv)
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
 				get_hamiltonian(parameters, m, kx.at(kx_i), ky.at(ky_i), hamiltonian.at(kx_i).at(ky_i));
+
+				//if (parameters.myid == 0){
+				//	std::cout << hamiltonian.at(kx_i).at(ky_i) << std::endl;
+				//	std::cout << std::endl;					
+				//}
 				//std::cout << "The hamiltonian on myid " << parameters.myid << " is " <<  std::endl;
 				//std::cout << hamiltonian.at(kx_i).at(ky_i) << std::endl;
 				//std::cout << std::endl;
 			}
 		}
-		//get_spectral_embedding_self_energy(parameters, leads, m);
 
 		if (parameters.myid == 0) {
-			std::cout << "leads complete" << std::endl;
+			std::cout << "hamiltonian complete" << std::endl;
 		}
+		//get_spectral_embedding_self_energy(parameters, leads, m);
+
 
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
 		get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);
