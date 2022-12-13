@@ -1,161 +1,241 @@
-#include <vector>
-#include <complex> //this contains complex numbers and trig functions
 #include "parameters.h"
+
+#include <complex>  //this contains complex numbers and trig functions
+#include <fstream>
 #include <iostream>
+#include <string>
+#include <vector>
 
-Parameters Parameters::init()
+void simple_tokenizer(std::string s, std::string &variable, std::string &value)
 {
-    Parameters parameters =  {
-        .onsite_cor = 0.0,
-        .onsite_ins_l = 10,
-        .onsite_ins_r = 10,
-        .onsite_l = -0.0,
-        .onsite_r = -0.0,
-        .hopping_cor = -3.0,
-        .hopping_ins_l = -3.0,
-        .hopping_ins_r = -3.0,
-        .hopping_y = -3.0,
-        .hopping_x = -3.0,
-        .hopping_lz = -3.0,
-        .hopping_ly = -3.0,
-        .hopping_lx = -3.0,
-        .hopping_rz = -3.0,
-        .hopping_ry = -3.0,
-        .hopping_rx = -3.0,
-        .hopping_lc = -3.0,
-        .hopping_rc = -3.0,
-        .hopping_ins_l_cor = -3.0,
-        .hopping_ins_r_cor = -3.0,
-        .num_cor = 1, //this is the number of correlated atoms between the insulating atoms.
-        .num_ins_left  = 2, //this is the number of insulating layers on the left side.    
-        .num_ins_right = 2,
-        .ins_metal_ins = true, 
-        .num_ky_points = 100,
-        .num_kx_points = 100,
-        .chemical_potential = 0.0,
-        .temperature = 00.0,
-        .e_upper_bound = 150.0,
-        .e_lower_bound = -150.0,
-        .hubbard_interaction = 3.0,
-        .voltage_step = 0,
-        .self_consistent_steps = 5,
-        .read_in_self_energy = false,
-        .NIV_points = 1,
-        .delta_v = 0.0,
-        .delta_leads = 0.00000001,
-        .delta_gf = 0.00,
-        .leads_3d = false,
-        .spin_up_occup = 0.0,
-        .spin_down_occup = 0.0,       
-        .convergence = 0.005,
-        .gamma = -5,
-        .wbl_approx = true,
-        .kk_relation = true
-    };
-
-    parameters.path_of_self_energy_up = "textfiles/local_se_up_1_k_points_81_energy.txt";
-    parameters.path_of_self_energy_down = "textfiles/local_se_down_1_k_points_81_energy.txt";
-
-    parameters.voltage_l.resize(parameters.NIV_points);
-    parameters.voltage_r.resize(parameters.NIV_points);
-    for (int i = 0; i < parameters.NIV_points; i++)
-    {
-        parameters.voltage_l.at(i) = parameters.delta_v * (double)(i);
-        parameters.voltage_r.at(i) = - parameters.delta_v * (double)(i);
-    }
-
-    if (parameters.hubbard_interaction == 0.0)
-    {
-        parameters.interaction_order = 0.0; // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
-    }
-    else
-    {
-        parameters.interaction_order = 2;
-    }
-    if (parameters.ins_metal_ins == true){
-        parameters.chain_length = parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
-    } else {
-        parameters.chain_length = parameters.num_ins_left + 2 * parameters.num_cor;
-    }
-
-    //the atom is correlated if atom typ equals to 1. This how we know to apply sigma two to certain atoms.
-    if (parameters.ins_metal_ins == true){
-        for (int i = 0; i < parameters.num_ins_left; i++){
-            parameters.atom_type.push_back(0);
-        }
-        for (int i = 0; i < parameters.num_cor; i++){
-            parameters.atom_type.push_back(1);
-        }
-        for (int i = 0; i < parameters.num_ins_right; i++){
-            parameters.atom_type.push_back(0);
-        }
-        //we repeat this a second time as there are two horizontal layers within the unit cell. atoms 0 to chain_length -1 are th e first layer.
-        //the second layer is atoms chain_length to 2 * chain_length -1.
-        for (int i = 0; i < parameters.num_ins_left; i++){
-            parameters.atom_type.push_back(0);
-        }
-        for (int i = 0; i < parameters.num_cor; i++){
-            parameters.atom_type.push_back(1);
-        }
-        for (int i = 0; i < parameters.num_ins_right; i++){
-            parameters.atom_type.push_back(0);
-        }
-    } else {
-        for (int i = 0; i < parameters.num_cor; i++){
-            parameters.atom_type.push_back(1);
-        }
-        for (int i = 0; i < parameters.num_ins_left; i++){
-            parameters.atom_type.push_back(0);
-        }
-        for (int i = 0; i < parameters.num_cor; i++){
-            parameters.atom_type.push_back(1);
-        }
-        //repeating for the second layer.
-        for (int i = 0; i < parameters.num_cor; i++){
-            parameters.atom_type.push_back(1);
-        }
-        for (int i = 0; i < parameters.num_ins_left; i++){
-            parameters.atom_type.push_back(0);
-        }
-        for (int i = 0; i < parameters.num_cor; i++){
-            parameters.atom_type.push_back(1);
-        }
-    }
-
-    for (int i = 0; i < 2 * parameters.chain_length; i++) {
-        std::cout << parameters.atom_type.at(i) << std::endl;
-    }
-
-    parameters.steps = 10000; //you must make sure the energy spacing is less than delta_v
-    parameters.energy.resize(parameters.steps);
-
-    parameters.j1 = -1;
-    parameters.j1 = sqrt(parameters.j1);
-
-    double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
-
-    for (int i = 0; i < parameters.steps; i++)
-    {
-        parameters.energy.at(i) = parameters.e_lower_bound + delta_energy * (double)i;
-    }
-    return parameters;
-
-    if(delta_energy < parameters.delta_v){
-        std::cout << "Delta voltage is less than delta energy. This gives unphysical step function results. Make delta_energy < parameters.delta_v" <<std::endl;
+    std::stringstream ss(s);
+    std::string word;
+	int count = 0;
+    while (ss >> word) {
+        std::cout << word << std::endl;
+		if (count == 0) {
+			variable = word;
+		} else if (count == 1) {
+			value == word;
+		}
     }
 }
 
-double fermi_function(double energy, const Parameters &parameters) {
-    if(parameters.temperature == 0){
-        if(energy < parameters.chemical_potential){
-            return 1.0;
-        } else {
-            return 0.0;
-        }
-    } else {}
-        return 1.0 / (1.0 + exp((energy - parameters.chemical_potential) / parameters.temperature));
+
+Parameters Parameters::from_file()
+{
+	Parameters parameters;
+	std::string line, variable, value;
+	std::ifstream input_file;
+
+	input_file.open("current.txt");
+	if (input_file.is_open()) {
+		while (getline(input_file, line)) {
+			std::cout << line << '\n';
+			simple_tokenizer(line, variable, value);
+
+			if (variable == "onsite_cor") {
+				parameters.onsite_cor = std::stod(value);
+			} else if (variable == "onsite_ins_l") {
+				parameters.onsite_ins_l = std::stod(value);
+			} else if (variable == "onsite_ins_r") {
+				parameters.onsite_ins_r = std::stod(value);
+			} else if (variable == "onsite_l") {
+				parameters.onsite_l = std::stod(value);
+			} else if (variable == "onsite_r") {
+				parameters.onsite_r = std::stod(value);
+			} else if (variable == "hopping_cor") {
+				parameters.hopping_cor = std::stod(value);
+			} else if (variable == "hopping_ins_l") {
+				parameters.hopping_ins_l = std::stod(value);
+			} else if (variable == "hopping_ins_r") {
+				parameters.hopping_ins_r = std::stod(value);
+			} else if (variable == "hopping_y") {
+				parameters.hopping_y = std::stod(value);
+			} else if (variable == "hopping_x") {
+				parameters.hopping_x = std::stod(value);
+			} else if (variable == "hopping_lz") {
+				parameters.hopping_lz = std::stod(value);
+			} else if (variable == "hopping_ly") {
+				parameters.hopping_ly = std::stod(value);
+			} else if (variable == "hopping_lx") {
+				parameters.hopping_lx = std::stod(value);
+			} else if (variable == "hopping_rz") {
+				parameters.hopping_rz = std::stod(value);
+			} else if (variable == "hopping_ry") {
+				parameters.hopping_ry = std::stod(value);
+			} else if (variable == "hopping_rx") {
+				parameters.hopping_rx = std::stod(value);
+			} else if (variable == "hopping_lc") {
+				parameters.hopping_lc = std::stod(value);
+			} else if (variable == "hopping_rc") {
+				parameters.hopping_rc = std::stod(value);
+			} else if (variable == "hopping_ins_l_cor") {
+				parameters.hopping_ins_l_cor = std::stod(value);
+			} else if (variable == "hopping_ins_r_cor") {
+				parameters.hopping_ins_r_cor = std::stod(value);
+			} else if (variable == "num_cor") {
+				parameters.num_cor = std::stoi(value);
+			} else if (variable == "num_ins_left") {
+				parameters.num_ins_left = std::stod(value);
+			} else if (variable == "num_ins_right") {
+				parameters.num_ins_right = std::stod(value);
+			} else if (variable == "ins_metal_ins") {
+				std::istringstream(value) >> parameters.ins_metal_ins;
+			} else if (variable == "num_ky_points") {
+				parameters.num_ky_points = std::stoi(value);
+			} else if (variable == "num_kx_points") {
+				parameters.num_kx_points = std::stoi(value);
+			} else if (variable == "chemical_potential") {
+				parameters.chemical_potential = std::stod(value);
+			} else if (variable == "temperature") {
+				parameters.temperature = std::stod(value);
+			} else if (variable == "e_upper_bound") {
+				parameters.e_upper_bound = std::stod(value);
+			} else if (variable == "e_lower_bound") {
+				parameters.e_lower_bound = std::stod(value);
+			} else if (variable == "hubbard_interaction") {
+				parameters.hubbard_interaction = std::stod(value);
+			} else if (variable == "voltage_step") {
+				parameters.voltage_step = std::stoi(value);
+			} else if (variable == "self_consistent_steps") {
+				parameters.self_consistent_steps = std::stod(value);
+			} else if (variable == "read_in_self_energy") {
+				std::istringstream(value) >> parameters.read_in_self_energy;
+			} else if (variable == "NIV_points") {
+				parameters.NIV_points = std::stoi(value);
+			} else if (variable == "delta_v") {
+				parameters.delta_v = std::stod(value);
+			} else if (variable == "delta_leads") {
+				parameters.delta_leads = std::stod(value);
+			} else if (variable == "delta_gf") {
+				parameters.delta_gf = std::stod(value);
+			} else if (variable == "leads_3d") {
+				std::istringstream(value) >> parameters.leads_3d;
+			} else if (variable == "spin_up_occup") {
+				parameters.spin_up_occup = std::stod(value);
+			} else if (variable == "spin_down_occup") {
+				parameters.spin_down_occup = std::stod(value);
+			} else if (variable == "convergence") {
+				parameters.convergence = std::stod(value);
+			} else if (variable == "gamma") {
+				parameters.gamma = std::stod(value);
+			} else if (variable == "wbl_approx") {
+				std::istringstream(value) >> parameters.wbl_approx;
+			} else if (variable == "kk_relation") {
+				std::istringstream(value) >> parameters.kk_relation;
+			} else if (variable == "steps") {
+				parameters.steps = std::stoi(value);
+			}
+		}
+		input_file.close();
+	}
+
+	parameters.path_of_self_energy_up = "textfiles/local_se_up_1_k_points_81_energy.txt";
+	parameters.path_of_self_energy_down = "textfiles/local_se_down_1_k_points_81_energy.txt";
+
+	parameters.voltage_l.resize(parameters.NIV_points);
+	parameters.voltage_r.resize(parameters.NIV_points);
+	for (int i = 0; i < parameters.NIV_points; i++) {
+		parameters.voltage_l.at(i) = parameters.delta_v * (double)(i);
+		parameters.voltage_r.at(i) = -parameters.delta_v * (double)(i);
+	}
+
+	if (parameters.hubbard_interaction == 0.0) {
+		parameters.interaction_order =
+		    0.0;  // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
+	} else {
+		parameters.interaction_order = 2;
+	}
+	if (parameters.ins_metal_ins == true) {
+		parameters.chain_length =
+		    parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
+	} else {
+		parameters.chain_length = parameters.num_ins_left + 2 * parameters.num_cor;
+	}
+
+	//the atom is correlated if atom typ equals to 1. This how we know to apply sigma two to certain atoms.
+	if (parameters.ins_metal_ins == true) {
+		for (int i = 0; i < parameters.num_ins_left; i++) {
+			parameters.atom_type.push_back(0);
+		}
+		for (int i = 0; i < parameters.num_cor; i++) {
+			parameters.atom_type.push_back(1);
+		}
+		for (int i = 0; i < parameters.num_ins_right; i++) {
+			parameters.atom_type.push_back(0);
+		}
+		//we repeat this a second time as there are two horizontal layers within the unit cell. atoms 0 to chain_length -1 are th e first layer.
+		//the second layer is atoms chain_length to 2 * chain_length -1.
+		for (int i = 0; i < parameters.num_ins_left; i++) {
+			parameters.atom_type.push_back(0);
+		}
+		for (int i = 0; i < parameters.num_cor; i++) {
+			parameters.atom_type.push_back(1);
+		}
+		for (int i = 0; i < parameters.num_ins_right; i++) {
+			parameters.atom_type.push_back(0);
+		}
+	} else {
+		for (int i = 0; i < parameters.num_cor; i++) {
+			parameters.atom_type.push_back(1);
+		}
+		for (int i = 0; i < parameters.num_ins_left; i++) {
+			parameters.atom_type.push_back(0);
+		}
+		for (int i = 0; i < parameters.num_cor; i++) {
+			parameters.atom_type.push_back(1);
+		}
+		//repeating for the second layer.
+		for (int i = 0; i < parameters.num_cor; i++) {
+			parameters.atom_type.push_back(1);
+		}
+		for (int i = 0; i < parameters.num_ins_left; i++) {
+			parameters.atom_type.push_back(0);
+		}
+		for (int i = 0; i < parameters.num_cor; i++) {
+			parameters.atom_type.push_back(1);
+		}
+	}
+
+	for (int i = 0; i < 2 * parameters.chain_length; i++) {
+		std::cout << parameters.atom_type.at(i) << std::endl;
+	}
+
+
+	parameters.energy.resize(parameters.steps);
+
+	parameters.j1 = -1;
+	parameters.j1 = sqrt(parameters.j1);
+
+	double delta_energy =
+	    (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
+
+	for (int i = 0; i < parameters.steps; i++) {
+		parameters.energy.at(i) = parameters.e_lower_bound + delta_energy * (double)i;
+	}
+	return parameters;
+
+	if (delta_energy < parameters.delta_v) {
+		std::cout << "Delta voltage is less than delta energy. This gives unphysical step function "
+		             "results. Make delta_energy < parameters.delta_v"
+		          << std::endl;
+	}
 }
-//Parameters params = Parameters::init();
+
+double fermi_function(double energy, const Parameters& parameters)
+{
+	if (parameters.temperature == 0) {
+		if (energy < parameters.chemical_potential) {
+			return 1.0;
+		} else {
+			return 0.0;
+		}
+	} else {
+	}
+	return 1.0 / (1.0 + exp((energy - parameters.chemical_potential) / parameters.temperature));
+}
+//Parameters params = Parameters::from_file();
 void print_parameters(Parameters& parameters)
 {
 	std::cout << " .onsite_cor = " << parameters.onsite_cor << std::endl;

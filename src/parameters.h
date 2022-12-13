@@ -63,7 +63,7 @@ struct Parameters
     std::vector<double> voltage_l;
     int steps; // number of energy points we take
     std::vector<double> energy;
-    static Parameters init();
+    static Parameters from_file();
     dcomp j1; // this is a complex number class defined within the complex library
     int size; //the size of the communicator
     int myid; //the id of the process

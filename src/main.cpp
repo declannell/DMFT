@@ -73,7 +73,7 @@ void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dco
 int main(int argc, char **argv)
 {
 	MPI_Init(&argc, &argv);
-	Parameters parameters = Parameters::init();
+	Parameters parameters = Parameters::from_file();
 
 	if (parameters.myid == 0) {
 		print_parameters(parameters);
