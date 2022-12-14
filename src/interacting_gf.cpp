@@ -67,9 +67,10 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Eige
 void get_hamiltonian(Parameters const &parameters, const int voltage_step, const double kx, const double ky, Eigen::MatrixXcd &hamiltonian){
         
     std::ofstream potential_file;
-    potential_file.open(
-        "textfiles/"
-        "potential.txt");
+	std::ostringstream ossgf;
+	ossgf << voltage_step << ".potential.txt";
+	std::string var = ossgf.str();
+    potential_file.open(var);
     potential_file << -5 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
     potential_file << -4 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
     potential_file << -3 << "  " << parameters.voltage_l[voltage_step] <<  "\n";

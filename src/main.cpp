@@ -230,10 +230,14 @@ int main(int argc, char **argv)
 		get_dos(parameters, dos_up, dos_down, gf_local_up, gf_local_down);
 
 		double current_up_myid = 0.0, current_down_myid = 0.0, current_up_left_myid = 0.0, current_up_right_myid = 0.0,
-			current_down_left_myid = 0.0, current_down_right_myid = 0.0, coherent_current_up_myid = 0.0, coherent_current_down_myid = 0.0;
+			current_down_left_myid = 0.0, current_down_right_myid = 0.0, coherent_current_up_myid = 0.0, coherent_current_down_myid = 0.0,
+			current_noninteracting_up_myid = 0.0, current_noninteracting_down_myid = 0.0;
 
 		std::vector<dcomp> transmission_up(parameters.steps_myid, 0);
 		std::vector<dcomp> transmission_down(parameters.steps_myid, 0);
+		std::vector<double> current_noninteracting_up(parameters.NIV_points, 0), current_noninteracting_down(parameters.NIV_points, 0);
+		std::vector<dcomp> transmission_noninteracting_up(parameters.steps_myid, 0);
+		std::vector<dcomp> transmission_noninteracting_down(parameters.steps_myid, 0);
 		if (parameters.hubbard_interaction == 0) {
 			get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
 			if (parameters.myid == 0) {			
@@ -258,8 +262,10 @@ int main(int argc, char **argv)
 			get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
 			get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
 
-
-
+			
+			std::vector<std::vector<dcomp>> self_energy_noninteracting(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid));
+			get_transmission(parameters, self_energy_noninteracting, self_energy_noninteracting, leads, transmission_noninteracting_up, transmission_noninteracting_down, m, hamiltonian);
+			get_landauer_buttiker_current(parameters, transmission_noninteracting_up, transmission_noninteracting_down, &current_noninteracting_up_myid, &current_noninteracting_down_myid, m);
 		}
 
 
@@ -269,7 +275,8 @@ int main(int argc, char **argv)
 		MPI_Reduce(&current_down_left_myid, &current_down_left.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 		MPI_Reduce(&coherent_current_up_myid, &coherent_current_up.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 		MPI_Reduce(&coherent_current_down_myid, &coherent_current_down.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-
+		MPI_Reduce(&current_noninteracting_up_myid, &current_noninteracting_up.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+		
 		if (parameters.myid == 0) {
 			noncoherent_current_up.at(m) = 0.5 * (current_up_left.at(m) - current_up_right.at(m)) - coherent_current_up.at(m);
 			noncoherent_current_down.at(m) = 0.5 * (current_down_left.at(m) - current_down_right.at(m)) - coherent_current_down.at(m);
@@ -279,13 +286,15 @@ int main(int argc, char **argv)
 					 "The spin up right current is " << current_down_right.at(m) << "\n" <<
 					 "The total current is " << 0.5 * (current_down_left.at(m) - current_down_right.at(m)) << "\n" <<
 					 "The coherent current is " << coherent_current_down.at(m) << "\n" <<
-					 "The noncoherent current is " << noncoherent_current_down.at(m) << "\n";
+					 "The noncoherent current is " << noncoherent_current_down.at(m) << "\n" << 
+					 "The noninteracting current is " << current_noninteracting_up.at(m) << "\n";
 			std::cout << std::endl;
 		}
 
 		write_to_file(parameters, gf_local_up, gf_local_down, "gf.txt", m);
 		write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_down, "gf_lesser.txt", m);
 		write_to_file(parameters, transmission_up, transmission_down, "transmission.txt", m);
+		write_to_file(parameters, transmission_noninteracting_up, transmission_noninteracting_down, "transmission_noninteracting.txt", m);
 		write_to_file(parameters, dos_up, dos_down, "dos.txt", m);
 		write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.txt", m);
 		write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.txt", m);

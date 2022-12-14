@@ -85,7 +85,7 @@ void write_to_file(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_up,
 			//	std::cout << vec_1.at(r) << std::endl;
 			//}
 			std::ostringstream ossgf;
-			ossgf << "textfiles/" << voltage_step << "." << i << "." << filename;
+			ossgf << voltage_step << "." << i << "." << filename;
 			std::string var = ossgf.str();
 			std::ofstream gf_local_file;
 			gf_local_file.open(var);
@@ -141,7 +141,7 @@ void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vecto
 			//	std::cout << vec_1.at(r) << std::endl;
 			//}
 			std::ostringstream ossgf;
-			ossgf << "textfiles/" << voltage_step << "." << filename;
+			ossgf << voltage_step << "." << filename;
 			std::string var = ossgf.str();
 			std::ofstream gf_local_file;
 			gf_local_file.open(var);
@@ -203,7 +203,7 @@ void write_to_file(Parameters &parameters, std::vector<std::vector<dcomp>> &se_u
 			//	std::cout << vec_1.at(r) << std::endl;
 			//}
 			std::ostringstream ossgf;
-			ossgf << "textfiles/" << voltage_step << "." << i << "." << filename;
+			ossgf << voltage_step << "." << i << "." << filename;
 			std::string var = ossgf.str();
 			std::ofstream gf_local_file;
 			gf_local_file.open(var);
