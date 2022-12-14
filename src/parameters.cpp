@@ -12,12 +12,13 @@ void simple_tokenizer(std::string s, std::string &variable, std::string &value)
     std::string word;
 	int count = 0;
     while (ss >> word) {
-        std::cout << word << std::endl;
+        //std::cout << word << std::endl;
 		if (count == 0) {
 			variable = word;
 		} else if (count == 1) {
-			value == word;
+			value = word;
 		}
+		count++;
     }
 }
 
@@ -28,12 +29,18 @@ Parameters Parameters::from_file()
 	std::string line, variable, value;
 	std::ifstream input_file;
 
-	input_file.open("current.txt");
-	if (input_file.is_open()) {
-		while (getline(input_file, line)) {
-			std::cout << line << '\n';
-			simple_tokenizer(line, variable, value);
+	input_file.open("input_file");
 
+	if(!input_file.is_open())
+	{
+		std::cout << "The input_file doesn't exist \n" << std::endl;
+		std::exit(1);
+	} 
+	
+	while (getline(input_file, line)) {
+			//std::cout << line << '\n';
+			simple_tokenizer(line, variable, value);
+			//std::cout << "The variable name is " << variable << " The value is  " << value << std::endl;
 			if (variable == "onsite_cor") {
 				parameters.onsite_cor = std::stod(value);
 			} else if (variable == "onsite_ins_l") {
@@ -104,7 +111,9 @@ Parameters Parameters::from_file()
 				std::istringstream(value) >> parameters.read_in_self_energy;
 			} else if (variable == "NIV_points") {
 				parameters.NIV_points = std::stoi(value);
-			} else if (variable == "delta_v") {
+			} else if (variable == "NIV_start") {
+                parameters.NIV_start = std::stoi(value);
+            } else if (variable == "delta_v") {
 				parameters.delta_v = std::stod(value);
 			} else if (variable == "delta_leads") {
 				parameters.delta_leads = std::stod(value);
@@ -127,9 +136,9 @@ Parameters Parameters::from_file()
 			} else if (variable == "steps") {
 				parameters.steps = std::stoi(value);
 			}
-		}
-		input_file.close();
 	}
+	input_file.close();
+	
 
 	parameters.path_of_self_energy_up = "textfiles/local_se_up_1_k_points_81_energy.txt";
 	parameters.path_of_self_energy_down = "textfiles/local_se_down_1_k_points_81_energy.txt";
@@ -199,7 +208,7 @@ Parameters Parameters::from_file()
 	}
 
 	for (int i = 0; i < 2 * parameters.chain_length; i++) {
-		std::cout << parameters.atom_type.at(i) << std::endl;
+		//std::cout << parameters.atom_type.at(i) << std::endl;
 	}
 
 

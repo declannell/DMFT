@@ -45,6 +45,7 @@ struct Parameters
     double self_consistent_steps; // this is the number of self consistent steps my code needs
     bool read_in_self_energy;
     int NIV_points;//number of IV points
+	int NIV_start; //starting bias for the calculation. 0 for equilibrium
     double delta_v; //the voltage step between IV points
     double delta_leads; //delta in the leads
     double delta_gf; //delta in the scattering region

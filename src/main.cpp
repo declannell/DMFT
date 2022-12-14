@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 	
 	MPI_Barrier(MPI_COMM_WORLD); //this is just so the code prints nicely to the out file.
 
-	for (int m = 0; m < parameters.NIV_points; m++) {
+	for (int m = parameters.NIV_start; m < parameters.NIV_points; m++) {
 		std::cout << "\n";
 		if (parameters.myid == 0) {
 			std::cout << std::setprecision(15) << "The voltage difference is " << parameters.voltage_l[m] - parameters.voltage_r[m] << std::endl;
@@ -236,7 +236,9 @@ int main(int argc, char **argv)
 		std::vector<dcomp> transmission_down(parameters.steps_myid, 0);
 		if (parameters.hubbard_interaction == 0) {
 			get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
-			std::cout << "got transmission\n";
+			if (parameters.myid == 0) {			
+				std::cout << "got transmission\n";
+			}
 			get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &current_up_myid, &current_down_myid, m);
 			get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, hamiltonian);
 			get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid, hamiltonian);
@@ -255,6 +257,9 @@ int main(int argc, char **argv)
 			get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid, hamiltonian);
 			get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
 			get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
+
+
+
 		}
 
 
