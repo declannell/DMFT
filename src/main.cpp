@@ -46,7 +46,7 @@ void set_initial_spin(Parameters &parameters, std::vector<std::vector<dcomp>> &s
 
 void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
 	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
-	for(int i = 0; i < 2 * parameters.chain_length; i++){
+	for(int i = 0; i < 4 * parameters.chain_length; i++){
 		double result = 0.0, result_reduced = 0.0;
 		for (int r = 0; r < parameters.steps_myid; r++) {
 			double spectral = (parameters.j1 * (gf_local.at(r)(i, i) - std::conj(gf_local.at(r)(i, i)))).real();
@@ -63,7 +63,7 @@ void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &g
 void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dcomp> &dos_down,  std::vector<Eigen::MatrixXcd> &gf_local_up, 
 	 std::vector<Eigen::MatrixXcd> &gf_local_down) {
 		for (int r = 0; r < parameters.steps_myid; r++) {
-			for (int i = 0; i < 2 * parameters.chain_length; i++) {
+			for (int i = 0; i < 4 * parameters.chain_length; i++) {
 				dos_up.at(r) += -gf_local_up.at(r)(i, i).imag();
 				dos_down.at(r) += -gf_local_down.at(r)(i, i).imag();
 			}
@@ -141,21 +141,21 @@ int main(int argc, char **argv)
 		if (parameters.myid == 0) {
 			std::cout << std::setprecision(15) << "The voltage difference is " << parameters.voltage_l[m] - parameters.voltage_r[m] << std::endl;
 			std::cout << "intialising hamiltonian \n";
-			std::cout << "The number of orbitals we have is " << 2 * parameters.chain_length << "\n";
+			std::cout << "The number of orbitals we have is " << 4 * parameters.chain_length << "\n";
 		}
 
 		std::vector<std::vector<Eigen::MatrixXcd>> hamiltonian(
 		    parameters.num_kx_points, std::vector<Eigen::MatrixXcd>(parameters.num_ky_points,
-				 Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length)));
+				 Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)));
 
-		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
-		std::vector<Eigen::MatrixXcd> gf_local_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
-		std::vector<Eigen::MatrixXcd> gf_local_lesser_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
-		std::vector<Eigen::MatrixXcd> gf_local_lesser_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
-		std::vector<std::vector<dcomp>> self_energy_mb_up(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
-		    self_energy_mb_lesser_up(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
-		std::vector<std::vector<dcomp>> self_energy_mb_down(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
-		    self_energy_mb_lesser_down(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
+		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+		std::vector<Eigen::MatrixXcd> gf_local_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+		std::vector<Eigen::MatrixXcd> gf_local_lesser_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+		std::vector<Eigen::MatrixXcd> gf_local_lesser_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+		std::vector<std::vector<dcomp>> self_energy_mb_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
+		    self_energy_mb_lesser_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
+		std::vector<std::vector<dcomp>> self_energy_mb_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
+		    self_energy_mb_lesser_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
 
 		std::vector<std::vector<EmbeddingSelfEnergy>> leads;
 		for (int i = 0; i < parameters.num_kx_points; i++) {
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
 			std::cout << "got local retarded and lesser gf" << std::endl;
 		}
 
-		std::vector<double> spins_occup(4 * parameters.chain_length); //the first 2 * chain_length is the spin up, the next 2 * chain_length is spin down.
+		std::vector<double> spins_occup(8 * parameters.chain_length); //the first 2 * chain_length is the spin up, the next 2 * chain_length is spin down.
 
 		dmft(parameters, m, self_energy_mb_up, self_energy_mb_down, self_energy_mb_lesser_up, self_energy_mb_lesser_down, gf_local_up, gf_local_down, gf_local_lesser_up,
 		    gf_local_lesser_down, leads, spins_occup, hamiltonian);
@@ -208,18 +208,12 @@ int main(int argc, char **argv)
 			std::cout << "got self energy " << std::endl;
 		}
 
-		if(parameters.hubbard_interaction == 0.0 && parameters.num_kx_points == 1 && parameters.num_ky_points == 1 && 
-			parameters.num_ins_left == 0 && parameters.ins_metal_ins == true){
-				analytic_gf(parameters, gf_local_up);
-		}
 
-
-
-		for (int i = 0; i < 2 * parameters.chain_length; i++) {
+		for (int i = 0; i < 4 * parameters.chain_length; i++) {
 			if (parameters.atom_type.at(i) != 0) {
 				if (parameters.myid == 0) {
 				std::cout << "The spin up occupation at atom " << i << " is " << spins_occup.at(i) << std::endl;
-				std::cout << "The spin down occupation at atom " << i << " is " << spins_occup.at(i + 2 * parameters.chain_length) << std::endl;
+				std::cout << "The spin down occupation at atom " << i << " is " << spins_occup.at(i + 4 * parameters.chain_length) << std::endl;
 				}				
 			}
 		}
@@ -230,14 +224,14 @@ int main(int argc, char **argv)
 		get_dos(parameters, dos_up, dos_down, gf_local_up, gf_local_down);
 
 		double current_up_myid = 0.0, current_down_myid = 0.0, current_up_left_myid = 0.0, current_up_right_myid = 0.0,
-			current_down_left_myid = 0.0, current_down_right_myid = 0.0, coherent_current_up_myid = 0.0, coherent_current_down_myid = 0.0,
-			current_noninteracting_up_myid = 0.0, current_noninteracting_down_myid = 0.0;
+			current_down_left_myid = 0.0, current_down_right_myid = 0.0, coherent_current_up_myid = 0.0, coherent_current_down_myid = 0.0;
+			//current_noninteracting_up_myid = 0.0, current_noninteracting_down_myid = 0.0;
 
 		std::vector<dcomp> transmission_up(parameters.steps_myid, 0);
 		std::vector<dcomp> transmission_down(parameters.steps_myid, 0);
-		std::vector<double> current_noninteracting_up(parameters.NIV_points, 0), current_noninteracting_down(parameters.NIV_points, 0);
-		std::vector<dcomp> transmission_noninteracting_up(parameters.steps_myid, 0);
-		std::vector<dcomp> transmission_noninteracting_down(parameters.steps_myid, 0);
+		//std::vector<double> current_noninteracting_up(parameters.NIV_points, 0), current_noninteracting_down(parameters.NIV_points, 0);
+		//std::vector<dcomp> transmission_noninteracting_up(parameters.steps_myid, 0);
+		//std::vector<dcomp> transmission_noninteracting_down(parameters.steps_myid, 0);
 		if (parameters.hubbard_interaction == 0) {
 			get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
 			if (parameters.myid == 0) {			
@@ -263,9 +257,9 @@ int main(int argc, char **argv)
 			get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
 
 			
-			std::vector<std::vector<dcomp>> self_energy_noninteracting(2 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid));
-			get_transmission(parameters, self_energy_noninteracting, self_energy_noninteracting, leads, transmission_noninteracting_up, transmission_noninteracting_down, m, hamiltonian);
-			get_landauer_buttiker_current(parameters, transmission_noninteracting_up, transmission_noninteracting_down, &current_noninteracting_up_myid, &current_noninteracting_down_myid, m);
+			//std::vector<std::vector<dcomp>> self_energy_noninteracting(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid));
+			//get_transmission(parameters, self_energy_noninteracting, self_energy_noninteracting, leads, transmission_noninteracting_up, transmission_noninteracting_down, m, hamiltonian);
+			//get_landauer_buttiker_current(parameters, transmission_noninteracting_up, transmission_noninteracting_down, &current_noninteracting_up_myid, &current_noninteracting_down_myid, m);
 		}
 
 
@@ -275,7 +269,7 @@ int main(int argc, char **argv)
 		MPI_Reduce(&current_down_left_myid, &current_down_left.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 		MPI_Reduce(&coherent_current_up_myid, &coherent_current_up.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 		MPI_Reduce(&coherent_current_down_myid, &coherent_current_down.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-		MPI_Reduce(&current_noninteracting_up_myid, &current_noninteracting_up.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+		//MPI_Reduce(&current_noninteracting_up_myid, &current_noninteracting_up.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 		
 		if (parameters.myid == 0) {
 			noncoherent_current_up.at(m) = 0.5 * (current_up_left.at(m) - current_up_right.at(m)) - coherent_current_up.at(m);
@@ -286,15 +280,15 @@ int main(int argc, char **argv)
 					 "The spin up right current is " << current_down_right.at(m) << "\n" <<
 					 "The total current is " << 0.5 * (current_down_left.at(m) - current_down_right.at(m)) << "\n" <<
 					 "The coherent current is " << coherent_current_down.at(m) << "\n" <<
-					 "The noncoherent current is " << noncoherent_current_down.at(m) << "\n" << 
-					 "The noninteracting current is " << current_noninteracting_up.at(m) << "\n";
+					 "The noncoherent current is " << noncoherent_current_down.at(m) << "\n"; 
+					 //"The noninteracting current is " << current_noninteracting_up.at(m) << "\n";
 			std::cout << std::endl;
 		}
 
 		write_to_file(parameters, gf_local_up, gf_local_down, "gf.txt", m);
 		write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_down, "gf_lesser.txt", m);
 		write_to_file(parameters, transmission_up, transmission_down, "transmission.txt", m);
-		write_to_file(parameters, transmission_noninteracting_up, transmission_noninteracting_down, "transmission_noninteracting.txt", m);
+		//write_to_file(parameters, transmission_noninteracting_up, transmission_noninteracting_down, "transmission_noninteracting.txt", m);
 		write_to_file(parameters, dos_up, dos_down, "dos.txt", m);
 		write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.txt", m);
 		write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.txt", m);

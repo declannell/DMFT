@@ -44,7 +44,7 @@ void get_momentum_vectors(std::vector<double> &kx, std::vector<double> &ky, Para
 }
 
 void write_to_file(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_up, std::vector<Eigen::MatrixXcd> &gf_down, std::string filename, int voltage_step){
-	for (int i = 0; i < parameters.chain_length * 2; i++){
+	for (int i = 0; i < parameters.chain_length * 4; i++){
 		MPI_Barrier(MPI_COMM_WORLD);
 		std::vector<dcomp> vec_1_up, vec_2_up;
 		std::vector<dcomp> vec_1_down, vec_2_down;
@@ -157,7 +157,7 @@ void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vecto
 
 
 void write_to_file(Parameters &parameters, std::vector<std::vector<dcomp>> &se_up, std::vector<std::vector<dcomp>> &se_down, std::string filename, int voltage_step){
-	for (int i = 0; i < parameters.chain_length * 2; i++){
+	for (int i = 0; i < parameters.chain_length * 4; i++){
 
 		if (parameters.atom_type.at(i) == 0){
 			continue;

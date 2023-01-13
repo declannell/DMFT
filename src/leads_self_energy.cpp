@@ -19,21 +19,24 @@ double EmbeddingSelfEnergy::ky() const { return ky_value; }
 
 EmbeddingSelfEnergy::EmbeddingSelfEnergy(const Parameters &parameters, double kx, double ky, int voltage_step) : kx_value(kx), ky_value(ky) // type is implied, it knows this is a constructor
 {
-    this->self_energy_left.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
-    this->self_energy_right.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2)); 
+    this->self_energy_left.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4, 4));
+    this->self_energy_right.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4, 4)); 
 
     if(parameters.wbl_approx == true){
         for (int r = 0; r < parameters.steps_myid; r++){
-            for (int i = 0; i < 2; i++){
+            for (int i = 0; i < 4; i++){
                 self_energy_left.at(r)(i, i) = parameters.j1 * parameters.gamma * 0.5;
                 self_energy_right.at(r)(i, i) = parameters.j1 * parameters.gamma * 0.5;               
             }
         }
     } else { //this calculate the self energy via the method in sanchez paper. This is not tested.
-        Eigen::MatrixXcd hamiltonian(2, 2);
+        Eigen::MatrixXcd hamiltonian(4, 4);
+        std::cout << "The code is not written to calculate the self energies using rubio-sancho method for the 4 atom per layer case. change wbl_approx = true \n";
+        exit(1);
+
         get_hamiltonian_for_leads(parameters, hamiltonian);
-        std::vector<Eigen::MatrixXcd> transfer_matrix_l(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
-        std::vector<Eigen::MatrixXcd> transfer_matrix_r(parameters.steps_myid, Eigen::MatrixXcd::Zero(2, 2));
+        std::vector<Eigen::MatrixXcd> transfer_matrix_l(parameters.steps_myid, Eigen::MatrixXcd::Zero(4, 4));
+        std::vector<Eigen::MatrixXcd> transfer_matrix_r(parameters.steps_myid, Eigen::MatrixXcd::Zero(4, 4));
         get_transfer_matrix(parameters, transfer_matrix_l, transfer_matrix_r, hamiltonian, voltage_step);
         get_self_energy(parameters, transfer_matrix_l, transfer_matrix_r, hamiltonian, voltage_step);
     }
@@ -41,8 +44,8 @@ EmbeddingSelfEnergy::EmbeddingSelfEnergy(const Parameters &parameters, double kx
 
 void EmbeddingSelfEnergy::get_hamiltonian_for_leads(const Parameters &parameters, Eigen::MatrixXcd &hamiltonian){
    
-    hamiltonian(0 , 0) = parameters.onsite_ins_l + 2 * parameters.hopping_lx * cos(this->kx());
-    hamiltonian(1 , 1) = parameters.onsite_ins_l + 2 * parameters.hopping_lx * cos(this->kx());
+    hamiltonian(0 , 0) = parameters.onsite_ins_l + 4 * parameters.hopping_lx * cos(this->kx());
+    hamiltonian(1 , 1) = parameters.onsite_ins_l + 4 * parameters.hopping_lx * cos(this->kx());
 
     dcomp multiple_upper = 1.0;
     dcomp multiple_lower = 1.0;

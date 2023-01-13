@@ -165,52 +165,39 @@ Parameters Parameters::from_file()
 
 	//the atom is correlated if atom typ equals to 1. This how we know to apply sigma two to certain atoms.
 	if (parameters.ins_metal_ins == true) {
-		for (int i = 0; i < parameters.num_ins_left; i++) {
-			parameters.atom_type.push_back(0);
-		}
-		for (int i = 0; i < parameters.num_cor; i++) {
-			parameters.atom_type.push_back(1);
-		}
-		for (int i = 0; i < parameters.num_ins_right; i++) {
-			parameters.atom_type.push_back(0);
-		}
-		//we repeat this a second time as there are two horizontal layers within the unit cell. atoms 0 to chain_length -1 are th e first layer.
-		//the second layer is atoms chain_length to 2 * chain_length -1.
-		for (int i = 0; i < parameters.num_ins_left; i++) {
-			parameters.atom_type.push_back(0);
-		}
-		for (int i = 0; i < parameters.num_cor; i++) {
-			parameters.atom_type.push_back(1);
-		}
-		for (int i = 0; i < parameters.num_ins_right; i++) {
-			parameters.atom_type.push_back(0);
+		//we do this 4 times as there are two horizontal and two veritcal layers within the unit cell.
+		//atoms 0 to chain_length -1 are the top left layer.
+		//the top right atoms  are chain_length to 2 * chain_length -1.
+		//the bottom left are 2 *atoms number 2 * chain_length to 3 * chain_length - 1.
+		//the bottom right are atoms 3 * * chain_length to 4 * chain_length - 1.
+		for (int s = 0; s < 4; s++) {
+			for (int i = 0; i < parameters.num_ins_left; i++) {
+				parameters.atom_type.push_back(0);
+			}
+			for (int i = 0; i < parameters.num_cor; i++) {
+				parameters.atom_type.push_back(1);
+			}
+			for (int i = 0; i < parameters.num_ins_right; i++) {
+				parameters.atom_type.push_back(0);
+			}
 		}
 	} else {
-		for (int i = 0; i < parameters.num_cor; i++) {
-			parameters.atom_type.push_back(1);
-		}
-		for (int i = 0; i < parameters.num_ins_left; i++) {
-			parameters.atom_type.push_back(0);
-		}
-		for (int i = 0; i < parameters.num_cor; i++) {
-			parameters.atom_type.push_back(1);
-		}
-		//repeating for the second layer.
-		for (int i = 0; i < parameters.num_cor; i++) {
-			parameters.atom_type.push_back(1);
-		}
-		for (int i = 0; i < parameters.num_ins_left; i++) {
-			parameters.atom_type.push_back(0);
-		}
-		for (int i = 0; i < parameters.num_cor; i++) {
-			parameters.atom_type.push_back(1);
+		for (int s = 0; s < 4; s++) {
+			for (int i = 0; i < parameters.num_cor; i++) {
+				parameters.atom_type.push_back(1);
+			}
+			for (int i = 0; i < parameters.num_ins_left; i++) {
+				parameters.atom_type.push_back(0);
+			}
+			for (int i = 0; i < parameters.num_cor; i++) {
+				parameters.atom_type.push_back(1);
+			}
 		}
 	}
 
-	for (int i = 0; i < 2 * parameters.chain_length; i++) {
-		//std::cout << parameters.atom_type.at(i) << std::endl;
+	for (int i = 0; i < 4 * parameters.chain_length; i++) {
+		std::cout << parameters.atom_type.at(i) << std::endl;
 	}
-
 
 	parameters.energy.resize(parameters.steps);
 

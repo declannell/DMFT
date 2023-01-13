@@ -47,8 +47,8 @@ void get_difference(const Parameters &parameters, std::vector<Eigen::MatrixXcd> 
 	double old_difference = 0;
 	double real_difference = 0, imag_difference = 0;
 	for (int r = 0; r < parameters.steps_myid; r++) {
-		for (int i = 0; i < 2 * parameters.chain_length; i++) {
-			for (int j = 0; j < 2 * parameters.chain_length; j++) {
+		for (int i = 0; i < 4 * parameters.chain_length; i++) {
+			for (int j = 0; j < 4 * parameters.chain_length; j++) {
 				real_difference = absolute_value(gf_local_up.at(r)(i, j).real() - old_green_function.at(r)(i, j).real());
 				imag_difference = absolute_value(gf_local_up.at(r)(i, j).imag() - old_green_function.at(r)(i, j).imag());
 				//std::cout << gf_local_up.at(r)(i, j).real() << " " << old_green_function.at(r)(i, j).real() << std::endl;
@@ -296,7 +296,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 	double difference = std::numeric_limits<double>::infinity();
 	int index, count = 0;
 
-	std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps_myid, Eigen::MatrixXcd::Zero(2 * parameters.chain_length, 2 * parameters.chain_length));
+	std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 
 	std::vector<dcomp> diag_gf_local_up(parameters.steps_myid), diag_gf_local_down(parameters.steps_myid), diag_gf_local_lesser_up(parameters.steps_myid),
 	    diag_gf_local_lesser_down(parameters.steps_myid), impurity_self_energy_up(parameters.steps_myid), impurity_self_energy_down(parameters.steps_myid),
@@ -315,7 +315,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 			break;
 		}
 
-		for (int i = 0; i < 2 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
+		for (int i = 0; i < 4 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
 			if (parameters.atom_type.at(i) == 0){
 				continue;
 			}
@@ -340,7 +340,9 @@ void dmft(const Parameters &parameters, const int voltage_step,
     		AIM aim_up(parameters, diag_gf_local_up, diag_gf_local_lesser_up, impurity_self_energy_up, impurity_self_energy_lesser_up, voltage_step);
     		AIM aim_down(parameters, diag_gf_local_down, diag_gf_local_lesser_down, impurity_self_energy_down, impurity_self_energy_lesser_down, voltage_step);
 			
-			impurity_solver(parameters, voltage_step, aim_up, aim_down, &spins_occup.at(i), &spins_occup.at(i + 2 * parameters.chain_length));
+			impurity_solver(parameters, voltage_step, aim_up, aim_down, &spins_occup.at(i), &spins_occup.at(i + 4 * parameters.chain_length));
+
+
 			if (parameters.myid == 0) {
 				std::cout << "AIM was created for atom " << i << std::endl;
 			}
