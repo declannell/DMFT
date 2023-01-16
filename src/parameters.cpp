@@ -195,9 +195,9 @@ Parameters Parameters::from_file()
 		}
 	}
 
-	for (int i = 0; i < 4 * parameters.chain_length; i++) {
-		std::cout << parameters.atom_type.at(i) << std::endl;
-	}
+	//for (int i = 0; i < 4 * parameters.chain_length; i++) {
+	//	std::cout << parameters.atom_type.at(i) << std::endl;
+	//}
 
 	parameters.energy.resize(parameters.steps);
 
