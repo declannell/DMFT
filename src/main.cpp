@@ -60,12 +60,20 @@ void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &g
 	}
 }
 
-void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dcomp> &dos_down,  std::vector<Eigen::MatrixXcd> &gf_local_up, 
-	 std::vector<Eigen::MatrixXcd> &gf_local_down) {
+void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dcomp> &dos_down, std::vector<dcomp> &dos_up_ins, std::vector<dcomp> &dos_down_ins,
+ 	std::vector<dcomp> &dos_up_metal, std::vector<dcomp> &dos_down_metal, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down) {
 		for (int r = 0; r < parameters.steps_myid; r++) {
 			for (int i = 0; i < 4 * parameters.chain_length; i++) {
 				dos_up.at(r) += -gf_local_up.at(r)(i, i).imag();
 				dos_down.at(r) += -gf_local_down.at(r)(i, i).imag();
+
+				if (parameters.atom_type.at(i) == 0){
+					dos_up_ins.at(r) += -gf_local_up.at(r)(i, i).imag();
+					dos_down_ins.at(r) += -gf_local_down.at(r)(i, i).imag();
+				} else if (parameters.atom_type.at(i) == 1) {
+					dos_up_metal.at(r) += -gf_local_up.at(r)(i, i).imag();
+					dos_down_metal.at(r) += -gf_local_down.at(r)(i, i).imag();					
+				}
 			}
 		}
 }
@@ -220,8 +228,12 @@ int main(int argc, char **argv)
 
 		std::vector<dcomp> dos_up(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_down(parameters.steps_myid, 0);
+		std::vector<dcomp> dos_up_ins(parameters.steps_myid, 0);
+		std::vector<dcomp> dos_down_ins(parameters.steps_myid, 0);
+		std::vector<dcomp> dos_up_metal(parameters.steps_myid, 0);
+		std::vector<dcomp> dos_down_metal(parameters.steps_myid, 0);
 
-		get_dos(parameters, dos_up, dos_down, gf_local_up, gf_local_down);
+		get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_down);
 
 		double current_up_myid = 0.0, current_down_myid = 0.0, current_up_left_myid = 0.0, current_up_right_myid = 0.0,
 			current_down_left_myid = 0.0, current_down_right_myid = 0.0, coherent_current_up_myid = 0.0, coherent_current_down_myid = 0.0;
@@ -290,6 +302,8 @@ int main(int argc, char **argv)
 		write_to_file(parameters, transmission_up, transmission_down, "transmission.txt", m);
 		//write_to_file(parameters, transmission_noninteracting_up, transmission_noninteracting_down, "transmission_noninteracting.txt", m);
 		write_to_file(parameters, dos_up, dos_down, "dos.txt", m);
+		write_to_file(parameters, dos_up_ins, dos_down_ins, "dos_ins.txt", m);
+		write_to_file(parameters, dos_up_metal, dos_down_metal, "dos_metal.txt", m);
 		write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.txt", m);
 		write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.txt", m);
 		integrate_spectral(parameters, gf_local_up);
