@@ -256,7 +256,9 @@ int main(int argc, char **argv)
 			MPI_Reduce(&current_up_myid, &current_up.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 			MPI_Reduce(&current_down_myid, &current_down.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);	
 
-			
+			if (parameters.myid == 0) {			
+				std::cout << "got MW current\n";
+			}
 			if (parameters.myid == 0) {
 				std::cout << "The spin up current is " << current_up.at(m) << "\n" <<
 					 "The spin down current is " << current_down.at(m) << "\n" << "\n";	
@@ -307,6 +309,19 @@ int main(int argc, char **argv)
 		write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.txt", m);
 		write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.txt", m);
 		integrate_spectral(parameters, gf_local_up);
+
+		if (parameters.myid == 0) {			
+			std::cout << "writing files\n";
+		}
+
+		if (parameters.num_kx_points == 1 && parameters.num_ky_points == 1 && parameters.chain_length == 1 && parameters.hubbard_interaction == 0){
+			analytic_gf(parameters, gf_local_up);
+		}
+
+		if (parameters.myid == 0) {			
+			std::cout << "got analytic gf\n";
+		}
+
 	}
 
 

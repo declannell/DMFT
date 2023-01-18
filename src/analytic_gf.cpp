@@ -10,44 +10,49 @@
 #include "parameters.h"
 #include "transport.h"
 #include "analytic_gf.h"
+#include "utilis.h"
 
 template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
 void analytic_gf(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
-    std::vector<Eigen::MatrixXcd> gf_analytic(parameters.steps, Eigen::MatrixXcd::Zero(2, 2));
-    std::vector<dcomp> spectral(parameters.steps, 0);
+
+    std::vector<Eigen::MatrixXcd> gf_analytic(parameters.steps_myid, Eigen::MatrixXcd::Zero(4, 4));
+    std::vector<dcomp> transmission(parameters.steps_myid, 0);
 
     double diff = 0.0;
-    for (int r = 0; r < parameters.steps; r++){
-        double a = parameters.energy.at(r) - parameters.onsite_cor;
-        double b =  a * a - parameters.gamma * parameters.gamma - parameters.hopping_cor * parameters.hopping_cor;
+    for (int r = 0; r < parameters.steps_myid; r++){
+        Eigen::MatrixXcd gf_analytic_inverse = Eigen::MatrixXcd::Zero(4, 4);
+        dcomp a = parameters.energy.at(r) - parameters.onsite_cor - parameters.j1 * parameters.gamma;
+        for (int i = 0; i < 4; i++){
+            gf_analytic_inverse(i, i) = a;
+        }
 
-        double demoninator = b * b + 4 * parameters.gamma * parameters.gamma * a * a;
-        double real_gf = (a * b + 2  * parameters.gamma * parameters.gamma * a) / (demoninator);
-        double imag_gf = (2 * parameters.gamma * a * a - parameters.gamma * b) / demoninator;
+        for (int j = 0; j < 3; j++){
+            gf_analytic_inverse(j, j + 1) = - parameters.hopping_cor;
+            gf_analytic_inverse(j + 1, j) = - parameters.hopping_cor;
+        }
 
+        gf_analytic.at(r) = gf_analytic_inverse.inverse();
         
-        gf_analytic.at(r)(0, 0) = real_gf + parameters.j1 * imag_gf;
-        gf_analytic.at(r)(1, 1) = real_gf + parameters.j1 * imag_gf; 
-        gf_analytic.at(r)(0, 1) = parameters.hopping_cor/ demoninator;
-        gf_analytic.at(r)(1, 0) = parameters.hopping_cor/ demoninator;               
 
         if (abs(gf_local.at(r)(0, 0) - gf_analytic.at(r)(0, 0)) > diff){
             diff = abs(gf_local.at(r)(0, 0) - gf_analytic.at(r)(0, 0));
         }
+
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                transmission.at(r) = parameters.gamma * parameters.gamma * (gf_analytic.at(r)(i, j) * std::conj(gf_analytic.at(r)(i, j))).real();
+            }
+        }
+        
         //std::cout << parameters.energy.at(r) << "  " << gf_analytic.at(r).real() << " " << gf_analytic.at(r).imag() << " "
 		//               << gf_local.at(r)(0, 0).real() << " " << gf_local.at(r)(0, 0).imag() << " " << diff << "\n";
     }
-	std::ofstream analytic_gf_file;
-	analytic_gf_file.open("textfiles/analutic_gf.txt");
-	for (int r = 0; r < parameters.steps; r++) {
-		analytic_gf_file << parameters.energy.at(r) << "  " << gf_analytic.at(r)(0, 0).real() << " " << gf_analytic.at(r)(0, 0).imag() << " "
-		               << gf_local.at(r)(0, 0).real() << " " << gf_local.at(r)(0, 0).imag() << "\n";
-	}
-		analytic_gf_file.close();
-    std::cout << "The largest difference between the analytic noninteracting gf and the numerical noninteracting gf is " << diff << std::endl;
+	
+    write_to_file(parameters, gf_analytic, gf_analytic, "gf_analytic.txt", 0);
+    write_to_file(parameters, transmission, transmission, "transmission_analytic.txt", 0);
 
 }
 

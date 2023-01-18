@@ -185,7 +185,9 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 			self_energy_right.at(0), coupling_left, coupling_right, 0);
 	}
 
-
+	if (parameters.myid == 0) {			
+		std::cout << "got coupling\n";
+	}
 	for (int r = 0; r < parameters.steps_myid; r++) {
 		trace_left = 0, trace_right = 0;
 		if (parameters.wbl_approx == false) {
