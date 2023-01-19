@@ -73,6 +73,7 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Eige
     //dos_file_non_int.close();
 }
 
+
 void get_hamiltonian(Parameters const &parameters, const int voltage_step, const double kx, const double ky, Eigen::MatrixXcd &hamiltonian){
         
     std::ofstream potential_file;
@@ -86,8 +87,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
     potential_file << -2 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
     potential_file << -1 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
     potential_file << 0 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
-    double potential_bias = (parameters.voltage_l[voltage_step] -
-                            parameters.voltage_r[voltage_step]);
+
     double voltage_i;
 
     //the matrix is 2 * chain_length x 2 * chain_length in size. The first block (chain_length x chain_length) is the first layer in the unit cell.
@@ -137,8 +137,8 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
     //    std::cout << "initialised the hoppings for second layer \n";
     //}
     if (parameters.ins_metal_ins == true){
-        int num_ins = parameters.num_ins_left + parameters.num_ins_right;      
-        double delta_v = potential_bias / (double)(num_ins + 1.0);
+        double delta_v =  parameters.voltage_l[voltage_step] / (double)(parameters.num_ins_left + 1.0);
+        std::cout << delta_v << std::endl;
         if (parameters.num_ins_left != parameters.num_ins_right) {
             std::cout << "you need to change how the voltage drop occurs in the hamiltonian function \n";
             exit(1);
@@ -161,16 +161,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
                (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i;             
         }
 
-        if(parameters.num_ins_left == 0 && parameters.num_ins_right != 0){
-            voltage_i = parameters.voltage_l[voltage_step];
-        } else if (parameters.num_ins_right == 0 && parameters.num_ins_left != 0){
-            voltage_i = parameters.voltage_r[voltage_step];
-        } else if (parameters.num_ins_right == 0 && parameters.num_ins_left == 0){
-            voltage_i = (parameters.voltage_l[voltage_step] + parameters.voltage_r[voltage_step]) * 0.5;
-        } else { 
-            voltage_i -= - delta_v * 0.5;
-            //the voltage is constant in the correlated metal
-        }
+        voltage_i = 0;
 
         //std::cout << "The voltage on the correlated atom is " << voltage_i << std::endl;
 
@@ -185,7 +176,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
 
         for (int i = 0; i < parameters.num_ins_right; i++){
             int j = i + parameters.num_cor + parameters.num_ins_left;
-            voltage_i = parameters.voltage_l[voltage_step] - (double)(i + parameters.num_ins_left + 1) * delta_v;
+            voltage_i = - (double)(i + 1) * delta_v;
             potential_file << j + 1 << "  " << voltage_i <<  "\n";  
             hamiltonian(j, j) = -(parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r) + voltage_i;
             hamiltonian(j + parameters.chain_length, j + parameters.chain_length) =  (parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r)
@@ -200,7 +191,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
 
         int num_ins = parameters.num_ins_left;
         
-        double delta_v = potential_bias / (double)(num_ins + 1.0);
+        double delta_v = parameters.voltage_l[voltage_step] * 2 / (double)(num_ins + 1.0);
         //std::cout << delta_v << std::endl;
         //std::cout << "failed here 5 \n"; 
         voltage_i = parameters.voltage_l[voltage_step];
