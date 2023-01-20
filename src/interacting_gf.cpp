@@ -138,7 +138,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
     //}
     if (parameters.ins_metal_ins == true){
         double delta_v =  parameters.voltage_l[voltage_step] / (double)(parameters.num_ins_left + 1.0);
-        std::cout << delta_v << std::endl;
+        //std::cout << delta_v << std::endl;
         if (parameters.num_ins_left != parameters.num_ins_right) {
             std::cout << "you need to change how the voltage drop occurs in the hamiltonian function \n";
             exit(1);
