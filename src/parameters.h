@@ -74,6 +74,7 @@ struct Parameters
     int steps_myid; //this is the number of steps the process has
     std::vector<int> steps_proc; //this is the number of steps the other processes have
     MPI_Comm comm;
+    bool print_gf;
 };
 
 

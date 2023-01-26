@@ -325,13 +325,13 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
         gf_lesser.at(r) = (Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
     }
     //I commented this out cause the wide band limit should stop any bound states.
-    Eigen::MatrixXcd delta_term = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
-        //std::cout << "The lesser green function is" << "\n";
+    //Eigen::MatrixXcd delta_term = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
+        ////std::cout << "The lesser green function is" << "\n";
 
 			
     for(int r = 0; r < parameters.steps_myid; r++) {   
-        delta_term = 2.0 * parameters.j1 * parameters.delta_gf * fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)), parameters) 
-            * gf_retarded.at(r) * gf_retarded.at(r).adjoint();
+        //delta_term = 2.0 * parameters.j1 * parameters.delta_gf * fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)), parameters) 
+        //    * gf_retarded.at(r) * gf_retarded.at(r).adjoint();
 
 
 
@@ -344,9 +344,9 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
 	    //embedding_file << parameters.energy.at(r + parameters.start.at(parameters.myid)) << "  " << embedding_self_energy(0, 0).real() << "   " << embedding_self_energy(0, 0).imag() << "   "
 		//    << embedding_self_energy(1, 1).real() << "   " << embedding_self_energy(1, 1).imag() << " \n";    
 
-        Eigen::MatrixXcd gf_advanced = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
+        //Eigen::MatrixXcd gf_advanced = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
 
-        get_advance_gf(parameters, gf_retarded.at(r), gf_advanced); 
+        //get_advance_gf(parameters, gf_retarded.at(r), gf_advanced); 
  
         for(int i = 0; i < 4 * parameters.chain_length; i++) {
             for(int j = 0; j < 4 * parameters.chain_length; j++) {  
@@ -354,16 +354,16 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
                     for(int m = 0; m < 4 * parameters.chain_length; m++){
                         if (m == k){
                             gf_lesser.at(r)(i, j) +=  gf_retarded.at(r)(i, k) * (self_energy_mb_lesser.at(k).at(r) + embedding_self_energy(k, m))
-                                * gf_advanced(m, j);
+                                * std::conj(gf_retarded.at(r)(k, i));
                         } else {
                             gf_lesser.at(r)(i, j) +=  gf_retarded.at(r)(i, k) * (embedding_self_energy(k, m)) 
-                                * gf_advanced(m, j);
+                                * std::conj(gf_retarded.at(r)(k, j));
                         }
                     }
                 } 
             }
         }
-        gf_lesser.at(r) = gf_lesser.at(r) + delta_term;
+        //gf_lesser.at(r) = gf_lesser.at(r) + delta_term;
     }
     //embedding_file.close();
 }

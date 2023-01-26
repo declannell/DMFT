@@ -15,6 +15,15 @@ void get_transmission(
     std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
     const int voltage_step, std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian);
 
+void get_transmission_gf_local(
+    const Parameters &parameters, 
+    const std::vector<std::vector<dcomp>> &self_energy_mb_up,
+	const std::vector<std::vector<dcomp>> &self_energy_mb_down,
+    const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
+    std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
+    const int voltage_step, std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian, std::vector<Eigen::MatrixXcd> &gf_local, 
+    std::vector<Eigen::MatrixXcd> &gf_local_lesser);
+
 void get_coupling(const Parameters &parameters, const Eigen::MatrixXcd &self_energy_left, const Eigen::MatrixXcd &self_energy_right, 
 	Eigen::MatrixXcd &coupling_left, Eigen::MatrixXcd &coupling_right, int r);
 

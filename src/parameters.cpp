@@ -135,6 +135,8 @@ Parameters Parameters::from_file()
 				std::istringstream(value) >> parameters.kk_relation;
 			} else if (variable == "steps") {
 				parameters.steps = std::stoi(value);
+			} else if (variable == "print_gf") {
+				std::istringstream(value) >> parameters.print_gf;
 			}
 	}
 	input_file.close();
@@ -154,7 +156,7 @@ Parameters Parameters::from_file()
 		parameters.interaction_order =
 		    0.0;  // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
 	} else {
-		parameters.interaction_order = 2;
+		parameters.interaction_order = 1;
 	}
 	if (parameters.ins_metal_ins == true) {
 		parameters.chain_length =
