@@ -137,6 +137,8 @@ Parameters Parameters::from_file()
 				parameters.steps = std::stoi(value);
 			} else if (variable == "print_gf") {
 				std::istringstream(value) >> parameters.print_gf;
+			} else if (variable == "interaction_order") {
+				parameters.interaction_order = std::stoi(value);
 			}
 	}
 	input_file.close();
@@ -154,10 +156,9 @@ Parameters Parameters::from_file()
 
 	if (parameters.hubbard_interaction == 0.0) {
 		parameters.interaction_order =
-		    0.0;  // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
-	} else {
-		parameters.interaction_order = 1;
-	}
+		    0;  // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
+	} 
+
 	if (parameters.ins_metal_ins == true) {
 		parameters.chain_length =
 		    parameters.num_ins_left + parameters.num_ins_right + parameters.num_cor;
