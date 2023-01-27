@@ -40,19 +40,37 @@ void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &g
 	}
 }
 
-void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_local_lesser, std::vector<double> &spins_occup) {
+void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_local_lesser_up, 
+	std::vector<Eigen::MatrixXcd> & gf_local_lesser_down, std::vector<double> &spins_occup) {
 	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
+
 	for(int i = 0; i < 4 * parameters.chain_length; i++){
-		double result = 0.0, result_reduced = 0.0;
-		for (int r = 0; r < parameters.steps_myid; r++) {
-			result += gf_local_lesser.at(r)(i, i).imag();
+		double result_up = 0.0, result_reduced_up = 0.0,
+			result_down = 0.0, result_reduced_down = 0.0;
+		if (parameters.spin_polarised == true) {
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				result_up += gf_local_lesser_up.at(r)(i, i).imag();
+				result_down += gf_local_lesser_down.at(r)(i, i).imag();
+			}
+			result_up = result_up * delta_energy / (2.0 * M_PI);
+			result_down = result_down * delta_energy / (2.0 * M_PI);
+			MPI_Reduce(&result_up, &result_reduced_up, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+			MPI_Reduce(&result_down, &result_reduced_down, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+ 		} else  {//spin_down = spin_up
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				result_up += gf_local_lesser_up.at(r)(i, i).imag();
+			}
+			result_up = result_up * delta_energy / (2.0 * M_PI);
+			MPI_Reduce(&result_up, &result_reduced_up, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+			result_reduced_down = result_reduced_up;
  		}
-		result = result * delta_energy / (2.0 * M_PI);
-		MPI_Reduce(&result, &result_reduced, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+
 		if (parameters.myid == 0) {
-			spins_occup.at(i) = result_reduced;
-			spins_occup.at(i + 4 *parameters.chain_length) = result_reduced;
-			std::cout << "For the atom number "<< i << " the occupation is " << result_reduced << std::endl;
+			spins_occup.at(i) = result_reduced_up;
+			spins_occup.at(i + 4 *parameters.chain_length) = result_reduced_down;
+			std::cout << "For the atom number "<< i << " the spin up occupation is " << result_reduced_up << ". The spin down occupation is "
+				<< result_reduced_down << std::endl;
 		}
 	}
 }
@@ -199,9 +217,13 @@ int main(int argc, char **argv)
 		//get_spectral_embedding_self_energy(parameters, leads, m);
 
 		if (parameters.hubbard_interaction != 0) {
-			set_initial_spin(parameters, self_energy_mb_up, self_energy_mb_down);
-			get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
-			get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);
+			if (parameters.spin_polarised == true) {
+				set_initial_spin(parameters, self_energy_mb_up, self_energy_mb_down);
+				get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+				get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);			
+			} else { //spin up and down are degenerate. Hence eonly need to do this once
+				get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+			}
 
 			if (parameters.myid == 0) {
 				std::cout << "got local retarded and lesser gf" << std::endl;
@@ -242,10 +264,18 @@ int main(int argc, char **argv)
 			}
 	
 		} else {
-			get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, hamiltonian);
-			get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid, hamiltonian);
-			get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
-			get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
+			if (parameters.spin_polarised == true) {
+				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, hamiltonian);
+				get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid, hamiltonian);
+				get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
+				get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
+			} else { //spin down =spin_up
+				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, hamiltonian);
+				current_down_left_myid = current_up_left_myid;
+				current_down_right_myid = current_up_right_myid;
+				get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
+				get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
+			}
 		}
 
 
@@ -288,38 +318,56 @@ int main(int argc, char **argv)
 		std::vector<dcomp> dos_down_metal(parameters.steps_myid, 0);	
 		if (parameters.hubbard_interaction == 0) {
 			get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_up);
-			get_occupation(parameters, gf_local_lesser_up, spins_occup);
+
 			//spin up and down are degenerate
 		} else {
-			get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_down);
+			if (parameters.spin_polarised == true) {
+				get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_down);
+			} else {
+				get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_up);
+			}
 		}
+		
+		get_occupation(parameters, gf_local_lesser_up, gf_local_lesser_down, spins_occup);
 
-
+		if (parameters.myid == 0) {
+			std::cout << parameters.print_gf << std::endl;
+		}
 		if (parameters.print_gf == true) {
-			write_to_file(parameters, gf_local_up, gf_local_down, "gf.txt", m);
-			write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_down, "gf_lesser.txt", m);
+			if (parameters.spin_polarised == true) {
+				write_to_file(parameters, gf_local_up, gf_local_down, "gf.txt", m);
+				write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_down, "gf_lesser.txt", m);
+			} else {
+				write_to_file(parameters, gf_local_up, gf_local_up, "gf.txt", m);
+				write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_up, "gf_lesser.txt", m);
+			}
 		}
+
 		write_to_file(parameters, transmission_up, transmission_down, "transmission.txt", m);
 		//write_to_file(parameters, transmission_noninteracting_up, transmission_noninteracting_down, "transmission_noninteracting.txt", m);
 		write_to_file(parameters, dos_up, dos_down, "dos.txt", m);
 		write_to_file(parameters, dos_up_ins, dos_down_ins, "dos_ins.txt", m);
 		write_to_file(parameters, dos_up_metal, dos_down_metal, "dos_metal.txt", m);
-		write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.txt", m);
-		write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.txt", m);
+		if (parameters.spin_polarised == true) {
+			write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.txt", m);
+			write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_down, "se_l.txt", m);
+		} else {
+			write_to_file(parameters, self_energy_mb_up, self_energy_mb_up, "se_r.txt", m);
+			write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.txt", m);
+		}
+
 		integrate_spectral(parameters, gf_local_up);
 
 		if (parameters.myid == 0) {			
-			std::cout << "writing files\n";
+			std::cout << "wrote files\n";
 		}
 
 		if (parameters.num_kx_points == 1 && parameters.num_ky_points == 1 && parameters.chain_length == 1 && parameters.hubbard_interaction == 0){
 			analytic_gf(parameters, gf_local_up);
+			if (parameters.myid == 0) {			
+				std::cout << "got analytic gf\n";
+			}
 		}
-
-		if (parameters.myid == 0) {			
-			std::cout << "got analytic gf\n";
-		}
-
 	}
 
 	if (parameters.myid == 0) {

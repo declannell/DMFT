@@ -17,23 +17,35 @@ void get_spin_occupation(const Parameters &parameters, const std::vector<double>
 	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)(parameters.steps);
 	double result_up = 0.0, result_down = 0.0;
 
-	for (int r = 0; r < parameters.steps_myid; r++) {
+	if (parameters.spin_polarised == true) {
+		for (int r = 0; r < parameters.steps_myid; r++) {
 		//std::cout << parameters.energy.at(r) << " " << gf_lesser_down.at(r).imag() <<  std::endl;
-		if (r + parameters.start.at(parameters.myid) == 0 || r + parameters.start.at(parameters.myid) == parameters.steps - 1) {
+			if (r + parameters.start.at(parameters.myid) == 0 || r + parameters.start.at(parameters.myid) == parameters.steps - 1) {
 			//std::cout << "I am rank " << parameters.myid << std::endl;
-			result_up += (delta_energy / 2.0) * gf_lesser_up.at(r);
-			result_down += (delta_energy / 2.0) * gf_lesser_down.at(r);
-		} else {
-			result_up += (delta_energy) * gf_lesser_up.at(r);
-			result_down += (delta_energy) * gf_lesser_down.at(r);
+				result_up += (delta_energy / 2.0) * gf_lesser_up.at(r);
+				result_down += (delta_energy / 2.0) * gf_lesser_down.at(r);
+			} else {
+				result_up += (delta_energy) * gf_lesser_up.at(r);
+				result_down += (delta_energy) * gf_lesser_down.at(r);
+			}
 		}
+		result_up = 1.0 / (2.0 * M_PI) * result_up;
+		result_down = 1.0 / (2.0 * M_PI) * result_down;
+		MPI_Allreduce(&result_up, spin_up, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		MPI_Allreduce(&result_down, spin_down, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	
+	} else {
+		for (int r = 0; r < parameters.steps_myid; r++) {
+			if (r + parameters.start.at(parameters.myid) == 0 || r + parameters.start.at(parameters.myid) == parameters.steps - 1) {
+				result_up += (delta_energy / 2.0) * gf_lesser_up.at(r);
+			} else {
+				result_up += (delta_energy) * gf_lesser_up.at(r);
+			}
+		}
+		result_up = 1.0 / (2.0 * M_PI) * result_up;
+		MPI_Allreduce(&result_up, spin_up, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		*spin_down = *spin_up;
 	}
-
-	result_up = 1.0 / (2.0 * M_PI) * result_up;
-	result_down = 1.0 / (2.0 * M_PI) * result_down;
-
-	MPI_Allreduce(&result_up, spin_up, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-	MPI_Allreduce(&result_down, spin_down, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
 }
 
 double absolute_value(double num1) {
@@ -257,11 +269,20 @@ void impurity_solver(const Parameters &parameters, const int voltage_step,
 			if (parameters.myid == 0) {
 				std::cout << "using the kramer-kronig relation \n";
 			}
-			self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
-			self_energy_2nd_order_kramers_kronig(parameters, aim_down, aim_up, voltage_step);
+			if (parameters.spin_polarised == true) {
+				self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
+				self_energy_2nd_order_kramers_kronig(parameters, aim_down, aim_up, voltage_step);
+			} else { //only need to do this for spin up. Note aim_down = aim_up
+				self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
+			}
 		} else {
-			self_energy_2nd_order(parameters, aim_up, aim_down);
-			self_energy_2nd_order(parameters, aim_down, aim_up);
+			if (parameters.spin_polarised == true) {
+				self_energy_2nd_order(parameters, aim_up, aim_down);
+				self_energy_2nd_order(parameters, aim_down, aim_up);
+			} else { //only need to do this for spin up. Note aim_down = aim_up
+				self_energy_2nd_order(parameters, aim_up, aim_down);
+			}
+
 		}
         //one can choose a normal intergation (self_energy_2nd_order) or a krammer kronig method (self_energy_2nd_order_krammer_kronig)
 
@@ -269,17 +290,29 @@ void impurity_solver(const Parameters &parameters, const int voltage_step,
 			std::cout << "adding the first order term\n ";
 		}
 		
-		for (int r = 0; r < parameters.steps_myid; r++) {
-			aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
-			aim_down.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_up);
-			//std::cout << aim_up.self_energy_mb_retarded.at(r) << "\n";
+		if (parameters.spin_polarised == true) {
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
+				aim_down.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_up);
+			} 
+		} else {
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
+			}	
 		}
+			//std::cout << aim_up.self_energy_mb_retarded.at(r) << "\n";
 	}
 
 	if (parameters.interaction_order == 1) {
-		for (int r = 0; r < parameters.steps_myid; r++) {
-			aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
-			aim_down.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_up);
+		if (parameters.spin_polarised == true) {
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
+				aim_down.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_up);
+			} 
+		} else {
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
+			}	
 		}
 	}
 }
@@ -298,75 +331,137 @@ void dmft(const Parameters &parameters, const int voltage_step,
 
 	std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 
-	std::vector<dcomp> diag_gf_local_up(parameters.steps_myid), diag_gf_local_down(parameters.steps_myid), diag_gf_local_lesser_up(parameters.steps_myid),
-	    diag_gf_local_lesser_down(parameters.steps_myid), impurity_self_energy_up(parameters.steps_myid), impurity_self_energy_down(parameters.steps_myid),
-	    impurity_self_energy_lesser_up(parameters.steps_myid), impurity_self_energy_lesser_down(parameters.steps_myid);
+	if (parameters.spin_polarised == true) {
+		std::vector<dcomp> diag_gf_local_up(parameters.steps_myid), diag_gf_local_down(parameters.steps_myid), diag_gf_local_lesser_up(parameters.steps_myid),
+	    	diag_gf_local_lesser_down(parameters.steps_myid), impurity_self_energy_up(parameters.steps_myid), impurity_self_energy_down(parameters.steps_myid),
+	    	impurity_self_energy_lesser_up(parameters.steps_myid), impurity_self_energy_lesser_down(parameters.steps_myid);
 
-	while (difference > parameters.convergence && count < parameters.self_consistent_steps) {
-		//MPI_Barrier(MPI_COMM_WORLD);
-		//std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
-		get_difference(parameters, gf_local_up, old_green_function, difference, index);
-		MPI_Barrier(MPI_COMM_WORLD);
-		if (parameters.myid == 0) {
-			std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
-		}
-		
-		if (difference < parameters.convergence) {
-			break;
-		}
-
-		for (int i = 0; i < 4 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
-			if (parameters.atom_type.at(i) == 0){
-				continue;
-			}
-			//this is only passing the part of the green function that each process is dealing with.
-			for (int r = 0; r < parameters.steps_myid; r++) {
-				diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
-				diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);
-				diag_gf_local_lesser_up.at(r) = gf_local_lesser_up.at(r)(i, i);
-				diag_gf_local_lesser_down.at(r) = gf_local_lesser_down.at(r)(i, i);
-				impurity_self_energy_up.at(r) = self_energy_mb_up.at(i).at(r);
-				impurity_self_energy_down.at(r) = self_energy_mb_down.at(i).at(r);
-				impurity_self_energy_lesser_up.at(r) = self_energy_mb_lesser_up.at(i).at(r);
-				impurity_self_energy_lesser_down.at(r) = self_energy_mb_lesser_down.at(i).at(r);
-			}
-
-			//MPI_Allgather(&diag_gf_local_up_myid, parameters.steps_myid, MPI_DOUBLE_COMPLEX, &diag_gf_local_up, parameters.steps_myid, MPI_DOUBLE_COMPLEX, MPI_COMM_WORLD);
+		while (difference > parameters.convergence && count < parameters.self_consistent_steps) {
+			//MPI_Barrier(MPI_COMM_WORLD);
+			//std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
+			get_difference(parameters, gf_local_up, old_green_function, difference, index);
+			MPI_Barrier(MPI_COMM_WORLD);
 			if (parameters.myid == 0) {
-				std::cout << "atom which we put on correlation is " << i << std::endl;
-			}
-			
-
-    		AIM aim_up(parameters, diag_gf_local_up, diag_gf_local_lesser_up, impurity_self_energy_up, impurity_self_energy_lesser_up, voltage_step);
-    		AIM aim_down(parameters, diag_gf_local_down, diag_gf_local_lesser_down, impurity_self_energy_down, impurity_self_energy_lesser_down, voltage_step);
-			
-			impurity_solver(parameters, voltage_step, aim_up, aim_down, &spins_occup.at(i), &spins_occup.at(i + 4 * parameters.chain_length));
-
-
-			if (parameters.myid == 0) {
-				std::cout << "AIM was created for atom " << i << std::endl;
+				std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
 			}
 
-            if(count == 0){
-                for (int r = 0; r < parameters.steps_myid; r++) {
-                    self_energy_mb_up.at(i).at(r) = aim_up.self_energy_mb_retarded.at(r);
-					//std::cout << self_energy_mb_up.at(i).at(r) << " " << aim_up.self_energy_mb_retarded.at(r) << "\n";
-                    self_energy_mb_down.at(i).at(r) = aim_down.self_energy_mb_retarded.at(r);
-                    self_energy_mb_lesser_up.at(i).at(r) = parameters.j1 * aim_up.self_energy_mb_lesser.at(r);
-                    self_energy_mb_lesser_down.at(i).at(r) = parameters.j1 * aim_down.self_energy_mb_lesser.at(r);
-                }
-            } else {
-                for (int r = 0; r < parameters.steps_myid; r++) {
-                    self_energy_mb_up.at(i).at(r) = (aim_up.self_energy_mb_retarded.at(r) + self_energy_mb_up.at(i).at(r)) * 0.5;
-                    self_energy_mb_down.at(i).at(r) = (aim_down.self_energy_mb_retarded.at(r) + self_energy_mb_down.at(i).at(r)) * 0.5;
-                    self_energy_mb_lesser_up.at(i).at(r) = (parameters.j1 * aim_up.self_energy_mb_lesser.at(r) + self_energy_mb_lesser_up.at(i).at(r)) * 0.5;
-                    self_energy_mb_lesser_down.at(i).at(r) = (parameters.j1 * aim_down.self_energy_mb_lesser.at(r) + self_energy_mb_lesser_down.at(i).at(r)) * 0.5;
-                }
-            }
+			if (difference < parameters.convergence) {
+				break;
+			}
+
+			for (int i = 0; i < 4 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
+				if (parameters.atom_type.at(i) == 0){
+					continue;
+				}
+				//this is only passing the part of the green function that each process is dealing with.
+				for (int r = 0; r < parameters.steps_myid; r++) {
+					diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
+					diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);
+					diag_gf_local_lesser_up.at(r) = gf_local_lesser_up.at(r)(i, i);
+					diag_gf_local_lesser_down.at(r) = gf_local_lesser_down.at(r)(i, i);
+					impurity_self_energy_up.at(r) = self_energy_mb_up.at(i).at(r);
+					impurity_self_energy_down.at(r) = self_energy_mb_down.at(i).at(r);
+					impurity_self_energy_lesser_up.at(r) = self_energy_mb_lesser_up.at(i).at(r);
+					impurity_self_energy_lesser_down.at(r) = self_energy_mb_lesser_down.at(i).at(r);
+				}
+
+				//MPI_Allgather(&diag_gf_local_up_myid, parameters.steps_myid, MPI_DOUBLE_COMPLEX, &diag_gf_local_up, parameters.steps_myid, MPI_DOUBLE_COMPLEX, MPI_COMM_WORLD);
+				if (parameters.myid == 0) {
+					std::cout << "atom which we put on correlation is " << i << std::endl;
+				}
+
+
+    			AIM aim_up(parameters, diag_gf_local_up, diag_gf_local_lesser_up, impurity_self_energy_up, impurity_self_energy_lesser_up, voltage_step);
+    			AIM aim_down(parameters, diag_gf_local_down, diag_gf_local_lesser_down, impurity_self_energy_down, impurity_self_energy_lesser_down, voltage_step);
+
+				impurity_solver(parameters, voltage_step, aim_up, aim_down, &spins_occup.at(i), &spins_occup.at(i + 4 * parameters.chain_length));
+
+
+				if (parameters.myid == 0) {
+					std::cout << "AIM was created for atom " << i << std::endl;
+				}
+
+    	        if(count == 0){
+    	            for (int r = 0; r < parameters.steps_myid; r++) {
+    	                self_energy_mb_up.at(i).at(r) = aim_up.self_energy_mb_retarded.at(r);
+						//std::cout << self_energy_mb_up.at(i).at(r) << " " << aim_up.self_energy_mb_retarded.at(r) << "\n";
+    	                self_energy_mb_down.at(i).at(r) = aim_down.self_energy_mb_retarded.at(r);
+    	                self_energy_mb_lesser_up.at(i).at(r) = parameters.j1 * aim_up.self_energy_mb_lesser.at(r);
+    	                self_energy_mb_lesser_down.at(i).at(r) = parameters.j1 * aim_down.self_energy_mb_lesser.at(r);
+    	            }
+    	        } else {
+    	            for (int r = 0; r < parameters.steps_myid; r++) {
+    	                self_energy_mb_up.at(i).at(r) = (aim_up.self_energy_mb_retarded.at(r) + self_energy_mb_up.at(i).at(r)) * 0.5;
+    	                self_energy_mb_down.at(i).at(r) = (aim_down.self_energy_mb_retarded.at(r) + self_energy_mb_down.at(i).at(r)) * 0.5;
+    	                self_energy_mb_lesser_up.at(i).at(r) = (parameters.j1 * aim_up.self_energy_mb_lesser.at(r) + self_energy_mb_lesser_up.at(i).at(r)) * 0.5;
+    	                self_energy_mb_lesser_down.at(i).at(r) = (parameters.j1 * aim_down.self_energy_mb_lesser.at(r) + self_energy_mb_lesser_down.at(i).at(r)) * 0.5;
+    	            }
+    	        }
+			}
+
+			get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
+			get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);
+			count++;
 		}
-		
-		get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
-		get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);
-		count++;
+	} else { //spin up is the same as spin down
+		std::vector<dcomp> diag_gf_local_up(parameters.steps_myid), diag_gf_local_lesser_up(parameters.steps_myid),
+			impurity_self_energy_up(parameters.steps_myid), impurity_self_energy_lesser_up(parameters.steps_myid);
+
+		while (difference > parameters.convergence && count < parameters.self_consistent_steps) {
+			//MPI_Barrier(MPI_COMM_WORLD);
+			//std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
+			get_difference(parameters, gf_local_up, old_green_function, difference, index);
+			MPI_Barrier(MPI_COMM_WORLD);
+			if (parameters.myid == 0) {
+				std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
+			}
+
+			if (difference < parameters.convergence) {
+				break;
+			}
+
+			for (int i = 0; i < 4 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
+				if (parameters.atom_type.at(i) == 0){
+					continue;
+				}
+				//this is only passing the part of the green function that each process is dealing with.
+				for (int r = 0; r < parameters.steps_myid; r++) {
+					diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
+					diag_gf_local_lesser_up.at(r) = gf_local_lesser_up.at(r)(i, i);
+					impurity_self_energy_up.at(r) = self_energy_mb_up.at(i).at(r);
+					impurity_self_energy_lesser_up.at(r) = self_energy_mb_lesser_up.at(i).at(r);
+				}
+
+				//MPI_Allgather(&diag_gf_local_up_myid, parameters.steps_myid, MPI_DOUBLE_COMPLEX, &diag_gf_local_up, parameters.steps_myid, MPI_DOUBLE_COMPLEX, MPI_COMM_WORLD);
+				if (parameters.myid == 0) {
+					std::cout << "atom which we put on correlation is " << i << std::endl;
+				}
+
+
+    			AIM aim_up(parameters, diag_gf_local_up, diag_gf_local_lesser_up, impurity_self_energy_up, impurity_self_energy_lesser_up, voltage_step);
+
+				impurity_solver(parameters, voltage_step, aim_up, aim_up, &spins_occup.at(i), &spins_occup.at(i + 4 * parameters.chain_length));
+
+				if (parameters.myid == 0) {
+					std::cout << "AIM was created for atom " << i << std::endl;
+				}
+
+    	        if(count == 0){
+    	            for (int r = 0; r < parameters.steps_myid; r++) {
+    	                self_energy_mb_up.at(i).at(r) = aim_up.self_energy_mb_retarded.at(r);
+    	                self_energy_mb_lesser_up.at(i).at(r) = parameters.j1 * aim_up.self_energy_mb_lesser.at(r);
+    	            }
+    	        } else {
+    	            for (int r = 0; r < parameters.steps_myid; r++) {
+    	                self_energy_mb_up.at(i).at(r) = (aim_up.self_energy_mb_retarded.at(r) + self_energy_mb_up.at(i).at(r)) * 0.5;
+    	                self_energy_mb_lesser_up.at(i).at(r) = (parameters.j1 * aim_up.self_energy_mb_lesser.at(r) + self_energy_mb_lesser_up.at(i).at(r)) * 0.5;
+    	            }
+    	        }
+			}
+
+			get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
+			count++;
+		}
 	}
+	
 }

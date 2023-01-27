@@ -29,8 +29,9 @@ temperature           00.0
 e_upper_bound         10.0
 e_lower_bound         -10.0
 hubbard_interaction   1.0
+interaction_order     2
 voltage_step          0
-self_consistent_steps 15
+self_consistent_steps 2
 read_in_self_energy   0
 NIV_points            1
 NIV_start             0
@@ -45,6 +46,6 @@ gamma                 -2
 wbl_approx            1
 kk_relation           1 
 steps                 100
-print_gf              false
+print_gf              1
+spin_polarised        1
 
- 

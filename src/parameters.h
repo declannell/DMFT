@@ -75,6 +75,7 @@ struct Parameters
     std::vector<int> steps_proc; //this is the number of steps the other processes have
     MPI_Comm comm;
     bool print_gf;
+    bool spin_polarised;
 };
 
 

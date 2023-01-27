@@ -34,40 +34,70 @@ void get_transmission(
 
     double num_k_points = n_x * n_y;
 
+	if (parameters.spin_polarised == true) {
+		for (int kx_i = 0; kx_i < n_x; kx_i++) {
+			for (int ky_i = 0; ky_i < n_y; ky_i++) {
+				Interacting_GF gf_interacting_up(parameters, self_energy_mb_up,
+				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
-	for (int kx_i = 0; kx_i < n_x; kx_i++) {
-		for (int ky_i = 0; ky_i < n_y; ky_i++) {
-			Interacting_GF gf_interacting_up(parameters, self_energy_mb_up,
-			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
-			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
+				Interacting_GF gf_interacting_down(parameters, self_energy_mb_down,
+				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
-			Interacting_GF gf_interacting_down(parameters, self_energy_mb_down,
-			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
-			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
-			
 
-			for (int r = 0; r < parameters.steps_myid; r++) {
+				for (int r = 0; r < parameters.steps_myid; r++) {
 
-				if (parameters.wbl_approx != true) {
-					get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left.at(r), 
-					leads.at(kx_i).at(ky_i).self_energy_right.at(r), coupling_left, coupling_right, r + parameters.start.at(parameters.myid));
-				}
+					if (parameters.wbl_approx != true) {
+						get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left.at(r), 
+						leads.at(kx_i).at(ky_i).self_energy_right.at(r), coupling_left, coupling_right, r + parameters.start.at(parameters.myid));
+					}
 
-				for( int i = 0; i < 4 * parameters.chain_length; i ++){
-					for (int p = 0; p < 4 * parameters.chain_length; p++){
-						for (int m = 0; m < 4 * parameters.chain_length; m++){
-							for (int n = 0; n < 4 * parameters.chain_length; n++){
-								transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,m) * gf_interacting_up.interacting_gf.at(r)(m, n)
-									* coupling_right(n, p) * std::conj(gf_interacting_up.interacting_gf.at(r)(i, p)));
+					for( int i = 0; i < 4 * parameters.chain_length; i ++){
+						for (int p = 0; p < 4 * parameters.chain_length; p++){
+							for (int m = 0; m < 4 * parameters.chain_length; m++){
+								for (int n = 0; n < 4 * parameters.chain_length; n++){
+									transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,m) * gf_interacting_up.interacting_gf.at(r)(m, n)
+										* coupling_right(n, p) * std::conj(gf_interacting_up.interacting_gf.at(r)(i, p)));
 
-								transmission_down.at(r) += 1.0 / num_k_points * (coupling_left(i ,m) * gf_interacting_down.interacting_gf.at(r)(m, n)
-									* coupling_right(n, p) * std::conj(gf_interacting_down.interacting_gf.at(r)(i, p)));
+									transmission_down.at(r) += 1.0 / num_k_points * (coupling_left(i ,m) * gf_interacting_down.interacting_gf.at(r)(m, n)
+										* coupling_right(n, p) * std::conj(gf_interacting_down.interacting_gf.at(r)(i, p)));
+								}
 							}
 						}
 					}
 				}
 			}
+		}
+	} else {//spin_up = spin_down
+		for (int kx_i = 0; kx_i < n_x; kx_i++) {
+			for (int ky_i = 0; ky_i < n_y; ky_i++) {
+				Interacting_GF gf_interacting_up(parameters, self_energy_mb_up,
+				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    voltage_step, hamiltonian.at(kx_i).at(ky_i));
+
+				for (int r = 0; r < parameters.steps_myid; r++) {
+					if (parameters.wbl_approx != true) {
+						get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left.at(r), 
+						leads.at(kx_i).at(ky_i).self_energy_right.at(r), coupling_left, coupling_right, r + parameters.start.at(parameters.myid));
+					}
+
+					for( int i = 0; i < 4 * parameters.chain_length; i ++){
+						for (int p = 0; p < 4 * parameters.chain_length; p++){
+							for (int m = 0; m < 4 * parameters.chain_length; m++){
+								for (int n = 0; n < 4 * parameters.chain_length; n++){
+									transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,m) * gf_interacting_up.interacting_gf.at(r)(m, n)
+										* coupling_right(n, p) * std::conj(gf_interacting_up.interacting_gf.at(r)(i, p)));
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		for (int r = 0; r < parameters.steps_myid; r++) {
+			transmission_down.at(r) = transmission_up.at(r);
 		}
 	}
 }

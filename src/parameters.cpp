@@ -139,6 +139,8 @@ Parameters Parameters::from_file()
 				std::istringstream(value) >> parameters.print_gf;
 			} else if (variable == "interaction_order") {
 				parameters.interaction_order = std::stoi(value);
+			} else if (variable == "spin_polarised") {
+				std::istringstream(value) >> parameters.spin_polarised;
 			}
 	}
 	input_file.close();
@@ -280,4 +282,6 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.chain_length = " << parameters.chain_length << std::endl;
 	std::cout << "parameters.spin_up_occup = " << parameters.spin_up_occup << std::endl;
 	std::cout << "parameters.spin_down_occup = " << parameters.spin_down_occup << std::endl;
+	std::cout << "parameters.print_gf = " << parameters.print_gf << std::endl;
+	std::cout << "parameters.spin_polarised = " << parameters.spin_polarised << std::endl;
 }
