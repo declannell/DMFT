@@ -30,6 +30,7 @@ void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &g
 		double result = 0.0, result_reduced = 0.0;
 		for (int r = 0; r < parameters.steps_myid; r++) {
 			double spectral = (parameters.j1 * (gf_local.at(r)(i, i) - std::conj(gf_local.at(r)(i, i)))).real();
+		
 			result += spectral;
  		}
 		result = result * delta_energy / (2.0 * M_PI);

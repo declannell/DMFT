@@ -333,12 +333,8 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
         //delta_term = 2.0 * parameters.j1 * parameters.delta_gf * fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)), parameters) 
         //    * gf_retarded.at(r) * gf_retarded.at(r).adjoint();
 
-
-
-
         Eigen::MatrixXcd embedding_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
         get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy, r + parameters.start.at(parameters.myid), voltage_step);
-        
 
 
 	    //embedding_file << parameters.energy.at(r + parameters.start.at(parameters.myid)) << "  " << embedding_self_energy(0, 0).real() << "   " << embedding_self_energy(0, 0).imag() << "   "
@@ -354,10 +350,10 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
                     for(int m = 0; m < 4 * parameters.chain_length; m++){
                         if (m == k){
                             gf_lesser.at(r)(i, j) +=  gf_retarded.at(r)(i, k) * (self_energy_mb_lesser.at(k).at(r) + embedding_self_energy(k, m))
-                                * std::conj(gf_retarded.at(r)(k, i));
+                                * std::conj(gf_retarded.at(r)(j, k));
                         } else {
                             gf_lesser.at(r)(i, j) +=  gf_retarded.at(r)(i, k) * (embedding_self_energy(k, m)) 
-                                * std::conj(gf_retarded.at(r)(k, j));
+                                * std::conj(gf_retarded.at(r)(j, m));
                         }
                     }
                 } 
