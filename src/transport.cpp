@@ -55,16 +55,12 @@ void get_transmission(
 					}
 
 					for( int i = 0; i < 4 * parameters.chain_length; i ++){
-						for (int p = 0; p < 4 * parameters.chain_length; p++){
-							for (int m = 0; m < 4 * parameters.chain_length; m++){
-								for (int n = 0; n < 4 * parameters.chain_length; n++){
-									transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,m) * gf_interacting_up.interacting_gf.at(r)(m, n)
-										* coupling_right(n, p) * std::conj(gf_interacting_up.interacting_gf.at(r)(i, p)));
+						for (int n = 0; n < 4 * parameters.chain_length; n++){
+							transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,i) * gf_interacting_up.interacting_gf.at(r)(i, n)
+								* coupling_right(n, n) * std::conj(gf_interacting_up.interacting_gf.at(r)(i, n)));
 
-									transmission_down.at(r) += 1.0 / num_k_points * (coupling_left(i ,m) * gf_interacting_down.interacting_gf.at(r)(m, n)
-										* coupling_right(n, p) * std::conj(gf_interacting_down.interacting_gf.at(r)(i, p)));
-								}
-							}
+							transmission_down.at(r) += 1.0 / num_k_points * (coupling_left(i ,i) * gf_interacting_down.interacting_gf.at(r)(i, n)
+								* coupling_right(n, n) * std::conj(gf_interacting_down.interacting_gf.at(r)(i, n)));
 						}
 					}
 				}
@@ -84,13 +80,9 @@ void get_transmission(
 					}
 
 					for( int i = 0; i < 4 * parameters.chain_length; i ++){
-						for (int p = 0; p < 4 * parameters.chain_length; p++){
-							for (int m = 0; m < 4 * parameters.chain_length; m++){
-								for (int n = 0; n < 4 * parameters.chain_length; n++){
-									transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,m) * gf_interacting_up.interacting_gf.at(r)(m, n)
-										* coupling_right(n, p) * std::conj(gf_interacting_up.interacting_gf.at(r)(i, p)));
-								}
-							}
+						for (int n = 0; n < 4 * parameters.chain_length; n++){
+							transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,i) * gf_interacting_up.interacting_gf.at(r)(i, n)
+								* coupling_right(n, n) * std::conj(gf_interacting_up.interacting_gf.at(r)(i, n)));
 						}
 					}
 				}
@@ -141,8 +133,8 @@ void get_transmission_gf_local(
                 for(int i = 0; i < 4 * parameters.chain_length; i++){
                     for(int j = 0; j < 4 * parameters.chain_length; j++){
                         gf_local.at(r)(i, j) += gf_interacting.interacting_gf.at(r)(i, j) / num_k_points;
-                        gf_local_lesser.at(r)(i, j) += gf_lesser.at(r)(i, j) / num_k_points;
                     }
+					gf_local_lesser.at(r)(i, i) += gf_lesser.at(r)(i, i) / num_k_points;
                 }
 
 				if (parameters.wbl_approx != true) {
@@ -153,13 +145,9 @@ void get_transmission_gf_local(
 				
 
 				for( int i = 0; i < 4 * parameters.chain_length; i ++){
-					for (int p = 0; p < 4 * parameters.chain_length; p++){
-						for (int m = 0; m < 4 * parameters.chain_length; m++){
-							for (int n = 0; n < 4 * parameters.chain_length; n++){
-								transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,m) * gf_interacting.interacting_gf.at(r)(m, n)
-									* coupling_right(n, p) * std::conj(gf_interacting.interacting_gf.at(r)(i, p)));
-							}
-						}
+					for (int n = 0; n < 4 * parameters.chain_length; n++){
+						transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i, i) * gf_interacting.interacting_gf.at(r)(i, n)
+							* coupling_right(n, n) * std::conj(gf_interacting.interacting_gf.at(r)(i, n)));
 					}
 				}
 			}
@@ -201,9 +189,6 @@ void get_coupling(const Parameters &parameters, const Eigen::MatrixXcd &self_ene
 
         coupling_right(4 * parameters.chain_length  - 1, 4 * parameters.chain_length - 1) = parameters.j1 *
             (self_energy_right(3, 3) - conj(self_energy_right(3, 3)));
-
-
-
 }
 
 
@@ -302,18 +287,16 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		}
 		//this formula is from PHYSICAL REVIEW B 72, 125114 2005
 		for (int i = 0; i < 4 * parameters.chain_length; i++){
-			for (int j = 0; j < 4 * parameters.chain_length; j++){
 
 				trace_left += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) - parameters.voltage_l.at(voltage_step),
-		        	parameters) * coupling_left(i, j) * parameters.j1 * (green_function.at(r)(j, i) - conj(green_function.at(r)(i, j)));
+		        	parameters) * coupling_left(i, i) * parameters.j1 * (green_function.at(r)(i, i) - conj(green_function.at(r)(i, i)));
 
 				trace_right += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) - parameters.voltage_r.at(voltage_step),
-		        	parameters) * coupling_right(i, j) * parameters.j1 * (green_function.at(r)(j, i) - conj(green_function.at(r)(i, j)));
+		        	parameters) * coupling_right(i, i) * parameters.j1 * (green_function.at(r)(i, i) - conj(green_function.at(r)(i, i)));
 	
-				trace_left += parameters.j1 * coupling_left(i, j) * green_function_lesser.at(r)(j, i);
-				trace_right += parameters.j1 * coupling_right(i, j) * green_function_lesser.at(r)(j, i);
+				trace_left += parameters.j1 * coupling_left(i, i) * green_function_lesser.at(r)(i, i);
+				trace_right += parameters.j1 * coupling_right(i, i) * green_function_lesser.at(r)(i, i);
 
-			}
 		}
 
 

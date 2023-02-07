@@ -345,18 +345,9 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
         //get_advance_gf(parameters, gf_retarded.at(r), gf_advanced); 
  
         for(int i = 0; i < 4 * parameters.chain_length; i++) {
-            for(int j = 0; j < 4 * parameters.chain_length; j++) {  
-                for(int k = 0; k < 4 * parameters.chain_length; k++){
-                    for(int m = 0; m < 4 * parameters.chain_length; m++){
-                        if (m == k){
-                            gf_lesser.at(r)(i, j) +=  gf_retarded.at(r)(i, k) * (self_energy_mb_lesser.at(k).at(r) + embedding_self_energy(k, m))
-                                * std::conj(gf_retarded.at(r)(j, k));
-                        } else {
-                            gf_lesser.at(r)(i, j) +=  gf_retarded.at(r)(i, k) * (embedding_self_energy(k, m)) 
-                                * std::conj(gf_retarded.at(r)(j, m));
-                        }
-                    }
-                } 
+            for(int m = 0; m < 4 * parameters.chain_length; m++){
+                gf_lesser.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_lesser.at(m).at(r) + embedding_self_energy(m, m))
+                    * std::conj(gf_retarded.at(r)(i, m));
             }
         }
         //gf_lesser.at(r) = gf_lesser.at(r) + delta_term;
@@ -415,8 +406,8 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
                 for(int i = 0; i < 4 * parameters.chain_length; i++){
                     for(int j = 0; j < 4 * parameters.chain_length; j++){
                         gf_local.at(r)(i, j) += gf_interacting.interacting_gf.at(r)(i, j) / num_k_points;
-                        gf_local_lesser.at(r)(i, j) += gf_lesser.at(r)(i, j) / num_k_points;
                     }
+                    gf_local_lesser.at(r)(i, i) += gf_lesser.at(r)(i, i) / num_k_points;
                 }
             }     
         }
