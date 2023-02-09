@@ -214,7 +214,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
             hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = - (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i;
             hamiltonian(j + 2 * parameters.chain_length, j + 2 * parameters.chain_length) =  - (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l)
                 + voltage_i;
-            hamiltonian(j + 3 * parameters.chain_length, j + 3 * parameters.chain_length) =  - (parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r)
+            hamiltonian(j + 3 * parameters.chain_length, j + 3 * parameters.chain_length) =   (parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r)
                 + voltage_i;  
         }
 

@@ -302,15 +302,15 @@ int main(int argc, char **argv)
 			std::cout << std::endl;
 		}
 
-		for (int i = 0; i < 4 * parameters.chain_length; i++) {
-			if (parameters.atom_type.at(i) != 0) {
-				if (parameters.myid == 0) {
-					std::cout << "The spin up occupation at atom " << i << " is " << spins_occup.at(i) << std::endl;
-					std::cout << "The spin down occupation at atom " << i << " is " << spins_occup.at(i + 4 * parameters.chain_length) << std::endl;
-				}				
-			}
-		}
-
+		//for (int i = 0; i < 4 * parameters.chain_length; i++) {
+		//	if (parameters.atom_type.at(i) != 0) {
+		//		if (parameters.myid == 0) {
+		//			std::cout << "The spin up occupation at atom " << i << " is " << spins_occup.at(i) << std::endl;
+		//			std::cout << "The spin down occupation at atom " << i << " is " << spins_occup.at(i + 4 * parameters.chain_length) << std::endl;
+		//		}				
+		//	}
+		//}
+//
 		std::vector<dcomp> dos_up(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_down(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_up_ins(parameters.steps_myid, 0);
