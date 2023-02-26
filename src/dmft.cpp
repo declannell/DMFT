@@ -82,6 +82,33 @@ void get_difference(const Parameters &parameters, std::vector<Eigen::MatrixXcd> 
 	MPI_Bcast(&difference, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 }
 
+void get_difference_self_energy(const Parameters &parameters, std::vector<std::vector<dcomp>> &self_energy_mb_up,
+	 std::vector<std::vector<dcomp>> &old_self_energy_mb_up, double &difference, int &index){
+	double difference_proc = - std::numeric_limits<double>::infinity();
+	double old_difference = 0;
+	double real_difference = 0, imag_difference = 0;
+	for (int r = 0; r < parameters.steps_myid; r++) {
+		for (int i = 0; i < 4 * parameters.chain_length; i++) {
+			real_difference = absolute_value(self_energy_mb_up.at(i).at(r).real() - old_self_energy_mb_up.at(i).at(r).real());
+			imag_difference = absolute_value(self_energy_mb_up.at(i).at(r).imag() - old_self_energy_mb_up.at(i).at(r).imag());
+			//std::cout << gf_local_up.at(r)(i, j).real() << " " << old_green_function.at(r)(i, j).real() << std::endl;
+			//std::cout << real_difference << "  " << imag_difference << "  "  << difference << "\n";
+			difference_proc = std::max(difference_proc, std::max(real_difference, imag_difference));
+			old_self_energy_mb_up.at(i).at(r) = self_energy_mb_up.at(i).at(r);
+			if (difference_proc > old_difference) {
+				index = r;
+			}
+			old_difference = difference_proc;
+		}
+		//std::cout <<"\n";
+	}
+	//std::cout << "I am rank " << parameters.myid << ". The difference for me is " << difference_proc << std::endl;
+	//MPI_Allreduce would do the same thing.
+	MPI_Reduce(&difference_proc, &difference, 1, MPI_DOUBLE, MPI_MAX , 0, MPI_COMM_WORLD);
+	MPI_Barrier(MPI_COMM_WORLD);
+	MPI_Bcast(&difference, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+}
+
 void fluctuation_dissipation(const Parameters &parameters, const std::vector<dcomp> &green_function, std::vector<dcomp> &lesser_green_function)
 {
 	for (int r = 0; r < parameters.steps; r++) {
@@ -330,6 +357,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 	int index, count = 0;
 
 	std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+	std::vector<std::vector<dcomp>> old_self_energy_mb(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 100));
 
 	if (parameters.spin_polarised == true) {
 		std::vector<dcomp> diag_gf_local_up(parameters.steps_myid), diag_gf_local_down(parameters.steps_myid), diag_gf_local_lesser_up(parameters.steps_myid),
@@ -339,7 +367,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 		while (difference > parameters.convergence && count < parameters.self_consistent_steps) {
 			//MPI_Barrier(MPI_COMM_WORLD);
 			//std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
-			get_difference(parameters, gf_local_up, old_green_function, difference, index);
+			get_difference_self_energy(parameters, self_energy_mb_up, old_self_energy_mb, difference, index);
 			MPI_Barrier(MPI_COMM_WORLD);
 			if (parameters.myid == 0) {
 				std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
@@ -410,7 +438,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 		while (difference > parameters.convergence && count < parameters.self_consistent_steps) {
 			//MPI_Barrier(MPI_COMM_WORLD);
 			//std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
-			get_difference(parameters, gf_local_up, old_green_function, difference, index);
+			get_difference_self_energy(parameters, self_energy_mb_up, old_self_energy_mb, difference, index);
 			MPI_Barrier(MPI_COMM_WORLD);
 			if (parameters.myid == 0) {
 				std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
