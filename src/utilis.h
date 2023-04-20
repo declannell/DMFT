@@ -17,6 +17,8 @@ void decomp(int steps, int size, int myid, int *s, int *e);
 
 void get_momentum_vectors(std::vector<double> &kx, std::vector<double> &ky, Parameters &parameters);
 
+void write_to_file(const Parameters &parameters, std::vector<double> &gf_up, std::string filename, int voltage_step);
+
 void write_to_file(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_up, std::vector<Eigen::MatrixXcd> &gf_down, std::string filename, int voltage_step);
 
 void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vector<dcomp> &gf_down, std::string filename, int voltage_step);

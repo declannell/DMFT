@@ -131,9 +131,10 @@ Parameters Parameters::from_file()
 				parameters.gamma = std::stod(value);
 			} else if (variable == "wbl_approx") {
 				std::istringstream(value) >> parameters.wbl_approx;
-			} else if (variable == "kk_relation") {
-				std::istringstream(value) >> parameters.kk_relation;
-			} else if (variable == "steps") {
+			} //else if (variable == "kk_relation") {
+				//std::istringstream(value) >> parameters.kk_relation;
+			//} 
+			  else if (variable == "steps") {
 				parameters.steps = std::stoi(value);
 			} else if (variable == "print_gf") {
 				std::istringstream(value) >> parameters.print_gf;
@@ -141,7 +142,11 @@ Parameters Parameters::from_file()
 				parameters.interaction_order = std::stoi(value);
 			} else if (variable == "spin_polarised") {
 				std::istringstream(value) >> parameters.spin_polarised;
-			}
+			} else if (variable == "noneq_test") {
+				std::istringstream(value) >> parameters.noneq_test;
+			} else if (variable == "impurity_solver") {
+                parameters.impurity_solver = std::stoi(value);
+            }
 	}
 	input_file.close();
 	
@@ -284,4 +289,5 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.spin_down_occup = " << parameters.spin_down_occup << std::endl;
 	std::cout << "parameters.print_gf = " << parameters.print_gf << std::endl;
 	std::cout << "parameters.spin_polarised = " << parameters.spin_polarised << std::endl;
+	std::cout << "parameters.noneq_test = " << parameters.noneq_test << std::endl;
 }

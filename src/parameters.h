@@ -55,7 +55,7 @@ struct Parameters
     double convergence;
     double gamma; //this is the value of the imag part of the self energy in the WBL.
     bool wbl_approx; //this sets whether or not we calculate the leads self energy by the wide band approx.
-    bool kk_relation; //try to integrate with the krammers kronig relation
+    //bool kk_relation; //try to integrate with the krammers kronig relation
     int chain_length;   // the number of atoms in the z direction of the scattering region. The number of atoms in the unit cell is 2 chain_length.
     std::vector<int> atom_type; //this is a list of whether the atom is an insulator (=0) or a metal (= 1)
     int interaction_order; // this is the order the green function will be calculated too in terms of interaction strength. this can be equal to 0 , 1 or 2//
@@ -76,6 +76,8 @@ struct Parameters
     MPI_Comm comm;
     bool print_gf;
     bool spin_polarised;
+    bool noneq_test;
+    int impurity_solver; //0 means mean field interaction, 1 means brute force sigma_2, 2 means kramer-kronig sigma_2, 3 means non crossing approx.
 };
 
 

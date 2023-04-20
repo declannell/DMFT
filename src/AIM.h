@@ -30,7 +30,7 @@ public:
 
     void get_retarded_dynamical_field(const Parameters &parameters, const std::vector<dcomp> &local_gf_retarded, const std::vector<dcomp> &self_energy_retarded);
 
-    void get_effective_fermi_function(const Parameters &parameters);
+    void get_effective_fermi_function(const Parameters &parameters, const int voltage_step);
 
     void get_lesser_hybridisation(const Parameters &parameters, const std::vector<dcomp> &self_energy_lesser);
 

@@ -218,12 +218,23 @@ int main(int argc, char **argv)
 		//get_spectral_embedding_self_energy(parameters, leads, m);
 
 		if (parameters.hubbard_interaction != 0) {
-			if (parameters.spin_polarised == true) {
+			if (parameters.spin_polarised == true) {	
 				set_initial_spin(parameters, self_energy_mb_up, self_energy_mb_down);
+
+			if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
+				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+				get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);				
+			} else {
 				get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
 				get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);			
+			}
+		
 			} else { //spin up and down are degenerate. Hence eonly need to do this once
-				get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+				if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
+					get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+				} else {
+					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+				}
 			}
 
 			if (parameters.myid == 0) {
@@ -266,15 +277,16 @@ int main(int argc, char **argv)
 	
 		} else {
 			if (parameters.spin_polarised == true) {
-				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, hamiltonian);
-				get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid, hamiltonian);
-				get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
+				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, 
+					transmission_up, hamiltonian);
+				get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid,
+					transmission_down, hamiltonian);
 				get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
 			} else { //spin down =spin_up
-				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, hamiltonian);
+				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, 
+					transmission_up, hamiltonian);
 				current_down_left_myid = current_up_left_myid;
 				current_down_right_myid = current_up_right_myid;
-				get_transmission(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down, m, hamiltonian);
 				get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
 			}
 		}

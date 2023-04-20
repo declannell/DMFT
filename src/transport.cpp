@@ -19,10 +19,9 @@ void get_transmission(
     std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
     const int voltage_step, std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian)
 {
-	int n_x, n_y;
 
-    n_x =  parameters.num_kx_points; //number of k points to take in x direction
-    n_y =  parameters.num_ky_points; //number of k points to take in y direction
+    int n_x =  parameters.num_kx_points; //number of k points to take in x direction
+    int n_y =  parameters.num_ky_points; //number of k points to take in y direction
 	Eigen::MatrixXcd coupling_left = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
 	Eigen::MatrixXcd coupling_right = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
 
@@ -31,8 +30,6 @@ void get_transmission(
 		leads.at(0).at(0).self_energy_right.at(0), coupling_left, coupling_right, 0);
 	}    
 
-
-    double num_k_points = n_x * n_y;
 
 	if (parameters.spin_polarised == true) {
 		for (int kx_i = 0; kx_i < n_x; kx_i++) {
@@ -45,25 +42,8 @@ void get_transmission(
 				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 				    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
-
-
-				for (int r = 0; r < parameters.steps_myid; r++) {
-
-					if (parameters.wbl_approx != true) {
-						get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left.at(r), 
-						leads.at(kx_i).at(ky_i).self_energy_right.at(r), coupling_left, coupling_right, r + parameters.start.at(parameters.myid));
-					}
-
-					for( int i = 0; i < 4 * parameters.chain_length; i ++){
-						for (int n = 0; n < 4 * parameters.chain_length; n++){
-							transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,i) * gf_interacting_up.interacting_gf.at(r)(i, n)
-								* coupling_right(n, n) * std::conj(gf_interacting_up.interacting_gf.at(r)(i, n)));
-
-							transmission_down.at(r) += 1.0 / num_k_points * (coupling_left(i ,i) * gf_interacting_down.interacting_gf.at(r)(i, n)
-								* coupling_right(n, n) * std::conj(gf_interacting_down.interacting_gf.at(r)(i, n)));
-						}
-					}
-				}
+				get_k_dependent_transmission(parameters, gf_interacting_up.interacting_gf, coupling_left, coupling_right, transmission_up);
+				get_k_dependent_transmission(parameters, gf_interacting_down.interacting_gf, coupling_left, coupling_right, transmission_down);
 			}
 		}
 	} else {//spin_up = spin_down
@@ -73,25 +53,26 @@ void get_transmission(
 				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
 				    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
-				for (int r = 0; r < parameters.steps_myid; r++) {
-					if (parameters.wbl_approx != true) {
-						get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left.at(r), 
-						leads.at(kx_i).at(ky_i).self_energy_right.at(r), coupling_left, coupling_right, r + parameters.start.at(parameters.myid));
-					}
-
-					for( int i = 0; i < 4 * parameters.chain_length; i ++){
-						for (int n = 0; n < 4 * parameters.chain_length; n++){
-							transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i ,i) * gf_interacting_up.interacting_gf.at(r)(i, n)
-								* coupling_right(n, n) * std::conj(gf_interacting_up.interacting_gf.at(r)(i, n)));
-						}
-					}
-				}
+				get_k_dependent_transmission(parameters, gf_interacting_up.interacting_gf, coupling_left, coupling_right, transmission_up);
 			}
 		}
 		for (int r = 0; r < parameters.steps_myid; r++) {
 			transmission_down.at(r) = transmission_up.at(r);
 		}
 	}
+}
+
+void get_k_dependent_transmission(const Parameters& parameters, std::vector<Eigen::MatrixXcd>& green_function,
+    const Eigen::MatrixXcd &coupling_left, Eigen::MatrixXcd &coupling_right, std::vector<dcomp> &transmission) {
+		double num_k_points = parameters.num_kx_points * parameters.num_ky_points;
+		for (int r = 0; r < parameters.steps_myid; r++) {
+			for( int i = 0; i < 4 * parameters.chain_length; i ++){
+				for (int n = 0; n < 4 * parameters.chain_length; n++){
+					transmission.at(r) += 1.0 / num_k_points * (coupling_left(i ,i) * green_function.at(r)(i, n)
+					* coupling_right(n, n) * std::conj(green_function.at(r)(i, n)));
+				}
+			}
+		}
 }
 
 void get_transmission_gf_local(
@@ -136,29 +117,14 @@ void get_transmission_gf_local(
                     }
 					gf_local_lesser.at(r)(i, i) += gf_lesser.at(r)(i, i) / num_k_points;
                 }
-
-				if (parameters.wbl_approx != true) {
-					get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left.at(r), 
-					leads.at(kx_i).at(ky_i).self_energy_right.at(r), coupling_left, coupling_right, r + parameters.start.at(parameters.myid));
-				}
-
-				
-
-				for( int i = 0; i < 4 * parameters.chain_length; i ++){
-					for (int n = 0; n < 4 * parameters.chain_length; n++){
-						transmission_up.at(r) += 1.0 / num_k_points * (coupling_left(i, i) * gf_interacting.interacting_gf.at(r)(i, n)
-							* coupling_right(n, n) * std::conj(gf_interacting.interacting_gf.at(r)(i, n)));
-					}
-				}
 			}
+			get_k_dependent_transmission(parameters, gf_interacting.interacting_gf, coupling_left, coupling_right, transmission_up);
 		}
 	}
 	for (int r = 0; r < parameters.steps_myid; r++) {
 		transmission_down.at(r) = transmission_up.at(r);
 	}
-
 }
-
 
 
 void get_coupling(const Parameters &parameters, const Eigen::MatrixXcd &self_energy_left, const Eigen::MatrixXcd &self_energy_right, 
@@ -176,7 +142,6 @@ void get_coupling(const Parameters &parameters, const Eigen::MatrixXcd &self_ene
         coupling_left(2 * parameters.chain_length, 2 * parameters.chain_length) = parameters.j1 * (self_energy_left(2, 2) - conj(self_energy_left(2, 2)));
 
         coupling_left(3 * parameters.chain_length, 3 * parameters.chain_length) = parameters.j1 * (self_energy_left(3, 3) - conj(self_energy_left(3, 3)));
-
 
         coupling_right(parameters.chain_length - 1, parameters.chain_length - 1) = parameters.j1 *
 		(self_energy_right(0, 0) - conj(self_energy_right(0, 0)));
@@ -217,15 +182,19 @@ void get_landauer_buttiker_current(const Parameters& parameters,
 
 void get_meir_wingreen_current(
     const Parameters &parameters, 
-    const std::vector<std::vector<dcomp>> &self_energy_mb,
-    const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
-    const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, const int voltage_step,
-    double *current_left, double *current_right, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian)
+    const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
+    const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, const int voltage_step, double *current_left,
+	double *current_right, std::vector<dcomp>& transmission_up, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian)
 {
-	int n_x, n_y;
+    int n_x =  parameters.num_kx_points; //number of k points to take in x direction
+    int n_y =  parameters.num_ky_points; //number of k points to take in y direction
 
-    n_x =  parameters.num_kx_points; //number of k points to take in x direction
-    n_y =  parameters.num_ky_points; //number of k points to take in y direction
+	Eigen::MatrixXcd coupling_left = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
+	Eigen::MatrixXcd coupling_right = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
+	if (parameters.wbl_approx == true) {
+		get_coupling(parameters, leads.at(0).at(0).self_energy_left.at(0), 
+		leads.at(0).at(0).self_energy_right.at(0), coupling_left, coupling_right, 0);
+	}    
 
 	double num_k_points = n_x * n_y;
 	for (int kx_i = 0; kx_i < n_x; kx_i++) {
@@ -237,12 +206,17 @@ void get_meir_wingreen_current(
 			std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps_myid,
 			    Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 
-			get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser,
-			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
-			    gf_lesser, voltage_step);
-			
+			if (parameters.noneq_test == true) {
+				get_gf_lesser_fd(parameters, gf_interacting.interacting_gf, gf_lesser);
+			} else {
+				get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser,
+				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    gf_lesser, voltage_step);
+			}
 
 			dcomp current_k_resolved_left, current_k_resolved_right;
+
+			get_k_dependent_transmission(parameters, gf_interacting.interacting_gf, coupling_left, coupling_right, transmission_up);
 
 			get_meir_wingreen_k_dependent_current(parameters, gf_interacting.interacting_gf,
 			    gf_lesser, leads.at(kx_i).at(ky_i).self_energy_left,
@@ -253,6 +227,10 @@ void get_meir_wingreen_current(
 		}
 	}
 }
+
+
+
+
 
 void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
     std::vector<Eigen::MatrixXcd>& green_function,
@@ -269,6 +247,8 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 	//std::string var = oss.str();
 	//std::ofstream integrand_file;
 	//integrand_file.open(var);
+
+
 
 	Eigen::MatrixXcd coupling_left = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
 	Eigen::MatrixXcd coupling_right = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
@@ -288,11 +268,20 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		//this formula is from PHYSICAL REVIEW B 72, 125114 2005
 		for (int i = 0; i < 4 * parameters.chain_length; i++){
 
-				trace_left += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) - parameters.voltage_l.at(voltage_step),
-		        	parameters) * coupling_left(i, i) * parameters.j1 * (green_function.at(r)(i, i) - conj(green_function.at(r)(i, i)));
+				if (parameters.noneq_test == true) {
+					trace_left += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)),
+		        		parameters) * coupling_left(i, i) * parameters.j1 * (green_function.at(r)(i, i) - conj(green_function.at(r)(i, i)));
 
-				trace_right += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) - parameters.voltage_r.at(voltage_step),
-		        	parameters) * coupling_right(i, i) * parameters.j1 * (green_function.at(r)(i, i) - conj(green_function.at(r)(i, i)));
+					trace_right += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)),
+		        		parameters) * coupling_right(i, i) * parameters.j1 * (green_function.at(r)(i, i) - conj(green_function.at(r)(i, i)));	
+				} else {
+					trace_left += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) - parameters.voltage_l.at(voltage_step),
+		        		parameters) * coupling_left(i, i) * parameters.j1 * (green_function.at(r)(i, i) - conj(green_function.at(r)(i, i)));
+
+					trace_right += fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) - parameters.voltage_r.at(voltage_step),
+		        		parameters) * coupling_right(i, i) * parameters.j1 * (green_function.at(r)(i, i) - conj(green_function.at(r)(i, i)));
+				}
+
 	
 				trace_left += parameters.j1 * coupling_left(i, i) * green_function_lesser.at(r)(i, i);
 				trace_right += parameters.j1 * coupling_right(i, i) * green_function_lesser.at(r)(i, i);

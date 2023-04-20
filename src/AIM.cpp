@@ -9,6 +9,7 @@
 #include <eigen3/Eigen/Dense>
 #include "interacting_gf.h"
 #include "AIM.h"
+#include "utilis.h"
 #include <limits>
 
 AIM::AIM(const Parameters &parameters, const std::vector<dcomp> &local_gf_retarded, const std::vector<dcomp> &local_gf_lesser, 
@@ -27,7 +28,7 @@ AIM::AIM(const Parameters &parameters, const std::vector<dcomp> &local_gf_retard
     get_retarded_dynamical_field(parameters, local_gf_retarded, self_energy_retarded);
     get_lesser_hybridisation(parameters, self_energy_lesser);   
     get_dynamical_field_lesser(parameters, voltage_step);
-    get_effective_fermi_function(parameters); 
+    get_effective_fermi_function(parameters, voltage_step); 
 }
 
 void AIM::get_impurity_gf_mb(const Parameters &parameters, const std::vector<dcomp> &local_gf_retarded, const std::vector<dcomp> &local_gf_lesser)
@@ -113,7 +114,7 @@ void AIM::get_dynamical_field_lesser(const Parameters &parameters, const int vol
 }
 
 
-void AIM::get_effective_fermi_function(const Parameters &parameters){
+void AIM::get_effective_fermi_function(const Parameters &parameters, const int voltage_step){
 
     //std::ostringstream ossgf;
 	//ossgf << "textfiles/" << 1 << "."  << ".effective_fermi.txt";
@@ -135,6 +136,7 @@ void AIM::get_effective_fermi_function(const Parameters &parameters){
         //        << this->hybridisation_lesser.at(r) << "    " <<  (2.0 * parameters.j1 * parameters.delta_gf +
         //                                    (1.0 / advanced) - 1.0 / (this->dynamical_field_retarded.at(r))) << " \n";
     }
+    write_to_file(parameters, this->fermi_function_eff, "fermi_effective", voltage_step);
 	//effective_fermi_function.close();
 }
 

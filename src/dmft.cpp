@@ -228,14 +228,12 @@ double integrate_equilibrium(const Parameters& parameters, const std::vector<dou
 
 void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim_up, AIM &aim_down, const int voltage_step)
 {
-
 	std::vector<double> impurity_self_energy_imag(parameters.steps); //this is for the kramer-kronig relation. 
 	std::vector<double> impurity_self_energy_real_myid(parameters.steps_myid), impurity_self_energy_imag_myid(parameters.steps_myid);
 
 	std::vector<double> fermi_eff_up(parameters.steps), fermi_eff_down(parameters.steps);
 	distribute_to_procs(parameters, fermi_eff_up,  aim_up.fermi_function_eff); //this is for the fermi function is the kk self energy.
 	distribute_to_procs(parameters, fermi_eff_down, aim_down.fermi_function_eff);
-
 
 	std::vector<dcomp> gf_lesser_up(parameters.steps), gf_lesser_down(parameters.steps), gf_greater_down(parameters.steps); //this is to pass into the integrater 
 		//for the self energy.
@@ -281,6 +279,10 @@ void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim
 	}
 }
 
+
+
+
+
 void impurity_solver(const Parameters &parameters, const int voltage_step, 
     AIM &aim_up, AIM &aim_down, double *spin_up, double *spin_down)
 {
@@ -290,47 +292,26 @@ void impurity_solver(const Parameters &parameters, const int voltage_step,
 		std::cout << "The spin down occupancy is " << *spin_down << "\n";
 	}
 
-	if (parameters.interaction_order == 2) {
-
-		if (parameters.kk_relation == true || voltage_step == 0){
-			if (parameters.myid == 0) {
-				std::cout << "using the kramer-kronig relation \n";
-			}
-			if (parameters.spin_polarised == true) {
-				self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
-				self_energy_2nd_order_kramers_kronig(parameters, aim_down, aim_up, voltage_step);
-			} else { //only need to do this for spin up. Note aim_down = aim_up
-				self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
-			}
-		} else {
-			if (parameters.spin_polarised == true) {
-				self_energy_2nd_order(parameters, aim_up, aim_down);
-				self_energy_2nd_order(parameters, aim_down, aim_up);
-			} else { //only need to do this for spin up. Note aim_down = aim_up
-				self_energy_2nd_order(parameters, aim_up, aim_down);
-			}
-
-		}
-        //one can choose a normal intergation (self_energy_2nd_order) or a krammer kronig method (self_energy_2nd_order_krammer_kronig)
-
-		if (parameters.myid == 0) {
-			std::cout << "adding the first order term\n ";
-		}
-		
+	if (parameters.impurity_solver == 2) {// kramer kronig relation.
+		std::cout << "using the kramer-kronig relation for second order perturbation theory\n";
 		if (parameters.spin_polarised == true) {
-			for (int r = 0; r < parameters.steps_myid; r++) {
-				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
-				aim_down.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_up);
-			} 
-		} else {
-			for (int r = 0; r < parameters.steps_myid; r++) {
-				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
-			}	
+			self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
+			self_energy_2nd_order_kramers_kronig(parameters, aim_down, aim_up, voltage_step);
+		} else { //only need to do this for spin up. Note aim_down = aim_up
+			self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
 		}
-			//std::cout << aim_up.self_energy_mb_retarded.at(r) << "\n";
 	}
 
-	if (parameters.interaction_order == 1) {
+	if (parameters.impurity_solver == 1) {//brute force sigma_2
+		if (parameters.spin_polarised == true) {
+			self_energy_2nd_order(parameters, aim_up, aim_down);
+			self_energy_2nd_order(parameters, aim_down, aim_up);
+		} else { //only need to do this for spin up. Note aim_down = aim_up
+			self_energy_2nd_order(parameters, aim_up, aim_down);
+		}
+	}
+
+	if (parameters.impurity_solver == 1 || 2 || 0) {//if mean field or either implementation of sigma_2 then add the first order term.
 		if (parameters.spin_polarised == true) {
 			for (int r = 0; r < parameters.steps_myid; r++) {
 				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
@@ -341,6 +322,10 @@ void impurity_solver(const Parameters &parameters, const int voltage_step,
 				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
 			}	
 		}
+	}
+
+	if (parameters.impurity_solver == 3) {
+		
 	}
 }
 
@@ -427,8 +412,15 @@ void dmft(const Parameters &parameters, const int voltage_step,
     	        }
 			}
 
-			get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
-			get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);
+			if (parameters.noneq_test == true) {
+				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
+				get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);				
+			} else {
+				get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
+				get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);			
+			}
+
+
 			count++;
 		}
 	} else { //spin up is the same as spin down
@@ -487,7 +479,11 @@ void dmft(const Parameters &parameters, const int voltage_step,
     	        }
 			}
 
-			get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
+			if (parameters.noneq_test == true) {
+				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
+			} else {
+				get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
+			}
 			count++;
 		}
 	}
