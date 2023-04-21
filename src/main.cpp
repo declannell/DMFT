@@ -285,6 +285,9 @@ int main(int argc, char **argv)
 			} else { //spin down =spin_up
 				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, 
 					transmission_up, hamiltonian);
+				for(int r = 0; r < parameters.steps_myid; r++) {
+					transmission_down.at(r) = transmission_up.at(r);
+				}
 				current_down_left_myid = current_up_left_myid;
 				current_down_right_myid = current_up_right_myid;
 				get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
