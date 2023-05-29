@@ -1,3 +1,4 @@
+
 #include "dmft.h"
 #include <mpi.h>
 #include <eigen3/Eigen/Dense>
@@ -10,6 +11,46 @@
 #include "parameters.h"
 #include "AIM.h"
 #include "utilis.h"
+#include "dmft.h"
+
+
+void get_spin_occupation(const Parameters &parameters, const std::vector<double> &gf_lesser_up,
+                        const std::vector<double> &gf_lesser_down, double *spin_up, double *spin_down)
+{
+	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)(parameters.steps);
+	double result_up = 0.0, result_down = 0.0;
+
+	if (parameters.spin_polarised == true) {
+		for (int r = 0; r < parameters.steps_myid; r++) {
+		//std::cout << parameters.energy.at(r) << " " << gf_lesser_down.at(r).imag() <<  std::endl;
+			if (r + parameters.start.at(parameters.myid) == 0 || r + parameters.start.at(parameters.myid) == parameters.steps - 1) {
+			//std::cout << "I am rank " << parameters.myid << std::endl;
+				result_up += (delta_energy / 2.0) * gf_lesser_up.at(r);
+				result_down += (delta_energy / 2.0) * gf_lesser_down.at(r);
+			} else {
+				result_up += (delta_energy) * gf_lesser_up.at(r);
+				result_down += (delta_energy) * gf_lesser_down.at(r);
+			}
+		}
+		result_up = 1.0 / (2.0 * M_PI) * result_up;
+		result_down = 1.0 / (2.0 * M_PI) * result_down;
+		MPI_Allreduce(&result_up, spin_up, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		MPI_Allreduce(&result_down, spin_down, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	
+	} else {
+		for (int r = 0; r < parameters.steps_myid; r++) {
+			if (r + parameters.start.at(parameters.myid) == 0 || r + parameters.start.at(parameters.myid) == parameters.steps - 1) {
+				result_up += (delta_energy / 2.0) * gf_lesser_up.at(r);
+			} else {
+				result_up += (delta_energy) * gf_lesser_up.at(r);
+			}
+		}
+		result_up = 1.0 / (2.0 * M_PI) * result_up;
+		MPI_Allreduce(&result_up, spin_up, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+		*spin_down = *spin_up;
+	}
+}
+
 
 dcomp integrate(const Parameters& parameters, const std::vector<dcomp>& gf_1, const std::vector<dcomp>& gf_2, const std::vector<dcomp>& gf_3, const int r)
 {
@@ -162,3 +203,51 @@ void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim
 	}
 }
 
+
+
+
+void impurity_solver_sigma_2(const Parameters &parameters, const int voltage_step, 
+    AIM &aim_up, AIM &aim_down, double *spin_up, double *spin_down)
+{
+	get_spin_occupation(parameters, aim_up.dynamical_field_lesser, aim_down.dynamical_field_lesser, spin_up, spin_down);
+	if (parameters.myid == 0) {
+		std::cout << std::setprecision(15) << "The spin up occupancy is " << *spin_up << "\n";
+		std::cout << "The spin down occupancy is " << *spin_down << "\n";
+	}
+
+	if (parameters.impurity_solver == 2) {// kramer kronig relation.
+		std::cout << "using the kramer-kronig relation for second order perturbation theory\n";
+		if (parameters.spin_polarised == true) {
+			self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
+			self_energy_2nd_order_kramers_kronig(parameters, aim_down, aim_up, voltage_step);
+		} else { //only need to do this for spin up. Note aim_down = aim_up
+			self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
+		}
+	}
+
+	if (parameters.impurity_solver == 1) {//brute force sigma_2
+		if (parameters.spin_polarised == true) {
+			self_energy_2nd_order(parameters, aim_up, aim_down);
+			self_energy_2nd_order(parameters, aim_down, aim_up);
+		} else { //only need to do this for spin up. Note aim_down = aim_up
+			self_energy_2nd_order(parameters, aim_up, aim_down);
+		}
+	}
+
+	if (parameters.impurity_solver == 1 || 2 || 0) {//if mean field or either implementation of sigma_2 then add the first order term.
+		if (parameters.spin_polarised == true) {
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
+				aim_down.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_up);
+			} 
+		} else {
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
+			}	
+		}
+	}
+
+	if (parameters.impurity_solver == 3) {
+		
+	}
+}

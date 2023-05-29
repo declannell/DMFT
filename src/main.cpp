@@ -177,6 +177,18 @@ int main(int argc, char **argv)
 		std::vector<Eigen::MatrixXcd> gf_local_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 		std::vector<Eigen::MatrixXcd> gf_local_lesser_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 		std::vector<Eigen::MatrixXcd> gf_local_lesser_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+
+		std::vector<Eigen::MatrixXcd> gf_local_greater_up, gf_local_greater_down;
+		std::vector<std::vector<dcomp>> self_energy_mb_greater_down, self_energy_mb_greater_up;
+
+
+		if (parameters.interaction_order == 3) {
+			gf_local_greater_up.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+			gf_local_greater_down.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+			self_energy_mb_greater_down.resize(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
+		    self_energy_mb_greater_up.resize(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
+		}
+
 		std::vector<std::vector<dcomp>> self_energy_mb_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
 		    self_energy_mb_lesser_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
 		std::vector<std::vector<dcomp>> self_energy_mb_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
@@ -225,15 +237,27 @@ int main(int argc, char **argv)
 				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
 				get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);				
 			} else {
-				get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
-				get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);			
+				if (parameters.interaction_order == 3) {//this calculates g_> as well which is required for the nca.
+					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
+					 	gf_local_greater_up, m, hamiltonian);
+					get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
+						 gf_local_down, gf_local_lesser_down, gf_local_greater_down, m, hamiltonian);	
+				} else {
+					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+					get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);	
+				}
 			}
 		
 			} else { //spin up and down are degenerate. Hence eonly need to do this once
 				if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
 					get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
 				} else {
-					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+					if (parameters.interaction_order == 3) {//this calculates g_> as well which is required for the nca.
+						get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
+					 		gf_local_greater_up, m, hamiltonian);
+					} else {
+						get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+					}
 				}
 			}
 
@@ -241,8 +265,9 @@ int main(int argc, char **argv)
 				std::cout << "got local retarded and lesser gf" << std::endl;
 			}
 
-			dmft(parameters, m, self_energy_mb_up, self_energy_mb_down, self_energy_mb_lesser_up, self_energy_mb_lesser_down, gf_local_up, gf_local_down, gf_local_lesser_up,
-			    gf_local_lesser_down, leads, spins_occup, hamiltonian);
+			dmft(parameters, m, self_energy_mb_up, self_energy_mb_down, self_energy_mb_lesser_up, self_energy_mb_lesser_down,
+				self_energy_mb_greater_up, self_energy_mb_greater_down, gf_local_up, gf_local_down, gf_local_lesser_up, gf_local_lesser_down,
+				gf_local_greater_up, gf_local_greater_down, leads, spins_occup, hamiltonian);
 
 			if (parameters.myid == 0) {
 				std::cout << "got self energy " << std::endl;

@@ -42,9 +42,17 @@ void get_advance_gf(const Parameters &parameters, const Eigen::MatrixXcd &gf_ret
 void get_embedding_lesser(const Parameters &parameters, const Eigen::MatrixXcd &self_energy_left, 
     const Eigen::MatrixXcd &self_energy_right, Eigen::MatrixXcd &embedding_self_energy_lesser, int r, int voltage_step);
 
+void get_embedding_greater(const Parameters &parameters, const Eigen::MatrixXcd &self_energy_left, 
+    const Eigen::MatrixXcd &self_energy_right, Eigen::MatrixXcd &embedding_self_energy_greater, int r, int voltage_step);
+
 void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, 
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<Eigen::MatrixXcd> &self_energy_left, 
     const std::vector<Eigen::MatrixXcd> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser, int voltage_step);
+
+void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, 
+    const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<std::vector<dcomp>> &self_energy_mb_greater,
+    const std::vector<Eigen::MatrixXcd> &self_energy_left, const std::vector<Eigen::MatrixXcd> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser,
+    std::vector<Eigen::MatrixXcd> &gf_greater, int voltage_step);
 
 void get_gf_lesser_fd(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, std::vector<Eigen::MatrixXcd> &gf_lesser);
 
@@ -53,7 +61,16 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
     std::vector<Eigen::MatrixXcd> &gf_local_lesser, const int voltage_step, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian);
 
+void get_local_gf_r_greater_lesser(const Parameters &parameters, 
+    const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> &self_energy_mb_lesser,
+    const std::vector<std::vector<dcomp>> &self_energy_mb_greater,
+    const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
+    std::vector<Eigen::MatrixXcd> &gf_local_lesser, std::vector<Eigen::MatrixXcd> &gf_local_greater, 
+    const int voltage_step, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian);
 
 void get_noneq_test(const Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, 
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<Eigen::MatrixXcd> &gf_local, 
     std::vector<Eigen::MatrixXcd> &gf_local_lesser, const int voltage_step, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian);
+
+
+
