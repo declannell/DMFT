@@ -315,3 +315,21 @@ void distribute_to_procs(const Parameters &parameters, std::vector<double> &vec_
 		MPI_Barrier(MPI_COMM_WORLD);
 		MPI_Bcast(&(vec_1.at(0)), parameters.steps, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 }
+
+
+double kramer_kronig_relation(const Parameters& parameters, std::vector<double>& impurity_self_energy_imag, int r)
+{
+	double real_self_energy = 0;
+	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
+	for (int q = 0; q < parameters.steps; q++) {
+		if (q != r) {
+			real_self_energy += delta_energy * impurity_self_energy_imag.at(q) / (parameters.energy.at(q) - parameters.energy.at(r));
+        }
+    }
+	return real_self_energy / M_PI;
+}
+
+double absolute_value(double num1) {
+	return std::sqrt((num1 ) * (num1));
+
+}

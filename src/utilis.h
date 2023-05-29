@@ -29,3 +29,9 @@ void distribute_to_procs(const Parameters &parameters, std::vector<dcomp> &vec_1
 
 void distribute_to_procs(const Parameters &parameters, std::vector<double> &vec_1, std::vector<double> &vec_2);
 
+double kramer_kronig_relation(const Parameters& parameters, std::vector<double>& impurity_self_energy_imag, int r);
+
+double absolute_value(double num1);
+
+
+
