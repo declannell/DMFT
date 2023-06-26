@@ -49,7 +49,7 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<Eigen::MatrixXcd> &self_energy_left, 
     const std::vector<Eigen::MatrixXcd> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser, int voltage_step);
 
-void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, 
+void get_gf_lesser_greater_non_eq(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, 
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<std::vector<dcomp>> &self_energy_mb_greater,
     const std::vector<Eigen::MatrixXcd> &self_energy_left, const std::vector<Eigen::MatrixXcd> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser,
     std::vector<Eigen::MatrixXcd> &gf_greater, int voltage_step);

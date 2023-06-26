@@ -107,6 +107,8 @@ Parameters Parameters::from_file()
 				parameters.voltage_step = std::stoi(value);
 			} else if (variable == "self_consistent_steps") {
 				parameters.self_consistent_steps = std::stod(value);
+			}else if (variable == "self_consistent_steps_nca") {
+				parameters.self_consistent_steps_nca = std::stod(value);
 			} else if (variable == "read_in_self_energy") {
 				std::istringstream(value) >> parameters.read_in_self_energy;
 			} else if (variable == "NIV_points") {
@@ -214,15 +216,15 @@ Parameters Parameters::from_file()
 	parameters.j1 = -1;
 	parameters.j1 = sqrt(parameters.j1);
 
-	double delta_energy =
+	parameters.delta_energy =
 	    (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
 
 	for (int i = 0; i < parameters.steps; i++) {
-		parameters.energy.at(i) = parameters.e_lower_bound + delta_energy * (double)i;
+		parameters.energy.at(i) = parameters.e_lower_bound + parameters.delta_energy * (double)i;
 	}
 	return parameters;
 
-	if (delta_energy < parameters.delta_v) {
+	if (parameters.delta_energy < parameters.delta_v) {
 		std::cout << "Delta voltage is less than delta energy. This gives unphysical step function "
 		             "results. Make delta_energy < parameters.delta_v"
 		          << std::endl;
@@ -276,6 +278,7 @@ void print_parameters(Parameters& parameters)
 	std::cout << "hubbard_interaction = " << parameters.hubbard_interaction << std::endl;
 	std::cout << "voltage_step = " << parameters.voltage_step << std::endl;
 	std::cout << "self_consistent_steps = " << parameters.self_consistent_steps << std::endl;
+	std::cout << "self_consistent_steps_nca = " << parameters.self_consistent_steps_nca << std::endl;
 	std::cout << "read_in_self_energy = " << parameters.read_in_self_energy << std::endl;
 	std::cout << "NIV_points = " << parameters.NIV_points << std::endl;
 	std::cout << "delta_v = " << parameters.delta_v << std::endl;

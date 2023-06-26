@@ -42,7 +42,8 @@ struct Parameters
     double e_lower_bound;       // this is the min energy value
     double hubbard_interaction; // this is the hubbard interaction
     int voltage_step;        // voltage step of zero is equilibrium. This is an integer and higher values correspond to a higher potential difference between the two leads.
-    double self_consistent_steps; // this is the number of self consistent steps my code needs
+    double self_consistent_steps; // this is the number of self consistent steps my code does
+    double self_consistent_steps_nca; // this is the number of self consistent steps my code does for the nca loop
     bool read_in_self_energy;
     int NIV_points;//number of IV points
 	int NIV_start; //starting bias for the calculation. 0 for equilibrium
@@ -77,6 +78,7 @@ struct Parameters
     bool print_gf;
     bool spin_polarised;
     bool noneq_test;
+    double delta_energy;
     int impurity_solver; //0 means mean field interaction, 1 means brute force sigma_2, 2 means kramer-kronig sigma_2, 3 means non crossing approx.
 };
 

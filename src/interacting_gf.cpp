@@ -375,7 +375,7 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
     }
 }
 
-void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, 
+void get_gf_lesser_greater_non_eq(const Parameters &parameters, const std::vector<Eigen::MatrixXcd> &gf_retarded, 
     const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<std::vector<dcomp>> &self_energy_mb_greater,
     const std::vector<Eigen::MatrixXcd> &self_energy_left, const std::vector<Eigen::MatrixXcd> &self_energy_right, std::vector<Eigen::MatrixXcd> &gf_lesser,
     std::vector<Eigen::MatrixXcd> &gf_greater, int voltage_step){
@@ -392,12 +392,13 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const std::vector<Eigen:
         get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy_lesser, r + parameters.start.at(parameters.myid), voltage_step);
         get_embedding_greater(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy_greater, r + parameters.start.at(parameters.myid), voltage_step);
 
- 
+        //std::cout << embedding_self_energy_greater(0, 0) << " " << embedding_self_energy_greater(0, 0) << std::endl;        
+
         for(int i = 0; i < 4 * parameters.chain_length; i++) {
             for(int m = 0; m < 4 * parameters.chain_length; m++){
                 gf_lesser.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_lesser.at(m).at(r) + embedding_self_energy_lesser(m, m))
                     * std::conj(gf_retarded.at(r)(i, m));
-
+                
                 gf_greater.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_greater.at(m).at(r) + embedding_self_energy_greater(m, m))
                     * std::conj(gf_retarded.at(r)(i, m));
             }
@@ -512,7 +513,7 @@ void get_local_gf_r_greater_lesser(const Parameters &parameters,
                 leads.at(kx_i).at(ky_i).self_energy_left,
                 leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));   
 
-            get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser, self_energy_mb_greater, leads.at(kx_i).at(ky_i).self_energy_left, 
+            get_gf_lesser_greater_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser, self_energy_mb_greater, leads.at(kx_i).at(ky_i).self_energy_left, 
                 leads.at(kx_i).at(ky_i).self_energy_right, gf_lesser, gf_greater, voltage_step);
 
             for(int r = 0; r < parameters.steps_myid; r++){

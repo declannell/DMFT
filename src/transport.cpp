@@ -161,17 +161,15 @@ void get_landauer_buttiker_current(const Parameters& parameters,
     const std::vector<dcomp>& transmission_up, const std::vector<dcomp>& transmission_down,
     double* current_up, double* current_down, const int votlage_step)
 {
-	double delta_energy =
-	    (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
 	
 	for (int r = 0; r < parameters.steps_myid; r++) {
-		*current_up -= (delta_energy * transmission_up.at(r)
+		*current_up -= (parameters.delta_energy * transmission_up.at(r)
 		    * (fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step],
 		           parameters)
 		        - fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid))
 		                + parameters.voltage_r[votlage_step],
 		            parameters))).real();
-		*current_down -= (delta_energy * transmission_down.at(r)
+		*current_down -= (parameters.delta_energy * transmission_down.at(r)
 		    * (fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step],
 		           parameters)
 		        - fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid))
@@ -237,8 +235,6 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
     std::vector<Eigen::MatrixXcd>& green_function_lesser, const std::vector<Eigen::MatrixXcd>& self_energy_left,
     const std::vector<Eigen::MatrixXcd>& self_energy_right, const int voltage_step, dcomp* current_left, dcomp* current_right)
 {
-	double delta_energy =
-	    (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
 
 	dcomp trace_left = 0.0, trace_right = 0.0;
 
@@ -294,8 +290,8 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		//		<< trace_left.real() << "  "
 		//		<< trace_right.real() <<"\n";
 				
-		*current_left -= delta_energy * trace_left;
-		*current_right -= delta_energy * trace_right;
+		*current_left -= parameters.delta_energy * trace_left;
+		*current_right -= parameters.delta_energy * trace_right;
 	}
 
 	//integrand_file.close();

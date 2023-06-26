@@ -9,7 +9,7 @@
 #include "interacting_gf.h"
 #include "leads_self_energy.h"
 #include "parameters.h"
-#include "AIM.h"
+#include "aim.h"
 #include "utilis.h"
 #include "nca.h"
 
@@ -88,6 +88,9 @@ void dmft(const Parameters &parameters, const int voltage_step,
 	std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 	std::vector<std::vector<dcomp>> old_self_energy_mb(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 100));
 
+	//write_to_file(parameters, gf_local_greater_up, gf_local_greater_up, "gf_greater_dmft.dat", voltage_step);
+	//write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_up, "gf_lesser_dmft.dat", voltage_step);
+
 	if (parameters.spin_polarised == true) {
 		std::vector<dcomp> diag_gf_local_up(parameters.steps_myid), diag_gf_local_down(parameters.steps_myid), diag_gf_local_lesser_up(parameters.steps_myid),
 	    	diag_gf_local_lesser_down(parameters.steps_myid), diag_gf_local_greater_up,
@@ -96,7 +99,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 			impurity_self_energy_lesser_down(parameters.steps_myid),  impurity_self_energy_greater_up, 
 			impurity_self_energy_greater_down;
 
-			if (parameters.interaction_order == 3) {
+			if (parameters.impurity_solver == 3) {
 				diag_gf_local_greater_up.resize(parameters.steps_myid);
 	    		diag_gf_local_greater_down.resize(parameters.steps_myid);
 				impurity_self_energy_greater_up.resize(parameters.steps_myid); 
@@ -130,9 +133,10 @@ void dmft(const Parameters &parameters, const int voltage_step,
 					impurity_self_energy_down.at(r) = self_energy_mb_down.at(i).at(r);
 					impurity_self_energy_lesser_up.at(r) = self_energy_mb_lesser_up.at(i).at(r);
 					impurity_self_energy_lesser_down.at(r) = self_energy_mb_lesser_down.at(i).at(r);
+					std::cout << impurity_self_energy_up.at(r) << std::endl;
 				}
 
-				if (parameters.interaction_order == 3) {
+				if (parameters.impurity_solver == 3) {
 					for (int r = 0; r < parameters.steps_myid; r++) {
 						diag_gf_local_greater_up.at(r) = gf_local_greater_up.at(r)(i, i);
 						diag_gf_local_greater_down.at(r) = gf_local_greater_down.at(r)(i, i);
@@ -154,13 +158,14 @@ void dmft(const Parameters &parameters, const int voltage_step,
 				if (parameters.impurity_solver != 3) {
 					impurity_solver_sigma_2(parameters, voltage_step, aim_up, aim_down, &spins_occup.at(i), &spins_occup.at(i + 4 * parameters.chain_length));
 				} else {
-					//impurity_solver_nca(parameters, voltage_step, aim_up, aim_down);
+					impurity_solver_nca(parameters, voltage_step, aim_up, aim_down);
 				}
 				
-
+				
 
 				if (parameters.myid == 0) {
-					std::cout << "AIM was created for atom " << i << std::endl;
+					std::cout << "\n \n";
+					//std::cout << "AIM was created for atom " << i << std::endl;
 				}
 
     	        if(count == 0){
@@ -180,7 +185,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
     	            }
     	        }
 
-				if (parameters.interaction_order == 3) {
+				if (parameters.impurity_solver == 3) {
 					if(count == 0){
     	            	for (int r = 0; r < parameters.steps_myid; r++) {
     	            	    self_energy_mb_greater_up.at(i).at(r) = parameters.j1 * aim_up.self_energy_mb_greater.at(r);
@@ -199,7 +204,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
 				get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);				
 			} else {
-				if (parameters.interaction_order == 3) {
+				if (parameters.impurity_solver == 3) {
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
 					 	gf_local_greater_up, voltage_step, hamiltonian);
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
@@ -219,7 +224,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 	    	diag_gf_local_greater_up, impurity_self_energy_up(parameters.steps_myid), impurity_self_energy_lesser_up(parameters.steps_myid), 
 			impurity_self_energy_greater_up;
 
-			if (parameters.interaction_order == 3) {
+			if (parameters.impurity_solver == 3) {
 				diag_gf_local_greater_up.resize(parameters.steps_myid);
 				impurity_self_energy_greater_up.resize(parameters.steps_myid); 
 			}
@@ -247,13 +252,16 @@ void dmft(const Parameters &parameters, const int voltage_step,
 					diag_gf_local_lesser_up.at(r) = gf_local_lesser_up.at(r)(i, i);
 					impurity_self_energy_up.at(r) = self_energy_mb_up.at(i).at(r);
 					impurity_self_energy_lesser_up.at(r) = self_energy_mb_lesser_up.at(i).at(r);
+					//write_to_file(parameters, diag_gf_local_lesser_up, "diag_gf_local_lesser_up", 0);
 				}
 
-				if (parameters.interaction_order == 3) {
+
+				if (parameters.impurity_solver == 3) {
 					for (int r = 0; r < parameters.steps_myid; r++) {
 						diag_gf_local_greater_up.at(r) = gf_local_greater_up.at(r)(i, i);
 						impurity_self_energy_greater_up.at(r) = self_energy_mb_greater_up.at(i).at(r);
 					}
+					//write_to_file(parameters, diag_gf_local_greater_up, "diag_gf_local_greater_up", 0);
 				}
 
 				//MPI_Allgather(&diag_gf_local_up_myid, parameters.steps_myid, MPI_DOUBLE_COMPLEX, &diag_gf_local_up, parameters.steps_myid, MPI_DOUBLE_COMPLEX, MPI_COMM_WORLD);
@@ -267,13 +275,14 @@ void dmft(const Parameters &parameters, const int voltage_step,
 				if (parameters.impurity_solver != 3) {
 					impurity_solver_sigma_2(parameters, voltage_step, aim_up, aim_up, &spins_occup.at(i), &spins_occup.at(i + 4 * parameters.chain_length));
 				} else {
-					//impurity_solver_nca(parameters, voltage_step, aim_up, aim_down);
+					impurity_solver_nca(parameters, voltage_step, aim_up, aim_up);
 				}
 				
 
 
 				if (parameters.myid == 0) {
-					std::cout << "AIM was created for atom " << i << std::endl;
+					std::cout << "\n \n";
+					//std::cout << "AIM was created for atom " << i << std::endl;
 				}
 
     	        if(count == 0){
@@ -288,7 +297,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
     	            }
     	        }
 
-				if (parameters.interaction_order == 3) {
+				if (parameters.impurity_solver == 3) {
 					if(count == 0){
     	            	for (int r = 0; r < parameters.steps_myid; r++) {
     	            	    self_energy_mb_greater_up.at(i).at(r) = parameters.j1 * aim_up.self_energy_mb_greater.at(r);
@@ -304,7 +313,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 			if (parameters.noneq_test == true) {
 				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);		
 			} else {
-				if (parameters.interaction_order == 3) {
+				if (parameters.impurity_solver == 3) {
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
 					 	gf_local_greater_up, voltage_step, hamiltonian);
 				} else {

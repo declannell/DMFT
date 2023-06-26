@@ -9,7 +9,7 @@
 #include "dmft.h"
 #include "transport.h"
 #include "analytic_gf.h"
-#include "AIM.h"
+#include "aim.h"
 #include <mpi.h>
 #include "utilis.h"
 
@@ -91,8 +91,54 @@ void write_to_file(const Parameters &parameters, std::vector<double> &gf_up, std
 	}
 }
 
+void write_to_file(const Parameters &parameters, std::vector<dcomp> &gf_up, std::string filename, int voltage_step){
+	MPI_Barrier(MPI_COMM_WORLD);
+	std::vector<dcomp> vec_1_up;
+	std::vector<dcomp> vec_2_up;
 
-void write_to_file(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_up, std::vector<Eigen::MatrixXcd> &gf_down, std::string filename, int voltage_step){
+	if (parameters.myid == 0) {
+		//std::cout << "rank " << parameters.myid << " enters where parameters.myid == 0 \n";
+		vec_1_up.resize(parameters.steps);
+		for (int r = 0; r < parameters.steps_myid; r ++){
+			vec_1_up.at(r) = gf_up.at(r);  
+		}
+		for (int a = 1; a < parameters.size; a++){
+			MPI_Recv(&vec_1_up.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+			//std::cout << "I, rank 0, recieved part of vec_1 from rank " << a << std::endl; 
+				//for (int r = parameters.start.at(a); r < parameters.start.at(a) + parameters.steps_proc.at(a); r ++){
+			//	std::cout << "This part has a value of " << vec_1.at(r) << " " << r << std::endl; 
+			//}
+		}
+	} else {
+		//std::cout << "rank " << parameters.myid << " enters where parameters.myid != 0 \n";
+		vec_2_up.resize(parameters.steps_myid);
+		for (int r = 0; r < parameters.steps_myid; r++) {
+			vec_2_up.at(r) = gf_up.at(r);
+			//std::cout << "On rank " << parameters.myid << " vector has a value of " << vec_2.at(r)  << std::endl;
+		}
+		MPI_Send(&(vec_2_up.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, 0, MPI_COMM_WORLD);
+			//std::cout << "I, rank " << parameters.myid << " sent my part of the GF to rank 0 \n"; 
+	}
+
+	MPI_Barrier(MPI_COMM_WORLD);
+	if (parameters.myid == 0) {
+		//for (int r = 0; r < parameters.steps; r++) {
+		//	std::cout << vec_1.at(r) << std::endl;
+		//}
+		std::ostringstream ossgf;
+		ossgf << voltage_step <<  "." << filename;
+		std::string var = ossgf.str();
+		std::ofstream gf_local_file;
+		gf_local_file.open(var);
+		for (int r = 0; r < parameters.steps; r++) {
+			gf_local_file << parameters.energy.at(r) << "  " << vec_1_up.at(r).real() << " " << vec_1_up.at(r).imag() << "  \n";
+		}
+		gf_local_file.close();					
+	}
+}
+
+
+void write_to_file(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_up, std::vector<Eigen::MatrixXcd> &gf_down, std::string filename, int voltage_step){
 	for (int i = 0; i < parameters.chain_length * 4; i++){
 		MPI_Barrier(MPI_COMM_WORLD);
 		std::vector<dcomp> vec_1_up, vec_2_up;
@@ -149,7 +195,7 @@ void write_to_file(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_up,
 	}
 }
 
-void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vector<dcomp> &gf_down, std::string filename, int voltage_step){
+void write_to_file(const Parameters &parameters, std::vector<dcomp> &gf_up, std::vector<dcomp> &gf_down, std::string filename, int voltage_step){
 		MPI_Barrier(MPI_COMM_WORLD);
 		std::vector<dcomp> vec_1_up, vec_2_up;
 		std::vector<dcomp> vec_1_down, vec_2_down;
@@ -205,7 +251,7 @@ void write_to_file(Parameters &parameters, std::vector<dcomp> &gf_up, std::vecto
 }
 
 
-void write_to_file(Parameters &parameters, std::vector<std::vector<dcomp>> &se_up, std::vector<std::vector<dcomp>> &se_down, std::string filename, int voltage_step){
+void write_to_file(const Parameters &parameters, std::vector<std::vector<dcomp>> &se_up, std::vector<std::vector<dcomp>> &se_down, std::string filename, int voltage_step){
 	for (int i = 0; i < parameters.chain_length * 4; i++){
 
 		if (parameters.atom_type.at(i) == 0){
@@ -293,9 +339,8 @@ void distribute_to_procs(const Parameters &parameters, std::vector<dcomp> &vec_1
 
 }
 
-void distribute_to_procs(const Parameters &parameters, std::vector<double> &vec_1, std::vector<double> &vec_2){
+void distribute_to_procs(const Parameters &parameters, std::vector<double> &vec_1, const std::vector<double> &vec_2){
 		MPI_Barrier(MPI_COMM_WORLD);
-
 		if (parameters.myid == 0) {
 			//std::cout << "rank " << parameters.myid << " enters where parameters.myid == 0 \n";
 			for (int r = 0; r < parameters.steps_myid; r ++){
@@ -317,19 +362,17 @@ void distribute_to_procs(const Parameters &parameters, std::vector<double> &vec_
 }
 
 
-double kramer_kronig_relation(const Parameters& parameters, std::vector<double>& impurity_self_energy_imag, int r)
-{
-	double real_self_energy = 0;
-	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
-	for (int q = 0; q < parameters.steps; q++) {
-		if (q != r) {
-			real_self_energy += delta_energy * impurity_self_energy_imag.at(q) / (parameters.energy.at(q) - parameters.energy.at(r));
-        }
-    }
-	return real_self_energy / M_PI;
-}
-
 double absolute_value(double num1) {
 	return std::sqrt((num1 ) * (num1));
 
+}
+
+double kramer_kronig_relation(const Parameters &parameters, std::vector<double> &impurity_self_energy_imag, int r) {
+    double se_real = 0;
+    for (int i = 0; i < parameters.steps; i++) {
+        if (i != r) {
+            se_real += impurity_self_energy_imag.at(i) / (parameters.energy.at(i) - parameters.energy.at(r));
+        }
+    }
+	return se_real * parameters.delta_energy / M_PI;
 }

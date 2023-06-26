@@ -2,7 +2,7 @@
 #include "parameters.h"
 #include "leads_self_energy.h"
 #include "interacting_gf.h"
-#include "AIM.h"
+#include "aim.h"
 #include <iostream>
 #include <vector>
 #include <eigen3/Eigen/Dense>

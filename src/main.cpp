@@ -9,7 +9,7 @@
 #include "dmft.h"
 #include "transport.h"
 #include "analytic_gf.h"
-#include "AIM.h"
+#include "aim.h"
 #include <mpi.h>
 #include "utilis.h"
 
@@ -25,7 +25,6 @@ void set_initial_spin(Parameters &parameters, std::vector<std::vector<dcomp>> &s
 }
 
 void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
-	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
 	for(int i = 0; i < 4 * parameters.chain_length; i++){
 		double result = 0.0, result_reduced = 0.0;
 		for (int r = 0; r < parameters.steps_myid; r++) {
@@ -33,7 +32,7 @@ void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &g
 		
 			result += spectral;
  		}
-		result = result * delta_energy / (2.0 * M_PI);
+		result = result * parameters.delta_energy / (2.0 * M_PI);
 		MPI_Reduce(&result, &result_reduced, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 		if (parameters.myid == 0) {
 			std::cout << "For the atom number "<< i << " the spectral function integrates to " << result_reduced << std::endl;
@@ -43,7 +42,6 @@ void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &g
 
 void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_local_lesser_up, 
 	std::vector<Eigen::MatrixXcd> & gf_local_lesser_down, std::vector<double> &spins_occup) {
-	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
 
 	for(int i = 0; i < 4 * parameters.chain_length; i++){
 		double result_up = 0.0, result_reduced_up = 0.0,
@@ -53,15 +51,15 @@ void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_
 				result_up += gf_local_lesser_up.at(r)(i, i).imag();
 				result_down += gf_local_lesser_down.at(r)(i, i).imag();
 			}
-			result_up = result_up * delta_energy / (2.0 * M_PI);
-			result_down = result_down * delta_energy / (2.0 * M_PI);
+			result_up = result_up * parameters.delta_energy / (2.0 * M_PI);
+			result_down = result_down * parameters.delta_energy / (2.0 * M_PI);
 			MPI_Reduce(&result_up, &result_reduced_up, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 			MPI_Reduce(&result_down, &result_reduced_down, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
  		} else  {//spin_down = spin_up
 			for (int r = 0; r < parameters.steps_myid; r++) {
 				result_up += gf_local_lesser_up.at(r)(i, i).imag();
 			}
-			result_up = result_up * delta_energy / (2.0 * M_PI);
+			result_up = result_up * parameters.delta_energy / (2.0 * M_PI);
 			MPI_Reduce(&result_up, &result_reduced_up, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 			result_reduced_down = result_reduced_up;
  		}
@@ -182,10 +180,10 @@ int main(int argc, char **argv)
 		std::vector<std::vector<dcomp>> self_energy_mb_greater_down, self_energy_mb_greater_up;
 
 
-		if (parameters.interaction_order == 3) {
+		if (parameters.impurity_solver == 3) {
 			gf_local_greater_up.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 			gf_local_greater_down.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
-			self_energy_mb_greater_down.resize(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
+			self_energy_mb_greater_down.resize(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid));
 		    self_energy_mb_greater_up.resize(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
 		}
 
@@ -237,7 +235,7 @@ int main(int argc, char **argv)
 				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
 				get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);				
 			} else {
-				if (parameters.interaction_order == 3) {//this calculates g_> as well which is required for the nca.
+				if (parameters.impurity_solver == 3) {//this calculates g_> as well which is required for the nca.
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
 					 	gf_local_greater_up, m, hamiltonian);
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
@@ -252,7 +250,7 @@ int main(int argc, char **argv)
 				if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
 					get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
 				} else {
-					if (parameters.interaction_order == 3) {//this calculates g_> as well which is required for the nca.
+					if (parameters.impurity_solver == 3) {//this calculates g_> as well which is required for the nca.
 						get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
 					 		gf_local_greater_up, m, hamiltonian);
 					} else {
@@ -376,25 +374,31 @@ int main(int argc, char **argv)
 		}
 		if (parameters.print_gf == true) {
 			if (parameters.spin_polarised == true) {
-				write_to_file(parameters, gf_local_up, gf_local_down, "gf.txt", m);
-				write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_down, "gf_lesser.txt", m);
+				write_to_file(parameters, gf_local_up, gf_local_down, "gf.dat", m);
+				write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_down, "gf_lesser.dat", m);
+				if (parameters.impurity_solver == 3) {
+					write_to_file(parameters, gf_local_greater_up, gf_local_greater_down, "gf_greater.dat", m);
+				}
 			} else {
-				write_to_file(parameters, gf_local_up, gf_local_up, "gf.txt", m);
-				write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_up, "gf_lesser.txt", m);
+				write_to_file(parameters, gf_local_up, gf_local_up, "gf.dat", m);
+				write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_up, "gf_lesser.dat", m);
+				if (parameters.impurity_solver == 3) {
+					write_to_file(parameters, gf_local_greater_up, gf_local_greater_up, "gf_greater.dat", m);
+				}
 			}
 		}
 
-		write_to_file(parameters, transmission_up, transmission_down, "transmission.txt", m);
-		//write_to_file(parameters, transmission_noninteracting_up, transmission_noninteracting_down, "transmission_noninteracting.txt", m);
-		write_to_file(parameters, dos_up, dos_down, "dos.txt", m);
-		write_to_file(parameters, dos_up_ins, dos_down_ins, "dos_ins.txt", m);
-		write_to_file(parameters, dos_up_metal, dos_down_metal, "dos_metal.txt", m);
+		write_to_file(parameters, transmission_up, transmission_down, "transmission.dat", m);
+		//write_to_file(parameters, transmission_noninteracting_up, transmission_noninteracting_down, "transmission_noninteracting.dat", m);
+		write_to_file(parameters, dos_up, dos_down, "dos.dat", m);
+		write_to_file(parameters, dos_up_ins, dos_down_ins, "dos_ins.dat", m);
+		write_to_file(parameters, dos_up_metal, dos_down_metal, "dos_metal.dat", m);
 		if (parameters.spin_polarised == true) {
-			write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.txt", m);
-			write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_down, "se_l.txt", m);
+			write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.dat", m);
+			write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_down, "se_l.dat", m);
 		} else {
-			write_to_file(parameters, self_energy_mb_up, self_energy_mb_up, "se_r.txt", m);
-			write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.txt", m);
+			write_to_file(parameters, self_energy_mb_up, self_energy_mb_up, "se_r.dat", m);
+			write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.dat", m);
 		}
 
 		integrate_spectral(parameters, gf_local_up);
@@ -416,7 +420,7 @@ int main(int argc, char **argv)
 			std::ofstream current_file;
 			current_file.open(
 			    "textfiles/"
-			    "current.txt");
+			    "current.dat");
 			// myfile << parameters.steps << std::endl;
 			for (int m = 0; m < parameters.NIV_points; m++) {
 				//std::cout << "The spin up current is " << current_up.at(m) << "The spin down current is " << current_down.at(m) << "\n";
@@ -441,7 +445,7 @@ int main(int argc, char **argv)
 			std::ofstream current_file;
 			current_file.open(
 			    "textfiles/"
-			    "current.txt");
+			    "current.dat");
 			for (int m = 0; m < parameters.NIV_points; m++) {
 
 				std::cout << "The spin up left current is " << current_up_left.at(m) << "\n" <<

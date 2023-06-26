@@ -9,7 +9,7 @@
 #include "interacting_gf.h"
 #include "leads_self_energy.h"
 #include "parameters.h"
-#include "AIM.h"
+#include "aim.h"
 #include "utilis.h"
 #include "dmft.h"
 
@@ -17,7 +17,7 @@
 void get_spin_occupation(const Parameters &parameters, const std::vector<double> &gf_lesser_up,
                         const std::vector<double> &gf_lesser_down, double *spin_up, double *spin_down)
 {
-	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)(parameters.steps);
+
 	double result_up = 0.0, result_down = 0.0;
 
 	if (parameters.spin_polarised == true) {
@@ -25,11 +25,11 @@ void get_spin_occupation(const Parameters &parameters, const std::vector<double>
 		//std::cout << parameters.energy.at(r) << " " << gf_lesser_down.at(r).imag() <<  std::endl;
 			if (r + parameters.start.at(parameters.myid) == 0 || r + parameters.start.at(parameters.myid) == parameters.steps - 1) {
 			//std::cout << "I am rank " << parameters.myid << std::endl;
-				result_up += (delta_energy / 2.0) * gf_lesser_up.at(r);
-				result_down += (delta_energy / 2.0) * gf_lesser_down.at(r);
+				result_up += (parameters.delta_energy / 2.0) * gf_lesser_up.at(r);
+				result_down += (parameters.delta_energy / 2.0) * gf_lesser_down.at(r);
 			} else {
-				result_up += (delta_energy) * gf_lesser_up.at(r);
-				result_down += (delta_energy) * gf_lesser_down.at(r);
+				result_up += (parameters.delta_energy) * gf_lesser_up.at(r);
+				result_down += (parameters.delta_energy) * gf_lesser_down.at(r);
 			}
 		}
 		result_up = 1.0 / (2.0 * M_PI) * result_up;
@@ -40,9 +40,9 @@ void get_spin_occupation(const Parameters &parameters, const std::vector<double>
 	} else {
 		for (int r = 0; r < parameters.steps_myid; r++) {
 			if (r + parameters.start.at(parameters.myid) == 0 || r + parameters.start.at(parameters.myid) == parameters.steps - 1) {
-				result_up += (delta_energy / 2.0) * gf_lesser_up.at(r);
+				result_up += (parameters.delta_energy / 2.0) * gf_lesser_up.at(r);
 			} else {
-				result_up += (delta_energy) * gf_lesser_up.at(r);
+				result_up += (parameters.delta_energy) * gf_lesser_up.at(r);
 			}
 		}
 		result_up = 1.0 / (2.0 * M_PI) * result_up;
@@ -54,7 +54,7 @@ void get_spin_occupation(const Parameters &parameters, const std::vector<double>
 
 dcomp integrate(const Parameters& parameters, const std::vector<dcomp>& gf_1, const std::vector<dcomp>& gf_2, const std::vector<dcomp>& gf_3, const int r)
 {
-	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
+
 	dcomp result = 0;
 	for (int i = 0; i < parameters.steps; i++) {
 		for (int j = 0; j < parameters.steps; j++) {
@@ -63,7 +63,7 @@ dcomp integrate(const Parameters& parameters, const std::vector<dcomp>& gf_1, co
 				//I say the green function is zero outside e_lower_bound and e_upper_bound. This means I need the final green function in the integral to be within an energy of e_lower_bound
 				//and e_upper_bound. The index of 0 corresponds to e_lower_bound. Hence we need i+J-r>0 but in order to be less an energy of e_upper_bound we need i+j-r<steps.
 				//These conditions ensure the enrgy of the gf3 greens function to be within (e_upper_bound, e_lower_bound)
-				result += (delta_energy / (2.0 * M_PI)) * (delta_energy / (2.0 * M_PI)) * gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r);
+				result += (parameters.delta_energy / (2.0 * M_PI)) * (parameters.delta_energy / (2.0 * M_PI)) * gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r);
 			}
 		}
 	}
@@ -133,7 +133,7 @@ double get_prefactor(const int i, const int j, const int r, const int voltage_st
 double integrate_equilibrium(const Parameters& parameters, const std::vector<double>& gf_1, const std::vector<double>& gf_2, const std::vector<double>& gf_3, const int r,
     std::vector<double> &fermi_up, std::vector<double> &fermi_down, int voltage_step)
 {
-	double delta_energy = (parameters.e_upper_bound - parameters.e_lower_bound) / (double)parameters.steps;
+
 	double result = 0;
 	for (int i = 0; i < parameters.steps; i++) {
 		for (int j = 0; j < parameters.steps; j++) {
@@ -143,7 +143,7 @@ double integrate_equilibrium(const Parameters& parameters, const std::vector<dou
 				//I say the green function is zero outside e_lower_bound and e_upper_bound. This means I need the final green function in the integral to be within an energy of e_lower_bound
 				//and e_upper_bound. The index of 0 corresponds to e_lower_bound. Hence we need i+J-r>0 but in order to be less an energy of e_upper_bound we need i+j-r<steps.
 				//These conditions ensure the enrgy of the gf3 greens function to be within (e_upper_bound, e_lower_bound)
-				result += prefactor * (delta_energy / (M_PI)) * (delta_energy / (M_PI)) * gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r);
+				result += prefactor * (parameters.delta_energy / (M_PI)) * (parameters.delta_energy / (M_PI)) * gf_1.at(i) * gf_2.at(j) * gf_3.at(i + j - r);
 			}
 		}
 	}

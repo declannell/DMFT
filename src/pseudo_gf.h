@@ -15,8 +15,8 @@ private:
     double kx_value, ky_value;
 
 public:
-    std::vector<dcomp> greater_gf, lesser_gf, retarded_gf;
-    std::vector<dcomp> greater_se, lesser_se, retarded_se;
+    std::vector<dcomp> retarded_gf, retarded_se;
+    std::vector<double> greater_gf, lesser_gf, greater_se, lesser_se;
     
     
     Pseudo_GF(const Parameters &parameters);
@@ -24,9 +24,6 @@ public:
     //void get_interacting_gf(const Parameters &parameters);
 
     void print_green_function(const Parameters &parameters, int voltage_step, const std::string& name);
-
-    double kx() const;
-    double ky() const;
 
 };
 
