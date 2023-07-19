@@ -216,7 +216,7 @@ void impurity_solver_sigma_2(const Parameters &parameters, const int voltage_ste
 		std::cout << "The spin down occupancy is " << *spin_down << "\n";
 	}
 
-	if (parameters.impurity_solver == 2) {// kramer kronig relation.
+	if (parameters.impurity_solver == 2 || parameters.impurity_solver == 5) {// kramer kronig relation.
 		if (parameters.myid == 0) std::cout << "using the kramer-kronig relation for second order perturbation theory\n";
 		if (parameters.spin_polarised == true) {
 			self_energy_2nd_order_kramers_kronig(parameters, aim_up, aim_down, voltage_step);
