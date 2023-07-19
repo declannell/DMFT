@@ -226,7 +226,7 @@ void impurity_solver_sigma_2(const Parameters &parameters, const int voltage_ste
 		}
 	}
 
-	if (parameters.impurity_solver == 1) {//brute force sigma_2
+	if (parameters.impurity_solver == 1 || parameters.impurity_solver == 4) {//brute force sigma_2
 		if (parameters.myid == 0) std::cout << "using the brute force method for second order perturbation theory\n";
 		if (parameters.spin_polarised == true) {
 			self_energy_2nd_order(parameters, aim_up, aim_down);
