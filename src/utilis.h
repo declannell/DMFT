@@ -35,5 +35,13 @@ double kramer_kronig_relation(const Parameters &parameters, std::vector<double> 
 
 double absolute_value(double num1);
 
+void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local);
+
+void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_local_lesser_up, 
+	std::vector<Eigen::MatrixXcd> & gf_local_lesser_down, std::vector<double> &spins_occup);
+
+void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dcomp> &dos_down, std::vector<dcomp> &dos_up_ins, std::vector<dcomp> &dos_down_ins,
+ 	std::vector<dcomp> &dos_up_metal, std::vector<dcomp> &dos_down_metal, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down);
+
 
 

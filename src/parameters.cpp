@@ -1,5 +1,5 @@
 #include "parameters.h"
-
+#include "utilis.h"
 #include <complex>  //this contains complex numbers and trig functions
 #include <fstream>
 #include <iostream>
@@ -148,7 +148,9 @@ Parameters Parameters::from_file()
 				std::istringstream(value) >> parameters.noneq_test;
 			} else if (variable == "impurity_solver") {
                 parameters.impurity_solver = std::stoi(value);
-            }
+            } else if (variable == "magnetic_field") {
+				parameters.magnetic_field = std::stod(value);
+			}
 	}
 	input_file.close();
 	
@@ -222,6 +224,60 @@ Parameters Parameters::from_file()
 	for (int i = 0; i < parameters.steps; i++) {
 		parameters.energy.at(i) = parameters.e_lower_bound + parameters.delta_energy * (double)i;
 	}
+
+MPI_Comm_size(MPI_COMM_WORLD, &parameters.size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &parameters.myid);
+	parameters.comm = MPI_COMM_WORLD;
+
+	if (parameters.myid == 0) {
+		print_parameters(parameters);
+	}
+	MPI_Barrier(MPI_COMM_WORLD);
+
+	if (parameters.myid == 0) {
+		std::cout << std::endl;
+		std::cout << std::endl;
+		std::cout << std::endl;
+	}
+	
+	parameters.steps_proc.resize(parameters.size, 0);
+	parameters.end.resize(parameters.size, 0);
+	parameters.start.resize(parameters.size, 0);
+	
+	decomp(parameters.steps, parameters.size, parameters.myid, &parameters.start.at(parameters.myid), &parameters.end.at(parameters.myid));
+	parameters.steps_myid = parameters.end.at(parameters.myid) - parameters.start.at(parameters.myid) + 1;
+
+	std::cout << std::setprecision(15) << "My myid is " << parameters.myid << " in a world of size " << parameters.size << 
+		". There are " << parameters.steps<< " energy steps in my parameters class." 
+		" The starting point and end point of my array are " << parameters.start.at(parameters.myid) << " and " << parameters.end.at(parameters.myid) << 
+		". The number of points in my process are " << parameters.steps_myid << "\n";
+		
+	parameters.steps_proc.at(parameters.myid) = parameters.steps_myid;
+
+	if (parameters.myid == 0) {
+		std::cout << std::endl;
+		std::cout << std::endl;
+		std::cout << std::endl;
+	}
+
+	for (int a = 0; a < parameters.size; a++){
+		MPI_Bcast(&parameters.start.at(a), 1, MPI_INT, a, MPI_COMM_WORLD);
+		MPI_Bcast(&parameters.end.at(a), 1, MPI_INT, a, MPI_COMM_WORLD);
+		MPI_Bcast(&parameters.steps_proc.at(a), 1, MPI_INT, a, MPI_COMM_WORLD);
+	}
+
+	//if (parameters.myid == 0) {
+	//	for (int i = 0; i < parameters.size; i++){
+	//		std::cout << "The number of starting index of " << i << " is " << parameters.start.at(i) << std::endl;
+	//		std::cout << "The number of ending index of " << i << " is " << parameters.end.at(i) << std::endl;
+	//		std::cout << "The number of steps_proc index of " << i << " is " << parameters.steps_proc.at(i) << std::endl;
+	//	}
+	//}
+
+	if (parameters.magnetic_field != 0) {
+		parameters.spin_polarised = true;
+	}
+
 	return parameters;
 
 	if (parameters.delta_energy < parameters.delta_v) {
@@ -293,4 +349,6 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.print_gf = " << parameters.print_gf << std::endl;
 	std::cout << "parameters.spin_polarised = " << parameters.spin_polarised << std::endl;
 	std::cout << "parameters.noneq_test = " << parameters.noneq_test << std::endl;
+	std::cout << "parameters.magnetic_field = " << parameters.magnetic_field << std::endl;
+
 }

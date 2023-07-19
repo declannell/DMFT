@@ -376,3 +376,74 @@ double kramer_kronig_relation(const Parameters &parameters, std::vector<double> 
     }
 	return se_real * parameters.delta_energy / M_PI;
 }
+
+
+
+void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
+	for(int i = 0; i < 4 * parameters.chain_length; i++){
+		double result = 0.0, result_reduced = 0.0;
+		for (int r = 0; r < parameters.steps_myid; r++) {
+			double spectral = (parameters.j1 * (gf_local.at(r)(i, i) - std::conj(gf_local.at(r)(i, i)))).real();
+		
+			result += spectral;
+ 		}
+		result = result * parameters.delta_energy / (2.0 * M_PI);
+		MPI_Reduce(&result, &result_reduced, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+		if (parameters.myid == 0) {
+			std::cout << "For the atom number "<< i << " the spectral function integrates to " << result_reduced << std::endl;
+		}
+	}
+}
+
+void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_local_lesser_up, 
+	std::vector<Eigen::MatrixXcd> & gf_local_lesser_down, std::vector<double> &spins_occup) {
+
+	for(int i = 0; i < 4 * parameters.chain_length; i++){
+		double result_up = 0.0, result_reduced_up = 0.0,
+			result_down = 0.0, result_reduced_down = 0.0;
+		if (parameters.spin_polarised == true) {
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				result_up += gf_local_lesser_up.at(r)(i, i).imag();
+				result_down += gf_local_lesser_down.at(r)(i, i).imag();
+			}
+			result_up = result_up * parameters.delta_energy / (2.0 * M_PI);
+			result_down = result_down * parameters.delta_energy / (2.0 * M_PI);
+			MPI_Reduce(&result_up, &result_reduced_up, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+			MPI_Reduce(&result_down, &result_reduced_down, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+ 		} else  {//spin_down = spin_up
+			for (int r = 0; r < parameters.steps_myid; r++) {
+				result_up += gf_local_lesser_up.at(r)(i, i).imag();
+			}
+			result_up = result_up * parameters.delta_energy / (2.0 * M_PI);
+			MPI_Reduce(&result_up, &result_reduced_up, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+			result_reduced_down = result_reduced_up;
+ 		}
+
+
+		if (parameters.myid == 0) {
+			spins_occup.at(i) = result_reduced_up;
+			spins_occup.at(i + 4 *parameters.chain_length) = result_reduced_down;
+			std::cout << "For the atom number "<< i << " the spin up occupation is " << result_reduced_up << ". The spin down occupation is "
+				<< result_reduced_down << std::endl;
+		}
+	}
+}
+
+
+void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dcomp> &dos_down, std::vector<dcomp> &dos_up_ins, std::vector<dcomp> &dos_down_ins,
+ 	std::vector<dcomp> &dos_up_metal, std::vector<dcomp> &dos_down_metal, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down) {
+		for (int r = 0; r < parameters.steps_myid; r++) {
+			for (int i = 0; i < 4 * parameters.chain_length; i++) {
+				dos_up.at(r) += -gf_local_up.at(r)(i, i).imag();
+				dos_down.at(r) += -gf_local_down.at(r)(i, i).imag();
+
+				if (parameters.atom_type.at(i) == 0){
+					dos_up_ins.at(r) += -gf_local_up.at(r)(i, i).imag();
+					dos_down_ins.at(r) += -gf_local_down.at(r)(i, i).imag();
+				} else if (parameters.atom_type.at(i) == 1) {
+					dos_up_metal.at(r) += -gf_local_up.at(r)(i, i).imag();
+					dos_down_metal.at(r) += -gf_local_down.at(r)(i, i).imag();					
+				}
+			}
+		}
+}

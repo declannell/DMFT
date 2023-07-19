@@ -24,132 +24,13 @@ void set_initial_spin(Parameters &parameters, std::vector<std::vector<dcomp>> &s
 	}
 }
 
-void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
-	for(int i = 0; i < 4 * parameters.chain_length; i++){
-		double result = 0.0, result_reduced = 0.0;
-		for (int r = 0; r < parameters.steps_myid; r++) {
-			double spectral = (parameters.j1 * (gf_local.at(r)(i, i) - std::conj(gf_local.at(r)(i, i)))).real();
-		
-			result += spectral;
- 		}
-		result = result * parameters.delta_energy / (2.0 * M_PI);
-		MPI_Reduce(&result, &result_reduced, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-		if (parameters.myid == 0) {
-			std::cout << "For the atom number "<< i << " the spectral function integrates to " << result_reduced << std::endl;
-		}
-	}
-}
-
-void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_local_lesser_up, 
-	std::vector<Eigen::MatrixXcd> & gf_local_lesser_down, std::vector<double> &spins_occup) {
-
-	for(int i = 0; i < 4 * parameters.chain_length; i++){
-		double result_up = 0.0, result_reduced_up = 0.0,
-			result_down = 0.0, result_reduced_down = 0.0;
-		if (parameters.spin_polarised == true) {
-			for (int r = 0; r < parameters.steps_myid; r++) {
-				result_up += gf_local_lesser_up.at(r)(i, i).imag();
-				result_down += gf_local_lesser_down.at(r)(i, i).imag();
-			}
-			result_up = result_up * parameters.delta_energy / (2.0 * M_PI);
-			result_down = result_down * parameters.delta_energy / (2.0 * M_PI);
-			MPI_Reduce(&result_up, &result_reduced_up, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-			MPI_Reduce(&result_down, &result_reduced_down, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
- 		} else  {//spin_down = spin_up
-			for (int r = 0; r < parameters.steps_myid; r++) {
-				result_up += gf_local_lesser_up.at(r)(i, i).imag();
-			}
-			result_up = result_up * parameters.delta_energy / (2.0 * M_PI);
-			MPI_Reduce(&result_up, &result_reduced_up, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-			result_reduced_down = result_reduced_up;
- 		}
-
-
-		if (parameters.myid == 0) {
-			spins_occup.at(i) = result_reduced_up;
-			spins_occup.at(i + 4 *parameters.chain_length) = result_reduced_down;
-			std::cout << "For the atom number "<< i << " the spin up occupation is " << result_reduced_up << ". The spin down occupation is "
-				<< result_reduced_down << std::endl;
-		}
-	}
-}
-
-
-void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dcomp> &dos_down, std::vector<dcomp> &dos_up_ins, std::vector<dcomp> &dos_down_ins,
- 	std::vector<dcomp> &dos_up_metal, std::vector<dcomp> &dos_down_metal, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down) {
-		for (int r = 0; r < parameters.steps_myid; r++) {
-			for (int i = 0; i < 4 * parameters.chain_length; i++) {
-				dos_up.at(r) += -gf_local_up.at(r)(i, i).imag();
-				dos_down.at(r) += -gf_local_down.at(r)(i, i).imag();
-
-				if (parameters.atom_type.at(i) == 0){
-					dos_up_ins.at(r) += -gf_local_up.at(r)(i, i).imag();
-					dos_down_ins.at(r) += -gf_local_down.at(r)(i, i).imag();
-				} else if (parameters.atom_type.at(i) == 1) {
-					dos_up_metal.at(r) += -gf_local_up.at(r)(i, i).imag();
-					dos_down_metal.at(r) += -gf_local_down.at(r)(i, i).imag();					
-				}
-			}
-		}
-}
-
 int main(int argc, char **argv)
 {
     MPI_Init(&argc, &argv);
 	
 	Parameters parameters = Parameters::from_file();
-	MPI_Comm_size(MPI_COMM_WORLD, &parameters.size);
-	MPI_Comm_rank(MPI_COMM_WORLD, &parameters.myid);
-	parameters.comm = MPI_COMM_WORLD;
 
-	if (parameters.myid == 0) {
-		print_parameters(parameters);
-	}
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	if (parameters.myid == 0) {
-		std::cout << std::endl;
-		std::cout << std::endl;
-		std::cout << std::endl;
-	}
-	
-	parameters.steps_proc.resize(parameters.size, 0);
-	parameters.end.resize(parameters.size, 0);
-	parameters.start.resize(parameters.size, 0);
-	
-	decomp(parameters.steps, parameters.size, parameters.myid, &parameters.start.at(parameters.myid), &parameters.end.at(parameters.myid));
-	parameters.steps_myid = parameters.end.at(parameters.myid) - parameters.start.at(parameters.myid) + 1;
-
-	std::cout << std::setprecision(15) << "My myid is " << parameters.myid << " in a world of size " << parameters.size << 
-		". There are " << parameters.steps<< " energy steps in my parameters class." 
-		" The starting point and end point of my array are " << parameters.start.at(parameters.myid) << " and " << parameters.end.at(parameters.myid) << 
-		". The number of points in my process are " << parameters.steps_myid << "\n";
-		
-	parameters.steps_proc.at(parameters.myid) = parameters.steps_myid;
-
-	if (parameters.myid == 0) {
-		std::cout << std::endl;
-		std::cout << std::endl;
-		std::cout << std::endl;
-	}
-
-	for (int a = 0; a < parameters.size; a++){
-		MPI_Bcast(&parameters.start.at(a), 1, MPI_INT, a, MPI_COMM_WORLD);
-		MPI_Bcast(&parameters.end.at(a), 1, MPI_INT, a, MPI_COMM_WORLD);
-		MPI_Bcast(&parameters.steps_proc.at(a), 1, MPI_INT, a, MPI_COMM_WORLD);
-	}
-
-	//if (parameters.myid == 0) {
-	//	for (int i = 0; i < parameters.size; i++){
-	//		std::cout << "The number of starting index of " << i << " is " << parameters.start.at(i) << std::endl;
-	//		std::cout << "The number of ending index of " << i << " is " << parameters.end.at(i) << std::endl;
-	//		std::cout << "The number of steps_proc index of " << i << " is " << parameters.steps_proc.at(i) << std::endl;
-	//	}
-	//}
-
-
-	std::vector<double> kx(parameters.num_kx_points, 0);
-	std::vector<double> ky(parameters.num_ky_points, 0);
+	std::vector<double> kx(parameters.num_kx_points, 0), ky(parameters.num_ky_points, 0);
 	get_momentum_vectors(kx, ky, parameters);
 
 	std::vector<double> current_up(parameters.NIV_points, 0), current_down(parameters.NIV_points, 0), coherent_current_up(parameters.NIV_points, 0),
@@ -157,7 +38,6 @@ int main(int argc, char **argv)
 		 current_up_right(parameters.NIV_points, 0), current_up_left(parameters.NIV_points, 0), current_down_right(parameters.NIV_points, 0)
 		 , current_down_left(parameters.NIV_points, 0);
 	
-	MPI_Barrier(MPI_COMM_WORLD); //this is just so the code prints nicely to the out file.
 
 	for (int m = parameters.NIV_start; m < parameters.NIV_points; m++) {
 		std::cout << "\n";
@@ -167,18 +47,16 @@ int main(int argc, char **argv)
 			std::cout << "The number of orbitals we have is " << 4 * parameters.chain_length << "\n";
 		}
 
-		std::vector<std::vector<Eigen::MatrixXcd>> hamiltonian(
-		    parameters.num_kx_points, std::vector<Eigen::MatrixXcd>(parameters.num_ky_points,
+		std::vector<std::vector<Eigen::MatrixXcd>> hamiltonian(parameters.num_kx_points, std::vector<Eigen::MatrixXcd>(parameters.num_ky_points,
 				 Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)));
 
-		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
-		std::vector<Eigen::MatrixXcd> gf_local_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
-		std::vector<Eigen::MatrixXcd> gf_local_lesser_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
-		std::vector<Eigen::MatrixXcd> gf_local_lesser_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)),
+		gf_local_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)),
+		gf_local_lesser_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)),
+		gf_local_lesser_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 
 		std::vector<Eigen::MatrixXcd> gf_local_greater_up, gf_local_greater_down;
 		std::vector<std::vector<dcomp>> self_energy_mb_greater_down, self_energy_mb_greater_up;
-
 
 		if (parameters.impurity_solver == 3) {
 			gf_local_greater_up.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
@@ -188,8 +66,8 @@ int main(int argc, char **argv)
 		}
 
 		std::vector<std::vector<dcomp>> self_energy_mb_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
-		    self_energy_mb_lesser_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
-		std::vector<std::vector<dcomp>> self_energy_mb_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
+		    self_energy_mb_lesser_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0)),
+			self_energy_mb_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
 		    self_energy_mb_lesser_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
 		std::vector<double> spins_occup(8 * parameters.chain_length); //the first 2 * chain_length is the spin up, the next 2 * chain_length is spin down.
 
@@ -202,30 +80,16 @@ int main(int argc, char **argv)
 			leads.push_back(vy);
 		}
 
-		if (parameters.myid == 0) {
-			std::cout << "leads complete" << std::endl;
-			std::cout << "leads size: " << leads.at(0).size() << '\n';
-		}
-		//get_k_averaged_embedding_self_energy(parameters, leads);
+		if (parameters.myid == 0) std::cout << "leads complete" << std::endl;
 
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
 				get_hamiltonian(parameters, m, kx.at(kx_i), ky.at(ky_i), hamiltonian.at(kx_i).at(ky_i));
-
-				//if (parameters.myid == 0){
-				//	std::cout << hamiltonian.at(kx_i).at(ky_i).real() << std::endl;
-				//	std::cout << std::endl;					
-				//}
-				//std::cout << "The hamiltonian on myid " << parameters.myid << " is " <<  std::endl;
-				//std::cout << hamiltonian.at(kx_i).at(ky_i) << std::endl;
-				//std::cout << std::endl;
 			}
 		}
 
-		if (parameters.myid == 0) {
-			std::cout << "hamiltonian complete" << std::endl;
-		}
-		//get_spectral_embedding_self_energy(parameters, leads, m);
+		if (parameters.myid == 0) std::cout << "hamiltonian complete" << std::endl;
+
 
 		if (parameters.hubbard_interaction != 0) {
 			if (parameters.spin_polarised == true) {	
