@@ -235,9 +235,10 @@ void impurity_solver_sigma_2(const Parameters &parameters, const int voltage_ste
 			self_energy_2nd_order(parameters, aim_up, aim_down);
 		}
 	}
-
-	if (parameters.impurity_solver == 1 || 2 || 0) {//if mean field or either implementation of sigma_2 then add the first order term.
+	
+	if (parameters.impurity_solver == 1 || parameters.impurity_solver == 2 || parameters.impurity_solver == 0) {//if mean field or either implementation of sigma_2 then add the first order term.
 		if (parameters.spin_polarised == true) {
+			
 			for (int r = 0; r < parameters.steps_myid; r++) {
 				aim_up.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_down);
 				aim_down.self_energy_mb_retarded.at(r) += parameters.hubbard_interaction * (*spin_up);
