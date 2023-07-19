@@ -109,7 +109,8 @@ void dmft(const Parameters &parameters, const int voltage_step,
 			if (difference < parameters.convergence) break;
 
 			for (int i = 0; i < 4 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
-				if (parameters.atom_type.at(i) == 0) continue;//this allows us to only apply correlation on the metallic atoms. this are type 0.
+				if (parameters.atom_type.at(i) == 0) continue;//this allows us to only apply correlation on the metallic atoms or half metallic atoms. 
+				//this are types 1 and 2 and hence continue will meaning all insulting layers are skipped.
 				//this is only passing the part of the green function that each process is dealing with.
 				for (int r = 0; r < parameters.steps_myid; r++) {//getting the diagonal part of the green function.
 					diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
@@ -222,7 +223,8 @@ void dmft(const Parameters &parameters, const int voltage_step,
 			}
 
 			for (int i = 0; i < 4 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
-				if (parameters.atom_type.at(i) == 0) continue; //this allows us to only apply correlation on the metallic atoms. this are type 0.
+				if (parameters.atom_type.at(i) == 0) continue; //this allows us to only apply correlation on the metallic atoms or half metallic atoms. 
+				//this are types 1 and 2 and hence continue will meaning all insulting layers are skipped.
 				//this is only passing the part of the green function that each process is dealing with.
 				for (int r = 0; r < parameters.steps_myid; r++) {//getting the diagonal part of the GF
 					diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);

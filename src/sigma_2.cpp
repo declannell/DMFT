@@ -152,6 +152,7 @@ double integrate_equilibrium(const Parameters& parameters, const std::vector<dou
 
 void self_energy_2nd_order_kramers_kronig(const Parameters& parameters, AIM &aim_up, AIM &aim_down, const int voltage_step)
 {
+
 	std::vector<double> impurity_self_energy_imag(parameters.steps); //this is for the kramer-kronig relation. 
 	std::vector<double> impurity_self_energy_real_myid(parameters.steps_myid), impurity_self_energy_imag_myid(parameters.steps_myid);
 

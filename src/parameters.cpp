@@ -150,6 +150,10 @@ Parameters Parameters::from_file()
                 parameters.impurity_solver = std::stoi(value);
             } else if (variable == "magnetic_field") {
 				parameters.magnetic_field = std::stod(value);
+			} else if (variable == "half_metal") {
+				parameters.half_metal = std::stoi(value);
+			} else if (variable == "half_metal_shift") {
+				parameters.half_metal_shift = std::stod(value);
 			}
 	}
 	input_file.close();
@@ -177,6 +181,15 @@ Parameters Parameters::from_file()
 		parameters.chain_length = parameters.num_ins_left + 2 * parameters.num_cor;
 	}
 
+
+	int atom_identity;
+	if (parameters.half_metal == 1) {//the insulating layers are replaced by half metals.
+		atom_identity = 2;
+	} else if (parameters.half_metal == 0) {//the insulating remain insulting.
+		atom_identity = 0;
+		parameters.half_metal_shift = 0;
+	}
+
 	//the atom is correlated if atom typ equals to 1. This how we know to apply sigma two to certain atoms.
 	if (parameters.ins_metal_ins == true) {
 		//we do this 4 times as there are two horizontal and two veritcal layers within the unit cell.
@@ -186,13 +199,13 @@ Parameters Parameters::from_file()
 		//the bottom right are atoms 3 * * chain_length to 4 * chain_length - 1.
 		for (int s = 0; s < 4; s++) {
 			for (int i = 0; i < parameters.num_ins_left; i++) {
-				parameters.atom_type.push_back(0);
+				parameters.atom_type.push_back(atom_identity);
 			}
 			for (int i = 0; i < parameters.num_cor; i++) {
 				parameters.atom_type.push_back(1);
 			}
 			for (int i = 0; i < parameters.num_ins_right; i++) {
-				parameters.atom_type.push_back(0);
+				parameters.atom_type.push_back(atom_identity);
 			}
 		}
 	} else {
@@ -201,13 +214,14 @@ Parameters Parameters::from_file()
 				parameters.atom_type.push_back(1);
 			}
 			for (int i = 0; i < parameters.num_ins_left; i++) {
-				parameters.atom_type.push_back(0);
+				parameters.atom_type.push_back(atom_identity);
 			}
 			for (int i = 0; i < parameters.num_cor; i++) {
 				parameters.atom_type.push_back(1);
 			}
 		}
 	}
+
 
 	//for (int i = 0; i < 4 * parameters.chain_length; i++) {
 	//	std::cout << parameters.atom_type.at(i) << std::endl;
@@ -277,6 +291,7 @@ MPI_Comm_size(MPI_COMM_WORLD, &parameters.size);
 	if (parameters.magnetic_field != 0) {
 		parameters.spin_polarised = true;
 	}
+
 
 	return parameters;
 
@@ -350,5 +365,7 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.spin_polarised = " << parameters.spin_polarised << std::endl;
 	std::cout << "parameters.noneq_test = " << parameters.noneq_test << std::endl;
 	std::cout << "parameters.magnetic_field = " << parameters.magnetic_field << std::endl;
+	std::cout << "parameters.half_metal = " << parameters.half_metal << std::endl;
+	std::cout << "parameters.half_metal_shift = " << parameters.half_metal_shift << std::endl;
 
 }
