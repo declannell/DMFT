@@ -81,8 +81,10 @@ void get_transmission_gf_local(
 	const std::vector<std::vector<dcomp>> &self_energy_mb_down,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
     std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
-    const int voltage_step, std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian, std::vector<Eigen::MatrixXcd> &gf_local, 
-    std::vector<Eigen::MatrixXcd> &gf_local_lesser) {
+    const int voltage_step, std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_up,
+    std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_down, std::vector<Eigen::MatrixXcd> &gf_local_up, 
+    std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_down, 
+    std::vector<Eigen::MatrixXcd> &gf_local_lesser_down) {
 
 	Eigen::MatrixXcd coupling_left = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
 	Eigen::MatrixXcd coupling_right = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
@@ -93,39 +95,70 @@ void get_transmission_gf_local(
 
 	double num_k_points = parameters.num_kx_points * parameters.num_ky_points;
 
-    for(int r = 0; r < parameters.steps_myid; r++){
-        gf_local.at(r) = (Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
-        gf_local_lesser.at(r) = (Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
-    }
-    std::vector<Eigen::MatrixXcd> gf_lesser(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)); 
+    std::vector<Eigen::MatrixXcd> gf_lesser_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)); 
+   	std::vector<Eigen::MatrixXcd> gf_lesser_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)); 
 
-	for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
-		for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
-			Interacting_GF gf_interacting(parameters, self_energy_mb_up,
-			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
-			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
+	if (parameters.magnetic_field == 0) {// if there is no extenral field and no interaction the system will be spin degenerate. Only do the up spin channel
+		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
+			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
+				Interacting_GF gf_interacting(parameters, self_energy_mb_up,
+				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    voltage_step, hamiltonian_up.at(kx_i).at(ky_i));
 
 
-            get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, 
-                self_energy_mb_up, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
-                gf_lesser, voltage_step);
+    	        get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, 
+    	            self_energy_mb_up, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+    	            gf_lesser_up, voltage_step);
 
-            for(int r = 0; r < parameters.steps_myid; r++){
-                for(int i = 0; i < 4 * parameters.chain_length; i++){
-                    for(int j = 0; j < 4 * parameters.chain_length; j++){
-                        gf_local.at(r)(i, j) += gf_interacting.interacting_gf.at(r)(i, j) / num_k_points;
-                    }
-					gf_local_lesser.at(r)(i, i) += gf_lesser.at(r)(i, i) / num_k_points;
-                }
+    	        for(int r = 0; r < parameters.steps_myid; r++){
+    	            for(int i = 0; i < 4 * parameters.chain_length; i++){
+    	                for(int j = 0; j < 4 * parameters.chain_length; j++){
+    	                    gf_local_up.at(r)(i, j) += gf_interacting.interacting_gf.at(r)(i, j) / num_k_points;
+    	                }
+						gf_local_lesser_up.at(r)(i, i) += gf_lesser_up.at(r)(i, i) / num_k_points;
+    	            }
+				}
+				get_k_dependent_transmission(parameters, gf_interacting.interacting_gf, coupling_left, coupling_right, transmission_up);
 			}
-			get_k_dependent_transmission(parameters, gf_interacting.interacting_gf, coupling_left, coupling_right, transmission_up);
+		}
+		for (int r = 0; r < parameters.steps_myid; r++) {
+			transmission_down.at(r) = transmission_up.at(r);
+		}
+	} else if (parameters.magnetic_field != 0) { //there is an external magnetic field and therefore we need to consider both spin channels.
+		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
+			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
+				Interacting_GF gf_interacting_up(parameters, self_energy_mb_up,
+				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    voltage_step, hamiltonian_up.at(kx_i).at(ky_i));
+
+				Interacting_GF gf_interacting_down(parameters, self_energy_mb_up,
+				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    voltage_step, hamiltonian_down.at(kx_i).at(ky_i));
+
+    	        get_gf_lesser_non_eq(parameters, gf_interacting_up.interacting_gf, 
+    	            self_energy_mb_up, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+    	            gf_lesser_up, voltage_step);
+
+    	        get_gf_lesser_non_eq(parameters, gf_interacting_down.interacting_gf, 
+    	            self_energy_mb_up, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+    	            gf_lesser_down, voltage_step);
+
+    	        for(int r = 0; r < parameters.steps_myid; r++){
+    	            for(int i = 0; i < 4 * parameters.chain_length; i++){
+    	                for(int j = 0; j < 4 * parameters.chain_length; j++){
+    	                    gf_local_up.at(r)(i, j) += gf_interacting_up.interacting_gf.at(r)(i, j) / num_k_points;
+    	                    gf_local_down.at(r)(i, j) += gf_interacting_down.interacting_gf.at(r)(i, j) / num_k_points;
+    	                }
+						gf_local_lesser_up.at(r)(i, i) += gf_lesser_up.at(r)(i, i) / num_k_points;
+						gf_local_lesser_down.at(r)(i, i) += gf_lesser_down.at(r)(i, i) / num_k_points;
+    	            }
+				}
+				get_k_dependent_transmission(parameters, gf_interacting_up.interacting_gf, coupling_left, coupling_right, transmission_up);
+				get_k_dependent_transmission(parameters, gf_interacting_down.interacting_gf, coupling_left, coupling_right, transmission_down);
+			}
 		}
 	}
-	for (int r = 0; r < parameters.steps_myid; r++) {
-		transmission_down.at(r) = transmission_up.at(r);
-	}
 }
-
 
 void get_coupling(const Parameters &parameters, const Eigen::MatrixXcd &self_energy_left, const Eigen::MatrixXcd &self_energy_right, 
 	Eigen::MatrixXcd &coupling_left, Eigen::MatrixXcd &coupling_right, int r){
@@ -161,21 +194,18 @@ void get_landauer_buttiker_current(const Parameters& parameters,
     const std::vector<dcomp>& transmission_up, const std::vector<dcomp>& transmission_down,
     double* current_up, double* current_down, const int votlage_step)
 {
-	
+	*current_up = 0;
+	*current_down = 0;
 	for (int r = 0; r < parameters.steps_myid; r++) {
-		*current_up -= (parameters.delta_energy * transmission_up.at(r)
-		    * (fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step],
-		           parameters)
-		        - fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid))
-		                + parameters.voltage_r[votlage_step],
-		            parameters))).real();
-		*current_down -= (parameters.delta_energy * transmission_down.at(r)
-		    * (fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step],
-		           parameters)
-		        - fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid))
-		                + parameters.voltage_r[votlage_step],
-		            parameters))).real();	
+		*current_up -= (parameters.delta_energy * transmission_up.at(r) * 
+		(fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step], parameters)
+		- fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_r[votlage_step], parameters))).real();
+
+		*current_down -= (parameters.delta_energy * transmission_down.at(r) *
+		(fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step], parameters)
+		- fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_r[votlage_step], parameters))).real();	
 	}
+	
 }
 
 void get_meir_wingreen_current(

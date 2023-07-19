@@ -74,8 +74,8 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Eige
 }
 
 
-void get_hamiltonian(Parameters const &parameters, const int voltage_step, const double kx, const double ky, Eigen::MatrixXcd &hamiltonian){
-        
+void get_hamiltonian(Parameters const &parameters, const int voltage_step, const double kx, const double ky, Eigen::MatrixXcd &hamiltonian, int spin){
+    
     std::ofstream potential_file;
 	std::ostringstream ossgf;
 	ossgf << voltage_step << ".potential.txt";
@@ -89,6 +89,16 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
     potential_file << 0 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
 
     double voltage_i;
+
+    double magnetic_field;
+
+
+    //this will be zero if I have no external_magentic field
+    if (spin == 1) {//creates a positive term for adding onto the the onsite energy for spin up
+        magnetic_field = + parameters.magnetic_field / 2;
+    } else {//creates a negative term for adding onto the the onsite energy for spin down
+        magnetic_field = - parameters.magnetic_field / 2;
+    }
 
     //the matrix is 2 * chain_length x 2 * chain_length in size. The first block (chain_length x chain_length) is the first layer in the unit cell.
     //The second block (chain_length x chain_length) is the second layer in the unit cell. The offdiagonal blocks are the matrix elements between the two layers.
@@ -149,16 +159,16 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
             voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) * delta_v;
             potential_file << i + 1 << "  " << voltage_i <<  "\n"; 
             //this is the top left
-            hamiltonian(i, i) = parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l + voltage_i;
+            hamiltonian(i, i) = parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l + voltage_i + magnetic_field;
             //this is the top right
             hamiltonian(i + parameters.chain_length, i + parameters.chain_length) = 
-              -1 * (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i;
+              -1 * (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i + magnetic_field;
             //this is the bottom left
             hamiltonian(i + 2 * parameters.chain_length, i + 2 * parameters.chain_length) = 
-              -1 * (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i;
+              -1 * (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i + magnetic_field;
             //this is the bottom right
             hamiltonian(i + 3 * parameters.chain_length, i + 3 * parameters.chain_length) = 
-               (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i;             
+               (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i + magnetic_field;             
         }
 
         voltage_i = 0;
@@ -168,24 +178,24 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         for (int i = 0; i < parameters.num_cor; i++){
             int j = i + parameters.num_ins_left;
             potential_file << j + 1 << "  " << voltage_i <<  "\n";          
-            hamiltonian(j, j) = parameters.onsite_cor + voltage_i;
-            hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = parameters.onsite_cor + voltage_i;
-            hamiltonian(j + 2 * parameters.chain_length, j + 2 * parameters.chain_length) = parameters.onsite_cor + voltage_i;
-            hamiltonian(j + 3 * parameters.chain_length, j + 3 * parameters.chain_length) = parameters.onsite_cor + voltage_i;
+            hamiltonian(j, j) = parameters.onsite_cor + voltage_i + magnetic_field;
+            hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
+            hamiltonian(j + 2 * parameters.chain_length, j + 2 * parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
+            hamiltonian(j + 3 * parameters.chain_length, j + 3 * parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
         }
 
         for (int i = 0; i < parameters.num_ins_right; i++){
             int j = i + parameters.num_cor + parameters.num_ins_left;
             voltage_i = - (double)(i + 1) * delta_v;
             potential_file << j + 1 << "  " << voltage_i <<  "\n";  
-            hamiltonian(j, j) = -(parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r) + voltage_i;
+            hamiltonian(j, j) = -(parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r) + voltage_i + magnetic_field;
             hamiltonian(j + parameters.chain_length, j + parameters.chain_length) =  (parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r)
-                + voltage_i;
+                + voltage_i + magnetic_field;
             hamiltonian(j + 2 * parameters.chain_length, j + 2 * parameters.chain_length) =  (parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r)
-                + voltage_i;
+                + voltage_i + magnetic_field;
 
             hamiltonian(j + 3 * parameters.chain_length, j + 3 * parameters.chain_length) =  - (parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r)
-                + voltage_i;
+                + voltage_i + magnetic_field;
         }
     } else { //this is the metal/ins/metal structure
 
@@ -197,10 +207,10 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         voltage_i = parameters.voltage_l[voltage_step];
         for (int i = 0; i < parameters.num_cor; i++){
             potential_file << i + 1 << "  " << voltage_i <<  "\n";  
-            hamiltonian(i, i) = parameters.onsite_cor + voltage_i;
-            hamiltonian(i + parameters.chain_length, i + parameters.chain_length) = parameters.onsite_cor + voltage_i;
-            hamiltonian(i + 2 * parameters.chain_length, i + 2 * parameters.chain_length) = parameters.onsite_cor + voltage_i;
-            hamiltonian(i + 3 * parameters.chain_length, i + 3 * parameters.chain_length) = parameters.onsite_cor + voltage_i;          
+            hamiltonian(i, i) = parameters.onsite_cor + voltage_i + magnetic_field;
+            hamiltonian(i + parameters.chain_length, i + parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
+            hamiltonian(i + 2 * parameters.chain_length, i + 2 * parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
+            hamiltonian(i + 3 * parameters.chain_length, i + 3 * parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;          
         }
 
         //std::cout << "The voltage on the correlated atom is " << voltage_i << std::endl;
@@ -210,12 +220,12 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
             voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) * delta_v;
             //std::cout << voltage_i << std::endl;
             potential_file << j + 1 << "  " << voltage_i <<  "\n";          
-            hamiltonian(j, j) = parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l + voltage_i;
+            hamiltonian(j, j) = parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l + voltage_i + magnetic_field;
             hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = - (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i;
             hamiltonian(j + 2 * parameters.chain_length, j + 2 * parameters.chain_length) =  - (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l)
-                + voltage_i;
+                + voltage_i + magnetic_field;
             hamiltonian(j + 3 * parameters.chain_length, j + 3 * parameters.chain_length) =   (parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r)
-                + voltage_i;  
+                + voltage_i + magnetic_field;  
         }
 
         voltage_i = parameters.voltage_r[voltage_step];
@@ -223,10 +233,10 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         for (int i = 0; i < parameters.num_cor; i++){
             int j = i + parameters.num_cor + parameters.num_ins_left;
             potential_file << j + 1 << "  " << voltage_i <<  "\n";  
-            hamiltonian(j, j) = parameters.onsite_cor + voltage_i;
-            hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = parameters.onsite_cor + voltage_i;
-            hamiltonian(j + 2 * parameters.chain_length, j + 2 * parameters.chain_length) = parameters.onsite_cor + voltage_i;
-            hamiltonian(j + 3 * parameters.chain_length, j + 3 * parameters.chain_length) = parameters.onsite_cor + voltage_i;
+            hamiltonian(j, j) = parameters.onsite_cor + voltage_i + magnetic_field;
+            hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
+            hamiltonian(j + 2 * parameters.chain_length, j + 2 * parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
+            hamiltonian(j + 3 * parameters.chain_length, j + 3 * parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
         }
     }
 

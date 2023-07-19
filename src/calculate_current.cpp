@@ -15,7 +15,7 @@ double fermi_function(const double energy)
 	}
 }
 
-void get_landauer_buttiker_current(const std::vector<double>& energy, const std::vector<double>& transmission_up, const std::vector<double>& transmission_down, double* current_up,
+void get_lb_current(const std::vector<double>& energy, const std::vector<double>& transmission_up, const std::vector<double>& transmission_down, double* current_up,
     double* current_down, const double voltage)
 {
 	double delta_energy = energy.at(1) - energy.at(0);
@@ -88,7 +88,7 @@ int main(int argc, char* argv[])
 	//}
 
 	double current_up, current_down;
-	get_landauer_buttiker_current(energy, transmission_up, transmission_down, &current_up, &current_down, voltage);
+	get_lb_current(energy, transmission_up, transmission_down, &current_up, &current_down, voltage);
 	std::cout << voltage << " " << current_up << " " << current_down << "\n";
 	return 0;
 }

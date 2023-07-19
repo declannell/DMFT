@@ -21,17 +21,16 @@ void get_transmission_gf_local(
 	const std::vector<std::vector<dcomp>> &self_energy_mb_down,
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
     std::vector<dcomp> &transmission_up, std::vector<dcomp> &transmission_down,
-    const int voltage_step, std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian, std::vector<Eigen::MatrixXcd> &gf_local, 
-    std::vector<Eigen::MatrixXcd> &gf_local_lesser);
+    const int voltage_step, std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_up,
+    std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_down, std::vector<Eigen::MatrixXcd> &gf_local_up, 
+    std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_down, 
+    std::vector<Eigen::MatrixXcd> &gf_local_lesser_down);
 
 void get_coupling(const Parameters &parameters, const Eigen::MatrixXcd &self_energy_left, const Eigen::MatrixXcd &self_energy_right, 
 	Eigen::MatrixXcd &coupling_left, Eigen::MatrixXcd &coupling_right, int r);
 
-void get_landauer_buttiker_current(const Parameters &parameters,
-                                   const std::vector<dcomp> &transmission_up,
-                                   const std::vector<dcomp> &transmission_down,
-                                   double *current_up, double *current_down,
-                                   const int votlage_step);
+void get_landauer_buttiker_current(const Parameters &parameters, const std::vector<dcomp> &transmission_up, const std::vector<dcomp> &transmission_down,
+    double *current_up, double *current_down, const int votlage_step);
 
 void get_meir_wingreen_current(
     const Parameters &parameters, 

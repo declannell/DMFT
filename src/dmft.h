@@ -19,5 +19,6 @@ void dmft(const Parameters &parameters, const int voltage_step,
         std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down,
         std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_lesser_down,
         std::vector<Eigen::MatrixXcd> &gf_local_greater_up, std::vector<Eigen::MatrixXcd> &gf_local_greater_down,
-        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup,
-        const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian);
+        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, 
+        const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_up,
+	const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_down);

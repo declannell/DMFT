@@ -47,8 +47,24 @@ int main(int argc, char **argv)
 			std::cout << "The number of orbitals we have is " << 4 * parameters.chain_length << "\n";
 		}
 
-		std::vector<std::vector<Eigen::MatrixXcd>> hamiltonian(parameters.num_kx_points, std::vector<Eigen::MatrixXcd>(parameters.num_ky_points,
-				 Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)));
+		//the unit cell is 2x2xchain_length. The 2x2 is required for the insulating layers. hence all quantities in the central region are matrices
+		//of size 4* parameters.chain_length.
+
+
+		//this creates the k-depedent hamiltonian for both spins
+		std::vector<std::vector<Eigen::MatrixXcd>> hamiltonian_up(parameters.num_kx_points, std::vector<Eigen::MatrixXcd>(parameters.num_ky_points,
+			Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length))),
+			hamiltonian_down(parameters.num_kx_points, std::vector<Eigen::MatrixXcd>(parameters.num_ky_points,
+			Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)));
+		
+		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
+			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {//1 refers to spin up. 2 refers to spin down
+				get_hamiltonian(parameters, m, kx.at(kx_i), ky.at(ky_i), hamiltonian_up.at(kx_i).at(ky_i), 1); 
+				get_hamiltonian(parameters, m, kx.at(kx_i), ky.at(ky_i), hamiltonian_down.at(kx_i).at(ky_i), 2); 
+			}
+		}
+		
+		if (parameters.myid == 0) std::cout << "hamiltonian complete" << std::endl;
 
 		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)),
 		gf_local_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)),
@@ -58,7 +74,7 @@ int main(int argc, char **argv)
 		std::vector<Eigen::MatrixXcd> gf_local_greater_up, gf_local_greater_down;
 		std::vector<std::vector<dcomp>> self_energy_mb_greater_down, self_energy_mb_greater_up;
 
-		if (parameters.impurity_solver == 3) {
+		if (parameters.impurity_solver == 3) {//only bother to intiliase the greater stuff if we are doing the nca loop.
 			gf_local_greater_up.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 			gf_local_greater_down.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 			self_energy_mb_greater_down.resize(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid));
@@ -69,6 +85,7 @@ int main(int argc, char **argv)
 		    self_energy_mb_lesser_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0)),
 			self_energy_mb_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
 		    self_energy_mb_lesser_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
+		
 		std::vector<double> spins_occup(8 * parameters.chain_length); //the first 2 * chain_length is the spin up, the next 2 * chain_length is spin down.
 
 		std::vector<std::vector<EmbeddingSelfEnergy>> leads;
@@ -82,58 +99,45 @@ int main(int argc, char **argv)
 
 		if (parameters.myid == 0) std::cout << "leads complete" << std::endl;
 
-		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
-			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
-				get_hamiltonian(parameters, m, kx.at(kx_i), ky.at(ky_i), hamiltonian.at(kx_i).at(ky_i));
-			}
-		}
-
-		if (parameters.myid == 0) std::cout << "hamiltonian complete" << std::endl;
-
-
 		if (parameters.hubbard_interaction != 0) {
 			if (parameters.spin_polarised == true) {	
 				set_initial_spin(parameters, self_energy_mb_up, self_energy_mb_down);
 
-			if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
-				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
-				get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);				
-			} else {
-				if (parameters.impurity_solver == 3) {//this calculates g_> as well which is required for the nca.
-					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
-					 	gf_local_greater_up, m, hamiltonian);
-					get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
-						 gf_local_down, gf_local_lesser_down, gf_local_greater_down, m, hamiltonian);	
-				} else {
-					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
-					get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian);	
-				}
-			}
-		
-			} else { //spin up and down are degenerate. Hence eonly need to do this once
 				if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
-					get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
-				} else {
-					if (parameters.impurity_solver == 3) {//this calculates g_> as well which is required for the nca.
+					get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
+					get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian_down);				
+				} else {//this then either calculates the required gf for sigma2 or nca in the correct manner.
+					if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
 						get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
-					 		gf_local_greater_up, m, hamiltonian);
-					} else {
-						get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian);
+						 	gf_local_greater_up, m, hamiltonian_up);
+						get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
+							 gf_local_down, gf_local_lesser_down, gf_local_greater_down, m, hamiltonian_down);	
+					} else {//only need gf_retarded and gf_lesser for sigma2
+						get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
+						get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian_down);	
+					}
+				}
+			} else { //spin up and down are degenerate. Hence only need to do this once. choose to do it for spin up
+				if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
+					get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
+				} else {//this then either calculates the required gf for sigma2 or nca in the correct manner.
+					if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
+						get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
+					 		gf_local_greater_up, m, hamiltonian_up);
+					} else {//only need gf_retarded and gf_lesser for sigma2
+						get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
 					}
 				}
 			}
 
-			if (parameters.myid == 0) {
-				std::cout << "got local retarded and lesser gf" << std::endl;
-			}
+			if (parameters.myid == 0) std::cout << "got local retarded and lesser gf" << std::endl;
 
 			dmft(parameters, m, self_energy_mb_up, self_energy_mb_down, self_energy_mb_lesser_up, self_energy_mb_lesser_down,
 				self_energy_mb_greater_up, self_energy_mb_greater_down, gf_local_up, gf_local_down, gf_local_lesser_up, gf_local_lesser_down,
-				gf_local_greater_up, gf_local_greater_down, leads, spins_occup, hamiltonian);
+				gf_local_greater_up, gf_local_greater_down, leads, spins_occup, hamiltonian_up, hamiltonian_down);
 
-			if (parameters.myid == 0) {
-				std::cout << "got self energy " << std::endl;
-			}
+			if (parameters.myid == 0) std::cout << "got self energy " << std::endl;
+
 		}
 
 
@@ -146,32 +150,31 @@ int main(int argc, char **argv)
 		//std::vector<double> current_noninteracting_up(parameters.NIV_points, 0), current_noninteracting_down(parameters.NIV_points, 0);
 		//std::vector<dcomp> transmission_noninteracting_up(parameters.steps_myid, 0);
 		//std::vector<dcomp> transmission_noninteracting_down(parameters.steps_myid, 0);
-		if (parameters.hubbard_interaction == 0) {
+		
+		if (parameters.hubbard_interaction == 0) {//this then calculates the local gf and transmission at once. If it is non-interacting
+		//local gf hasn't been calculated yet
 			get_transmission_gf_local(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down,
-    			 m, hamiltonian, gf_local_up, gf_local_lesser_up);
-			if (parameters.myid == 0) {			
-				std::cout << "got transmission\n";
-			}
+    			 m, hamiltonian_up, hamiltonian_down, gf_local_up, gf_local_lesser_up, gf_local_down, gf_local_lesser_down);
+			if (parameters.myid == 0) std::cout << "got transmission\n";
+
 			get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &current_up_myid, &current_down_myid, m);
 
 			MPI_Reduce(&current_up_myid, &current_up.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 			MPI_Reduce(&current_down_myid, &current_down.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);	
 
-			if (parameters.myid == 0) {
-				std::cout << "The spin up current is " << current_up.at(m) << "\n" <<
-					 "The spin down current is " << current_down.at(m) << "\n" << "\n";	
-			}
-	
+			if (parameters.myid == 0) std::cout << "The spin up current is " << current_up.at(m) << "\n" <<
+				"The spin down current is " << current_down.at(m) << "\n" << "\n";	
 		} else {
-			if (parameters.spin_polarised == true) {
+			if (parameters.spin_polarised == true) {//the transmission is calculated while calculating the MW for computational speed up
+				//non spin degerneate.
 				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, 
-					transmission_up, hamiltonian);
+					transmission_up, hamiltonian_up);
 				get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid,
-					transmission_down, hamiltonian);
+					transmission_down, hamiltonian_down);
 				get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
-			} else { //spin down =spin_up
+			} else { //spin down =spin_up. if spin polarise dis not true then there is no magnetic field by the code in parameters.cpp
 				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, 
-					transmission_up, hamiltonian);
+					transmission_up, hamiltonian_up);
 				for(int r = 0; r < parameters.steps_myid; r++) {
 					transmission_down.at(r) = transmission_up.at(r);
 				}
@@ -204,25 +207,14 @@ int main(int argc, char **argv)
 			std::cout << std::endl;
 		}
 
-		//for (int i = 0; i < 4 * parameters.chain_length; i++) {
-		//	if (parameters.atom_type.at(i) != 0) {
-		//		if (parameters.myid == 0) {
-		//			std::cout << "The spin up occupation at atom " << i << " is " << spins_occup.at(i) << std::endl;
-		//			std::cout << "The spin down occupation at atom " << i << " is " << spins_occup.at(i + 4 * parameters.chain_length) << std::endl;
-		//		}				
-		//	}
-		//}
-//
 		std::vector<dcomp> dos_up(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_down(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_up_ins(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_down_ins(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_up_metal(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_down_metal(parameters.steps_myid, 0);	
-		if (parameters.hubbard_interaction == 0) {
+		if (parameters.hubbard_interaction == 0 && parameters.magnetic_field == 0) {//this will be degerate
 			get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_up);
-
-			//spin up and down are degenerate
 		} else {
 			if (parameters.spin_polarised == true) {
 				get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_down);
@@ -236,14 +228,14 @@ int main(int argc, char **argv)
 		if (parameters.myid == 0) {
 			std::cout << parameters.print_gf << std::endl;
 		}
-		if (parameters.print_gf == true) {
+		if (parameters.print_gf == true) {//this is code to print the local gf functions
 			if (parameters.spin_polarised == true) {
 				write_to_file(parameters, gf_local_up, gf_local_down, "gf.dat", m);
 				write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_down, "gf_lesser.dat", m);
 				if (parameters.impurity_solver == 3) {
 					write_to_file(parameters, gf_local_greater_up, gf_local_greater_down, "gf_greater.dat", m);
 				}
-			} else {
+			} else {//we havent calculated spin down gf so we just pass the spin up one twice.
 				write_to_file(parameters, gf_local_up, gf_local_up, "gf.dat", m);
 				write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_up, "gf_lesser.dat", m);
 				if (parameters.impurity_solver == 3) {
@@ -253,7 +245,6 @@ int main(int argc, char **argv)
 		}
 
 		write_to_file(parameters, transmission_up, transmission_down, "transmission.dat", m);
-		//write_to_file(parameters, transmission_noninteracting_up, transmission_noninteracting_down, "transmission_noninteracting.dat", m);
 		write_to_file(parameters, dos_up, dos_down, "dos.dat", m);
 		write_to_file(parameters, dos_up_ins, dos_down_ins, "dos_ins.dat", m);
 		write_to_file(parameters, dos_up_metal, dos_down_metal, "dos_metal.dat", m);
@@ -267,16 +258,7 @@ int main(int argc, char **argv)
 
 		integrate_spectral(parameters, gf_local_up);
 
-		if (parameters.myid == 0) {			
-			std::cout << "wrote files\n";
-		}
-
-		if (parameters.num_kx_points == 1 && parameters.num_ky_points == 1 && parameters.chain_length == 1 && parameters.hubbard_interaction == 0){
-			analytic_gf(parameters, gf_local_up);
-			if (parameters.myid == 0) {			
-				std::cout << "got analytic gf\n";
-			}
-		}
+		if (parameters.myid == 0) std::cout << "wrote files\n";
 	}
 
 	if (parameters.myid == 0) {
@@ -295,14 +277,8 @@ int main(int argc, char **argv)
 				}
 
 				std::cout << "\n";
-				current_file << parameters.voltage_l[m] - parameters.voltage_r[m]
-				             << "   "
-				             //<< current_up.at(m).real() << "   "
-				             //<< current_down.at(m).real() << "   "
-				             << 2 * current_up_left.at(m) << "   " << 2 * current_up_right.at(m)
-				             << "   "
-				             //<< current_down_left.at(m).real() << "   "
-				             << 2 * current_up_left.at(m) + 2 * current_up_right.at(m) << "\n";
+				current_file << parameters.voltage_l[m] - parameters.voltage_r[m] << "   " << 2 * current_up_left.at(m) << "   " << 2 * current_up_right.at(m)
+				    << "   " << 2 * current_up_left.at(m) + 2 * current_up_right.at(m) << "\n";
 			}
 			current_file.close();
 		} else {

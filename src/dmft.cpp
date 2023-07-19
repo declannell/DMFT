@@ -70,9 +70,6 @@ void get_difference_self_energy(const Parameters &parameters, std::vector<std::v
 	MPI_Bcast(&difference, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 }
 
-
-
-
 void dmft(const Parameters &parameters, const int voltage_step, 
         std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down, 
         std::vector<std::vector<dcomp>> &self_energy_mb_lesser_up, std::vector<std::vector<dcomp>> &self_energy_mb_lesser_down,
@@ -80,16 +77,13 @@ void dmft(const Parameters &parameters, const int voltage_step,
         std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down,
         std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_lesser_down,
         std::vector<Eigen::MatrixXcd> &gf_local_greater_up, std::vector<Eigen::MatrixXcd> &gf_local_greater_down,
-        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian)
+        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_up,
+		const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_down)
 {
 	double difference = std::numeric_limits<double>::infinity();
 	int index, count = 0;
 
-	std::vector<Eigen::MatrixXcd> old_green_function(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 	std::vector<std::vector<dcomp>> old_self_energy_mb(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 100));
-
-	//write_to_file(parameters, gf_local_greater_up, gf_local_greater_up, "gf_greater_dmft.dat", voltage_step);
-	//write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_up, "gf_lesser_dmft.dat", voltage_step);
 
 	if (parameters.spin_polarised == true) {
 		std::vector<dcomp> diag_gf_local_up(parameters.steps_myid), diag_gf_local_down(parameters.steps_myid), diag_gf_local_lesser_up(parameters.steps_myid),
@@ -110,21 +104,14 @@ void dmft(const Parameters &parameters, const int voltage_step,
 			//MPI_Barrier(MPI_COMM_WORLD);
 			//std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
 			get_difference_self_energy(parameters, self_energy_mb_up, old_self_energy_mb, difference, index);
-			MPI_Barrier(MPI_COMM_WORLD);
-			if (parameters.myid == 0) {
-				std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
-			}
 
-			if (difference < parameters.convergence) {
-				break;
-			}
+			if (parameters.myid == 0) std::cout << std::setprecision(15) << "The difference is " << difference << ". The count is " << count << std::endl;
+			if (difference < parameters.convergence) break;
 
 			for (int i = 0; i < 4 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
-				if (parameters.atom_type.at(i) == 0){
-					continue;
-				}
+				if (parameters.atom_type.at(i) == 0) continue;//this allows us to only apply correlation on the metallic atoms. this are type 0.
 				//this is only passing the part of the green function that each process is dealing with.
-				for (int r = 0; r < parameters.steps_myid; r++) {
+				for (int r = 0; r < parameters.steps_myid; r++) {//getting the diagonal part of the green function.
 					diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
 					diag_gf_local_down.at(r) = gf_local_down.at(r)(i, i);
 					diag_gf_local_lesser_up.at(r) = gf_local_lesser_up.at(r)(i, i);
@@ -133,10 +120,9 @@ void dmft(const Parameters &parameters, const int voltage_step,
 					impurity_self_energy_down.at(r) = self_energy_mb_down.at(i).at(r);
 					impurity_self_energy_lesser_up.at(r) = self_energy_mb_lesser_up.at(i).at(r);
 					impurity_self_energy_lesser_down.at(r) = self_energy_mb_lesser_down.at(i).at(r);
-					std::cout << impurity_self_energy_up.at(r) << std::endl;
 				}
 
-				if (parameters.impurity_solver == 3) {
+				if (parameters.impurity_solver == 3) {//need to to the greater gf for nca
 					for (int r = 0; r < parameters.steps_myid; r++) {
 						diag_gf_local_greater_up.at(r) = gf_local_greater_up.at(r)(i, i);
 						diag_gf_local_greater_down.at(r) = gf_local_greater_down.at(r)(i, i);
@@ -146,9 +132,7 @@ void dmft(const Parameters &parameters, const int voltage_step,
 				}
 
 				//MPI_Allgather(&diag_gf_local_up_myid, parameters.steps_myid, MPI_DOUBLE_COMPLEX, &diag_gf_local_up, parameters.steps_myid, MPI_DOUBLE_COMPLEX, MPI_COMM_WORLD);
-				if (parameters.myid == 0) {
-					std::cout << "atom which we put on correlation is " << i << std::endl;
-				}
+				if (parameters.myid == 0) std::cout << "atom which we put on correlation is " << i << std::endl;
 
     			AIM aim_up(parameters, diag_gf_local_up, diag_gf_local_lesser_up, diag_gf_local_greater_up,
 					impurity_self_energy_up, impurity_self_energy_lesser_up,impurity_self_energy_greater_up, voltage_step);
@@ -161,11 +145,8 @@ void dmft(const Parameters &parameters, const int voltage_step,
 					impurity_solver_nca(parameters, voltage_step, aim_up, aim_down);
 				}
 				
-				
-
 				if (parameters.myid == 0) {
 					std::cout << "\n \n";
-					//std::cout << "AIM was created for atom " << i << std::endl;
 				}
 
     	        if(count == 0){
@@ -196,29 +177,27 @@ void dmft(const Parameters &parameters, const int voltage_step,
     	                	self_energy_mb_greater_up.at(i).at(r) = (parameters.j1 * aim_up.self_energy_mb_greater.at(r) + self_energy_mb_greater_up.at(i).at(r)) * 0.5;
     	                	self_energy_mb_greater_down.at(i).at(r) = (parameters.j1 * aim_down.self_energy_mb_greater.at(r) + self_energy_mb_greater_down.at(i).at(r)) * 0.5;
     	            	}
-    	        }
+    	        	}
 				}
 			}
 
-			if (parameters.noneq_test == true) {
-				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
-				get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);				
-			} else {
-				if (parameters.impurity_solver == 3) {
+			if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
+				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
+				get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian_down);				
+			} else {//this then either calculates the required gf for sigma2 or nca in the correct manner.
+				if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
-					 	gf_local_greater_up, voltage_step, hamiltonian);
+					 	gf_local_greater_up, voltage_step, hamiltonian_up);
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
-						 gf_local_down, gf_local_lesser_down, gf_local_greater_down, voltage_step, hamiltonian);	
-				} else {
-					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
-					get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian);	
-				}	
+						 gf_local_down, gf_local_lesser_down, gf_local_greater_down, voltage_step, hamiltonian_down);	
+				} else {//only need gf_retarded and gf_lesser for sigma2
+					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
+					get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian_down);	
+				}
 			}
-
-
 			count++;
 		}
-	} else { //spin up is the same as spin down
+	} else { //spin up is the same as spin down. only do the up channel.
 
 		std::vector<dcomp> diag_gf_local_up(parameters.steps_myid), diag_gf_local_lesser_up(parameters.steps_myid),
 	    	diag_gf_local_greater_up, impurity_self_energy_up(parameters.steps_myid), impurity_self_energy_lesser_up(parameters.steps_myid), 
@@ -243,11 +222,9 @@ void dmft(const Parameters &parameters, const int voltage_step,
 			}
 
 			for (int i = 0; i < 4 * parameters.chain_length; i++) {  //we only do the dmft loop over the correlated metal.
-				if (parameters.atom_type.at(i) == 0){
-					continue;
-				}
+				if (parameters.atom_type.at(i) == 0) continue; //this allows us to only apply correlation on the metallic atoms. this are type 0.
 				//this is only passing the part of the green function that each process is dealing with.
-				for (int r = 0; r < parameters.steps_myid; r++) {
+				for (int r = 0; r < parameters.steps_myid; r++) {//getting the diagonal part of the GF
 					diag_gf_local_up.at(r) = gf_local_up.at(r)(i, i);
 					diag_gf_local_lesser_up.at(r) = gf_local_lesser_up.at(r)(i, i);
 					impurity_self_energy_up.at(r) = self_energy_mb_up.at(i).at(r);
@@ -265,27 +242,18 @@ void dmft(const Parameters &parameters, const int voltage_step,
 				}
 
 				//MPI_Allgather(&diag_gf_local_up_myid, parameters.steps_myid, MPI_DOUBLE_COMPLEX, &diag_gf_local_up, parameters.steps_myid, MPI_DOUBLE_COMPLEX, MPI_COMM_WORLD);
-				if (parameters.myid == 0) {
-					std::cout << "atom which we put on correlation is " << i << std::endl;
-				}
+				if (parameters.myid == 0) std::cout << "atom which we put on correlation is " << i << std::endl;
 
     			AIM aim_up(parameters, diag_gf_local_up, diag_gf_local_lesser_up, diag_gf_local_greater_up,
 					impurity_self_energy_up, impurity_self_energy_lesser_up,impurity_self_energy_greater_up, voltage_step);
 
-				if (parameters.impurity_solver != 3) {
+				if (parameters.impurity_solver != 3) {//will spend it to sigma2 to do brute force or kramer-kronig
 					impurity_solver_sigma_2(parameters, voltage_step, aim_up, aim_up, &spins_occup.at(i), &spins_occup.at(i + 4 * parameters.chain_length));
-				} else {
+				} else if (parameters.impurity_solver == 3) {// will do nca
 					impurity_solver_nca(parameters, voltage_step, aim_up, aim_up);
 				}
 				
-
-
-				if (parameters.myid == 0) {
-					std::cout << "\n \n";
-					//std::cout << "AIM was created for atom " << i << std::endl;
-				}
-
-    	        if(count == 0){
+    	        if (count == 0){//this is so the difference in each self consistent is minimised. Helps convergence
     	            for (int r = 0; r < parameters.steps_myid; r++) {
     	                self_energy_mb_up.at(i).at(r) = aim_up.self_energy_mb_retarded.at(r);
     	                self_energy_mb_lesser_up.at(i).at(r) = parameters.j1 * aim_up.self_energy_mb_lesser.at(r);
@@ -297,8 +265,8 @@ void dmft(const Parameters &parameters, const int voltage_step,
     	            }
     	        }
 
-				if (parameters.impurity_solver == 3) {
-					if(count == 0){
+				if (parameters.impurity_solver == 3) {// need to do this for g^> for the nca
+					if (count == 0){//this is so the difference in each self consistent is minimised. Helps convergence
     	            	for (int r = 0; r < parameters.steps_myid; r++) {
     	            	    self_energy_mb_greater_up.at(i).at(r) = parameters.j1 * aim_up.self_energy_mb_greater.at(r);
     	            	}
@@ -310,15 +278,15 @@ void dmft(const Parameters &parameters, const int voltage_step,
 				}
 			}
 
-			if (parameters.noneq_test == true) {
-				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);		
-			} else {
-				if (parameters.impurity_solver == 3) {
+			if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
+				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
+			} else {//this then either calculates the required gf for sigma2 or nca in the correct manner.
+				if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
-					 	gf_local_greater_up, voltage_step, hamiltonian);
-				} else {
-					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian);
-				}	
+				 		gf_local_greater_up, voltage_step, hamiltonian_up);
+				} else {//only need gf_retarded and gf_lesser for sigma2
+					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
+				}
 			}
 
 			count++;
