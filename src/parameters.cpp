@@ -152,9 +152,7 @@ Parameters Parameters::from_file()
 				parameters.magnetic_field = std::stod(value);
 			} else if (variable == "half_metal") {
 				parameters.half_metal = std::stoi(value);
-			} else if (variable == "half_metal_shift") {
-				parameters.half_metal_shift = std::stod(value);
-			}
+			} 
 	}
 	input_file.close();
 	
@@ -187,7 +185,6 @@ Parameters Parameters::from_file()
 		atom_identity = 2;
 	} else if (parameters.half_metal == 0) {//the insulating remain insulting.
 		atom_identity = 0;
-		parameters.half_metal_shift = 0;
 	}
 
 	//the atom is correlated if atom typ equals to 1. This how we know to apply sigma two to certain atoms.
@@ -197,7 +194,7 @@ Parameters Parameters::from_file()
 		//the top right atoms  are chain_length to 2 * chain_length -1.
 		//the bottom left are 2 *atoms number 2 * chain_length to 3 * chain_length - 1.
 		//the bottom right are atoms 3 * * chain_length to 4 * chain_length - 1.
-		for (int s = 0; s < 4; s++) {
+		for (int s = 0; s < 4; s++) {//this is an array which encodes information about the i'th orbtial. Whether it is metallic or insulating, half metallic etc.
 			for (int i = 0; i < parameters.num_ins_left; i++) {
 				parameters.atom_type.push_back(atom_identity);
 			}
@@ -239,7 +236,7 @@ Parameters Parameters::from_file()
 		parameters.energy.at(i) = parameters.e_lower_bound + parameters.delta_energy * (double)i;
 	}
 
-MPI_Comm_size(MPI_COMM_WORLD, &parameters.size);
+	MPI_Comm_size(MPI_COMM_WORLD, &parameters.size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &parameters.myid);
 	parameters.comm = MPI_COMM_WORLD;
 
@@ -280,15 +277,8 @@ MPI_Comm_size(MPI_COMM_WORLD, &parameters.size);
 		MPI_Bcast(&parameters.steps_proc.at(a), 1, MPI_INT, a, MPI_COMM_WORLD);
 	}
 
-	//if (parameters.myid == 0) {
-	//	for (int i = 0; i < parameters.size; i++){
-	//		std::cout << "The number of starting index of " << i << " is " << parameters.start.at(i) << std::endl;
-	//		std::cout << "The number of ending index of " << i << " is " << parameters.end.at(i) << std::endl;
-	//		std::cout << "The number of steps_proc index of " << i << " is " << parameters.steps_proc.at(i) << std::endl;
-	//	}
-	//}
 
-	if (parameters.magnetic_field != 0) {
+	if (parameters.magnetic_field != 0 || parameters.half_metal == 1) {
 		parameters.spin_polarised = true;
 	}
 
@@ -366,6 +356,4 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.noneq_test = " << parameters.noneq_test << std::endl;
 	std::cout << "parameters.magnetic_field = " << parameters.magnetic_field << std::endl;
 	std::cout << "parameters.half_metal = " << parameters.half_metal << std::endl;
-	std::cout << "parameters.half_metal_shift = " << parameters.half_metal_shift << std::endl;
-
 }

@@ -5,7 +5,7 @@
 #include <eigen3/Eigen/Dense>
 #include <iostream>
 #include <vector>
-
+#include "utilis.h"
 #include "dmft.h"
 #include "interacting_gf.h"
 #include "leads_self_energy.h"
@@ -98,7 +98,8 @@ void get_transmission_gf_local(
     std::vector<Eigen::MatrixXcd> gf_lesser_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)); 
    	std::vector<Eigen::MatrixXcd> gf_lesser_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)); 
 
-	if (parameters.magnetic_field == 0) {// if there is no extenral field and no interaction the system will be spin degenerate. Only do the up spin channel
+	if (parameters.spin_polarised != 1) {// if there is no extenral field and no interaction the system will be spin degenerate. Only do the up spin channel
+		//also it is not a half metal. 
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
 				Interacting_GF gf_interacting(parameters, self_energy_mb_up,
@@ -124,7 +125,7 @@ void get_transmission_gf_local(
 		for (int r = 0; r < parameters.steps_myid; r++) {
 			transmission_down.at(r) = transmission_up.at(r);
 		}
-	} else if (parameters.magnetic_field != 0) { //there is an external magnetic field and therefore we need to consider both spin channels.
+	} else { //there is an external magnetic field and therefore we need to consider both spin channels. The system could also be a half metal.
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
 				Interacting_GF gf_interacting_up(parameters, self_energy_mb_up,

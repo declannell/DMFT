@@ -63,7 +63,8 @@ int main(int argc, char **argv)
 				get_hamiltonian(parameters, m, kx.at(kx_i), ky.at(ky_i), hamiltonian_down.at(kx_i).at(ky_i), 2); 
 			}
 		}
-		
+
+
 		if (parameters.myid == 0) std::cout << "hamiltonian complete" << std::endl;
 
 		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)),
@@ -153,6 +154,8 @@ int main(int argc, char **argv)
 		
 		if (parameters.hubbard_interaction == 0) {//this then calculates the local gf and transmission at once. If it is non-interacting
 		//local gf hasn't been calculated yet
+
+
 			get_transmission_gf_local(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down,
     			 m, hamiltonian_up, hamiltonian_down, gf_local_up, gf_local_lesser_up, gf_local_down, gf_local_lesser_down);
 			if (parameters.myid == 0) std::cout << "got transmission\n";
@@ -213,15 +216,13 @@ int main(int argc, char **argv)
 		std::vector<dcomp> dos_down_ins(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_up_metal(parameters.steps_myid, 0);
 		std::vector<dcomp> dos_down_metal(parameters.steps_myid, 0);	
-		if (parameters.hubbard_interaction == 0 && parameters.magnetic_field == 0) {//this will be degerate
-			get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_up);
+
+		if (parameters.spin_polarised == true) {
+			get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_down);
 		} else {
-			if (parameters.spin_polarised == true) {
-				get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_down);
-			} else {
-				get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_up);
-			}
+			get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_up);
 		}
+		
 		
 		get_occupation(parameters, gf_local_lesser_up, gf_local_lesser_down, spins_occup);
 
@@ -230,6 +231,7 @@ int main(int argc, char **argv)
 		}
 		if (parameters.print_gf == true) {//this is code to print the local gf functions
 			if (parameters.spin_polarised == true) {
+				std::cout << "here \n";
 				write_to_file(parameters, gf_local_up, gf_local_down, "gf.dat", m);
 				write_to_file(parameters, gf_local_lesser_up, gf_local_lesser_down, "gf_lesser.dat", m);
 				if (parameters.impurity_solver == 3) {
@@ -248,16 +250,17 @@ int main(int argc, char **argv)
 		write_to_file(parameters, dos_up, dos_down, "dos.dat", m);
 		write_to_file(parameters, dos_up_ins, dos_down_ins, "dos_ins.dat", m);
 		write_to_file(parameters, dos_up_metal, dos_down_metal, "dos_metal.dat", m);
-		if (parameters.spin_polarised == true) {
-			write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.dat", m);
-			write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_down, "se_l.dat", m);
-		} else {
-			write_to_file(parameters, self_energy_mb_up, self_energy_mb_up, "se_r.dat", m);
-			write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.dat", m);
+		if (parameters.hubbard_interaction != 0) {
+			if (parameters.spin_polarised == true) {
+				write_to_file(parameters, self_energy_mb_up, self_energy_mb_down, "se_r.dat", m);
+				write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_down, "se_l.dat", m);
+			} else {
+				write_to_file(parameters, self_energy_mb_up, self_energy_mb_up, "se_r.dat", m);
+				write_to_file(parameters, self_energy_mb_lesser_up, self_energy_mb_lesser_up, "se_l.dat", m);
+			}
 		}
 
 		integrate_spectral(parameters, gf_local_up);
-
 		if (parameters.myid == 0) std::cout << "wrote files\n";
 	}
 

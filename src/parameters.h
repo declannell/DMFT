@@ -82,10 +82,7 @@ struct Parameters
     int impurity_solver; //0 means mean field interaction, 1 means brute force sigma_2, 2 means kramer-kronig sigma_2, 3 means non crossing approx. 
     //4 means only second order with brute force. no mean field only. 5 means only second order with kramer-kronig. no mean field only
     double magnetic_field;//strenght of the magnetic field
-    int half_metal; //if half metal == 1 then the insulating layers have the potential to be half metallic. If this is true there will be no correlated metal layers. 
-    //the insulating layers will then be treated with sigma2;
-    double half_metal_shift; //this is the value of the shift of the top insulting layer.
-    //setiing half_metal = 1 and half_metal_shift = 0, is a way to applying correlation onto the insulting layers.
+    int half_metal; //if half metal == 1 then the insulating layers are replaced with half_metals.
 };
 
 
