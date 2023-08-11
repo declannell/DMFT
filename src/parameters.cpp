@@ -37,6 +37,10 @@ Parameters Parameters::from_file()
 		std::exit(1);
 	} 
 	
+	parameters.convergence_leads = 0.0001;
+	parameters.self_consistent_steps_leads = 20;
+	parameters.half_metal = 0;
+
 	while (getline(input_file, line)) {
 			//std::cout << line << '\n';
 			simple_tokenizer(line, variable, value);
@@ -152,7 +156,11 @@ Parameters Parameters::from_file()
 				parameters.magnetic_field = std::stod(value);
 			} else if (variable == "half_metal") {
 				parameters.half_metal = std::stoi(value);
-			} 
+			} else if (variable == "convergence_leads") {
+				parameters.convergence_leads = std::stod(value);
+			} else if (variable == "self_consistent_steps_leads") {
+				parameters.self_consistent_steps_leads = std::stod(value);
+			}
 	}
 	input_file.close();
 	
@@ -218,7 +226,6 @@ Parameters Parameters::from_file()
 			}
 		}
 	}
-
 
 	//for (int i = 0; i < 4 * parameters.chain_length; i++) {
 	//	std::cout << parameters.atom_type.at(i) << std::endl;
@@ -356,4 +363,6 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.noneq_test = " << parameters.noneq_test << std::endl;
 	std::cout << "parameters.magnetic_field = " << parameters.magnetic_field << std::endl;
 	std::cout << "parameters.half_metal = " << parameters.half_metal << std::endl;
+	std::cout << "parameters.convergence_leads = " << parameters.convergence_leads << std::endl;
+	std::cout << "parameters.self_consistent_steps_leads = " << parameters.self_consistent_steps_leads << std::endl;
 }

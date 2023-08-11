@@ -3,9 +3,11 @@
 #include <cmath>
 #include <vector>
 #include <mpi.h>
+#include <eigen3/Eigen/Dense>
 
 typedef std::complex<double> dcomp;
-
+using MatrixType = Eigen::MatrixXcd;
+using MatrixVectorType = std::vector<MatrixType>;
 
 struct Parameters
 {
@@ -44,6 +46,7 @@ struct Parameters
     int voltage_step;        // voltage step of zero is equilibrium. This is an integer and higher values correspond to a higher potential difference between the two leads.
     double self_consistent_steps; // this is the number of self consistent steps my code does
     double self_consistent_steps_nca; // this is the number of self consistent steps my code does for the nca loop
+    double self_consistent_steps_leads; // this is the number of self consistent steps my code does for the leads.
     bool read_in_self_energy;
     int NIV_points;//number of IV points
 	int NIV_start; //starting bias for the calculation. 0 for equilibrium
@@ -53,7 +56,8 @@ struct Parameters
     bool leads_3d;//if true, this will attach 3d leads to a 1d scattering region
     double spin_up_occup;
     double spin_down_occup;
-    double convergence;
+    double convergence;//the convergence of the mb self energy.
+    double convergence_leads; //this is the convergence of the transfer matrix for the leads
     double gamma; //this is the value of the imag part of the self energy in the WBL.
     bool wbl_approx; //this sets whether or not we calculate the leads self energy by the wide band approx.
     //bool kk_relation; //try to integrate with the krammers kronig relation
@@ -83,6 +87,7 @@ struct Parameters
     //4 means only second order with brute force. no mean field only. 5 means only second order with kramer-kronig. no mean field only
     double magnetic_field;//strenght of the magnetic field
     int half_metal; //if half metal == 1 then the insulating layers are replaced with half_metals.
+
 };
 
 

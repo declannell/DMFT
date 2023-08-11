@@ -14,7 +14,7 @@
 #include "nca.h"
 
 
-void get_difference(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &old_green_function,
+void get_difference(const Parameters &parameters, MatrixVectorType &gf_local_up, MatrixVectorType &old_green_function,
                 double &difference, int &index){
 	double difference_proc = - std::numeric_limits<double>::infinity();
 	double old_difference = 0;
@@ -74,11 +74,11 @@ void dmft(const Parameters &parameters, const int voltage_step,
         std::vector<std::vector<dcomp>> &self_energy_mb_up, std::vector<std::vector<dcomp>> &self_energy_mb_down, 
         std::vector<std::vector<dcomp>> &self_energy_mb_lesser_up, std::vector<std::vector<dcomp>> &self_energy_mb_lesser_down,
         std::vector<std::vector<dcomp>> &self_energy_mb_greater_up, std::vector<std::vector<dcomp>> &self_energy_mb_greater_down,
-        std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down,
-        std::vector<Eigen::MatrixXcd> &gf_local_lesser_up, std::vector<Eigen::MatrixXcd> &gf_local_lesser_down,
-        std::vector<Eigen::MatrixXcd> &gf_local_greater_up, std::vector<Eigen::MatrixXcd> &gf_local_greater_down,
-        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_up,
-		const std::vector<std::vector<Eigen::MatrixXcd>> &hamiltonian_down)
+        MatrixVectorType &gf_local_up, MatrixVectorType &gf_local_down,
+        MatrixVectorType &gf_local_lesser_up, MatrixVectorType &gf_local_lesser_down,
+        MatrixVectorType &gf_local_greater_up, MatrixVectorType &gf_local_greater_down,
+        const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, std::vector<double> &spins_occup, const std::vector<MatrixVectorType> &hamiltonian_up,
+		const std::vector<MatrixVectorType> &hamiltonian_down)
 {
 	double difference = std::numeric_limits<double>::infinity();
 	int index, count = 0;
@@ -175,27 +175,23 @@ void dmft(const Parameters &parameters, const int voltage_step,
     	            	}
     	        	} else {
     	            	for (int r = 0; r < parameters.steps_myid; r++) {
-    	                	self_energy_mb_greater_up.at(i).at(r) = (parameters.j1 * aim_up.self_energy_mb_greater.at(r) + self_energy_mb_greater_up.at(i).at(r)) * 0.5;
-    	                	self_energy_mb_greater_down.at(i).at(r) = (parameters.j1 * aim_down.self_energy_mb_greater.at(r) + self_energy_mb_greater_down.at(i).at(r)) * 0.5;
+    	                	self_energy_mb_greater_up.at(i).at(r) = (parameters.j1 * aim_up.self_energy_mb_greater.at(r)) * 0.3 + self_energy_mb_greater_up.at(i).at(r) * 0.7;
+    	                	self_energy_mb_greater_down.at(i).at(r) = (parameters.j1 * aim_down.self_energy_mb_greater.at(r)) * 0.3 + self_energy_mb_greater_down.at(i).at(r) * 0.7;
     	            	}
     	        	}
 				}
 			}
-
-			if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
-				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
-				get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian_down);				
-			} else {//this then either calculates the required gf for sigma2 or nca in the correct manner.
-				if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
-					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
-					 	gf_local_greater_up, voltage_step, hamiltonian_up);
-					get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
-						 gf_local_down, gf_local_lesser_down, gf_local_greater_down, voltage_step, hamiltonian_down);	
-				} else {//only need gf_retarded and gf_lesser for sigma2
-					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
-					get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian_down);	
-				}
+			
+			if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
+				get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
+				 	gf_local_greater_up, voltage_step, hamiltonian_up);
+				get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
+					 gf_local_down, gf_local_lesser_down, gf_local_greater_down, voltage_step, hamiltonian_down);	
+			} else {//only need gf_retarded and gf_lesser for sigma2
+				get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
+				get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, voltage_step, hamiltonian_down);	
 			}
+
 			count++;
 		}
 	} else { //spin up is the same as spin down. only do the up channel.
@@ -262,8 +258,8 @@ void dmft(const Parameters &parameters, const int voltage_step,
     	            }
     	        } else {
     	            for (int r = 0; r < parameters.steps_myid; r++) {
-    	                self_energy_mb_up.at(i).at(r) = (aim_up.self_energy_mb_retarded.at(r) + self_energy_mb_up.at(i).at(r)) * 0.5;
-    	                self_energy_mb_lesser_up.at(i).at(r) = (parameters.j1 * aim_up.self_energy_mb_lesser.at(r) + self_energy_mb_lesser_up.at(i).at(r)) * 0.5;
+    	                self_energy_mb_up.at(i).at(r) = aim_up.self_energy_mb_retarded.at(r) * 0.3 + (self_energy_mb_up.at(i).at(r)) * 0.7;
+    	                self_energy_mb_lesser_up.at(i).at(r) = (parameters.j1 * aim_up.self_energy_mb_lesser.at(r)) * 0.3 + self_energy_mb_lesser_up.at(i).at(r) * 0.7;
     	            }
     	        }
 
@@ -280,17 +276,12 @@ void dmft(const Parameters &parameters, const int voltage_step,
 				}
 			}
 
-			if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
-				get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
-			} else {//this then either calculates the required gf for sigma2 or nca in the correct manner.
-				if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
-					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
-				 		gf_local_greater_up, voltage_step, hamiltonian_up);
-				} else {//only need gf_retarded and gf_lesser for sigma2
-					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
-				}
+			if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
+				get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
+			 		gf_local_greater_up, voltage_step, hamiltonian_up);
+			} else {//only need gf_retarded and gf_lesser for sigma2
+				get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, voltage_step, hamiltonian_up);
 			}
-
 			count++;
 		}
 	}

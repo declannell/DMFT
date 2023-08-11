@@ -21,7 +21,7 @@ void write_to_file(const Parameters &parameters, std::vector<double> &gf_up, std
 
 void write_to_file(const Parameters &parameters, std::vector<dcomp> &gf_up, std::string filename, int voltage_step);
 
-void write_to_file(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_up, std::vector<Eigen::MatrixXcd> &gf_down, std::string filename, int voltage_step);
+void write_to_file(const Parameters &parameters, MatrixVectorType &gf_up, MatrixVectorType &gf_down, std::string filename, int voltage_step);
 
 void write_to_file(const Parameters &parameters, std::vector<dcomp> &gf_up, std::vector<dcomp> &gf_down, std::string filename, int voltage_step);
 
@@ -35,13 +35,13 @@ double kramer_kronig_relation(const Parameters &parameters, std::vector<double> 
 
 double absolute_value(double num1);
 
-void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local);
+void integrate_spectral(Parameters &parameters, MatrixVectorType &gf_local);
 
-void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_local_lesser_up, 
-	std::vector<Eigen::MatrixXcd> & gf_local_lesser_down, std::vector<double> &spins_occup);
+void get_occupation(Parameters  &parameters, MatrixVectorType & gf_local_lesser_up, 
+	MatrixVectorType & gf_local_lesser_down, std::vector<double> &spins_occup);
 
 void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dcomp> &dos_down, std::vector<dcomp> &dos_up_ins, std::vector<dcomp> &dos_down_ins,
- 	std::vector<dcomp> &dos_up_metal, std::vector<dcomp> &dos_down_metal, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down);
+ 	std::vector<dcomp> &dos_up_metal, std::vector<dcomp> &dos_down_metal, MatrixVectorType &gf_local_up, MatrixVectorType &gf_local_down);
 
 
 

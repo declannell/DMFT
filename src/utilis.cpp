@@ -138,7 +138,7 @@ void write_to_file(const Parameters &parameters, std::vector<dcomp> &gf_up, std:
 }
 
 
-void write_to_file(const Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_up, std::vector<Eigen::MatrixXcd> &gf_down, std::string filename, int voltage_step){
+void write_to_file(const Parameters &parameters, MatrixVectorType &gf_up, MatrixVectorType &gf_down, std::string filename, int voltage_step){
 	for (int i = 0; i < parameters.chain_length * 4; i++){
 		MPI_Barrier(MPI_COMM_WORLD);
 		std::vector<dcomp> vec_1_up, vec_2_up;
@@ -379,7 +379,7 @@ double kramer_kronig_relation(const Parameters &parameters, std::vector<double> 
 
 
 
-void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
+void integrate_spectral(Parameters &parameters, MatrixVectorType &gf_local){
 	for(int i = 0; i < 4 * parameters.chain_length; i++){
 		double result = 0.0, result_reduced = 0.0;
 		for (int r = 0; r < parameters.steps_myid; r++) {
@@ -395,8 +395,8 @@ void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> &g
 	}
 }
 
-void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_local_lesser_up, 
-	std::vector<Eigen::MatrixXcd> & gf_local_lesser_down, std::vector<double> &spins_occup) {
+void get_occupation(Parameters  &parameters, MatrixVectorType & gf_local_lesser_up, 
+	MatrixVectorType & gf_local_lesser_down, std::vector<double> &spins_occup) {
 
 	for(int i = 0; i < 4 * parameters.chain_length; i++){
 		double result_up = 0.0, result_reduced_up = 0.0,
@@ -431,7 +431,7 @@ void get_occupation(Parameters  &parameters, std::vector<Eigen::MatrixXcd> & gf_
 
 
 void get_dos(Parameters &parameters, std::vector<dcomp> &dos_up, std::vector<dcomp> &dos_down, std::vector<dcomp> &dos_up_ins, std::vector<dcomp> &dos_down_ins,
- 	std::vector<dcomp> &dos_up_metal, std::vector<dcomp> &dos_down_metal, std::vector<Eigen::MatrixXcd> &gf_local_up, std::vector<Eigen::MatrixXcd> &gf_local_down) {
+ 	std::vector<dcomp> &dos_up_metal, std::vector<dcomp> &dos_down_metal, MatrixVectorType &gf_local_up, MatrixVectorType &gf_local_down) {
 		for (int r = 0; r < parameters.steps_myid; r++) {
 			for (int i = 0; i < 4 * parameters.chain_length; i++) {
 				dos_up.at(r) += -gf_local_up.at(r)(i, i).imag();

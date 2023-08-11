@@ -11,5 +11,5 @@
 #include "transport.h"
 
 
-void integrate_spectral(Parameters &parameters, std::vector<Eigen::MatrixXcd> const &self_energy_left, std::vector<Eigen::MatrixXcd> const &self_energy_right);
-void analytic_gf(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local);
+void integrate_spectral(Parameters &parameters, MatrixVectorType const &self_energy_left, MatrixVectorType const &self_energy_right);
+void analytic_gf(Parameters &parameters, MatrixVectorType &gf_local);

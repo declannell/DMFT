@@ -26,21 +26,25 @@ void set_initial_spin(Parameters &parameters, std::vector<std::vector<dcomp>> &s
 
 int main(int argc, char **argv)
 {
-    MPI_Init(&argc, &argv);
-	
-	Parameters parameters = Parameters::from_file();
+	MPI_Init(&argc, &argv);
 
+	Parameters parameters = Parameters::from_file();
 	std::vector<double> kx(parameters.num_kx_points, 0), ky(parameters.num_ky_points, 0);
 	get_momentum_vectors(kx, ky, parameters);
 
-	std::vector<double> current_up(parameters.NIV_points, 0), current_down(parameters.NIV_points, 0), coherent_current_up(parameters.NIV_points, 0),
-		 coherent_current_down(parameters.NIV_points, 0), noncoherent_current_up(parameters.NIV_points, 0), noncoherent_current_down(parameters.NIV_points, 0),
-		 current_up_right(parameters.NIV_points, 0), current_up_left(parameters.NIV_points, 0), current_down_right(parameters.NIV_points, 0)
-		 , current_down_left(parameters.NIV_points, 0);
-	
+	std::vector<double> current_up(parameters.NIV_points, 0);
+	std::vector<double> current_down(parameters.NIV_points, 0);
+	std::vector<double> coherent_current_up(parameters.NIV_points, 0);
+	std::vector<double> coherent_current_down(parameters.NIV_points, 0);
+	std::vector<double> noncoherent_current_up(parameters.NIV_points, 0);
+	std::vector<double> noncoherent_current_down(parameters.NIV_points, 0);
+	std::vector<double> current_up_right(parameters.NIV_points, 0);
+	std::vector<double> current_up_left(parameters.NIV_points, 0);
+	std::vector<double> current_down_right(parameters.NIV_points, 0);
+	std::vector<double> current_down_left(parameters.NIV_points, 0);
 
 	for (int m = parameters.NIV_start; m < parameters.NIV_points; m++) {
-		std::cout << "\n";
+		if (parameters.myid == 0) std::cout << "\n";
 		if (parameters.myid == 0) {
 			std::cout << std::setprecision(15) << "The voltage difference is " << parameters.voltage_l[m] - parameters.voltage_r[m] << std::endl;
 			std::cout << "intialising hamiltonian \n";
@@ -52,10 +56,10 @@ int main(int argc, char **argv)
 
 
 		//this creates the k-depedent hamiltonian for both spins
-		std::vector<std::vector<Eigen::MatrixXcd>> hamiltonian_up(parameters.num_kx_points, std::vector<Eigen::MatrixXcd>(parameters.num_ky_points,
-			Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length))),
-			hamiltonian_down(parameters.num_kx_points, std::vector<Eigen::MatrixXcd>(parameters.num_ky_points,
-			Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)));
+		std::vector<MatrixVectorType> hamiltonian_up(parameters.num_kx_points, MatrixVectorType(parameters.num_ky_points,
+			MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)));
+		std::vector<MatrixVectorType> hamiltonian_down(parameters.num_kx_points, MatrixVectorType(parameters.num_ky_points,
+			MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)));
 		
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {//1 refers to spin up. 2 refers to spin down
@@ -64,28 +68,27 @@ int main(int argc, char **argv)
 			}
 		}
 
-
 		if (parameters.myid == 0) std::cout << "hamiltonian complete" << std::endl;
 
-		std::vector<Eigen::MatrixXcd> gf_local_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)),
-		gf_local_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)),
-		gf_local_lesser_up(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)),
-		gf_local_lesser_down(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+		MatrixVectorType gf_local_up(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+		MatrixVectorType gf_local_down(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+		MatrixVectorType gf_local_lesser_up(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+		MatrixVectorType gf_local_lesser_down(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 
-		std::vector<Eigen::MatrixXcd> gf_local_greater_up, gf_local_greater_down;
+		MatrixVectorType gf_local_greater_up, gf_local_greater_down;
 		std::vector<std::vector<dcomp>> self_energy_mb_greater_down, self_energy_mb_greater_up;
 
 		if (parameters.impurity_solver == 3) {//only bother to intiliase the greater stuff if we are doing the nca loop.
-			gf_local_greater_up.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
-			gf_local_greater_down.resize(parameters.steps_myid, Eigen::MatrixXcd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+			gf_local_greater_up.resize(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+			gf_local_greater_down.resize(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 			self_energy_mb_greater_down.resize(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid));
 		    self_energy_mb_greater_up.resize(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
 		}
 
-		std::vector<std::vector<dcomp>> self_energy_mb_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
-		    self_energy_mb_lesser_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0)),
-			self_energy_mb_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid)),
-		    self_energy_mb_lesser_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
+		std::vector<std::vector<dcomp>> self_energy_mb_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid));
+		std::vector<std::vector<dcomp>> self_energy_mb_lesser_up(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
+		std::vector<std::vector<dcomp>>	self_energy_mb_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid));
+		std::vector<std::vector<dcomp>> self_energy_mb_lesser_down(4 * parameters.chain_length, std::vector<dcomp>(parameters.steps_myid, 0));
 		
 		std::vector<double> spins_occup(8 * parameters.chain_length); //the first 2 * chain_length is the spin up, the next 2 * chain_length is spin down.
 
@@ -97,37 +100,28 @@ int main(int argc, char **argv)
 			}
 			leads.push_back(vy);
 		}
-
+		write_to_file(parameters, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right, "lead_self_energy.dat", m);
 		if (parameters.myid == 0) std::cout << "leads complete" << std::endl;
-
+		
 		if (parameters.hubbard_interaction != 0) {
 			if (parameters.spin_polarised == true) {	
 				set_initial_spin(parameters, self_energy_mb_up, self_energy_mb_down);
-
-				if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
-					get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
-					get_noneq_test(parameters, self_energy_mb_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian_down);				
-				} else {//this then either calculates the required gf for sigma2 or nca in the correct manner.
-					if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
-						get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
-						 	gf_local_greater_up, m, hamiltonian_up);
-						get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
-							 gf_local_down, gf_local_lesser_down, gf_local_greater_down, m, hamiltonian_down);	
-					} else {//only need gf_retarded and gf_lesser for sigma2
-						get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
-						get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian_down);	
-					}
+				if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
+					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
+					 	gf_local_greater_up, m, hamiltonian_up);
+					get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
+						 gf_local_down, gf_local_lesser_down, gf_local_greater_down, m, hamiltonian_down);	
+				} else {//only need gf_retarded and gf_lesser for sigma2
+					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
+					get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian_down);	
 				}
+
 			} else { //spin up and down are degenerate. Hence only need to do this once. choose to do it for spin up
-				if (parameters.noneq_test == true) { //this calculates g_lesser via the FD (not correct theoretically)
-					get_noneq_test(parameters, self_energy_mb_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
-				} else {//this then either calculates the required gf for sigma2 or nca in the correct manner.
-					if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
-						get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
-					 		gf_local_greater_up, m, hamiltonian_up);
-					} else {//only need gf_retarded and gf_lesser for sigma2
-						get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
-					}
+				if (parameters.impurity_solver == 3) {//this calculates g^> as well which is required for the nca.
+					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
+				 		gf_local_greater_up, m, hamiltonian_up);
+				} else {//only need gf_retarded and gf_lesser for sigma2
+					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
 				}
 			}
 
@@ -141,7 +135,6 @@ int main(int argc, char **argv)
 
 		}
 
-
 		double current_up_myid = 0.0, current_down_myid = 0.0, current_up_left_myid = 0.0, current_up_right_myid = 0.0,
 			current_down_left_myid = 0.0, current_down_right_myid = 0.0, coherent_current_up_myid = 0.0, coherent_current_down_myid = 0.0;
 			//current_noninteracting_up_myid = 0.0, current_noninteracting_down_myid = 0.0;
@@ -154,7 +147,6 @@ int main(int argc, char **argv)
 		
 		if (parameters.hubbard_interaction == 0) {//this then calculates the local gf and transmission at once. If it is non-interacting
 		//local gf hasn't been calculated yet
-
 
 			get_transmission_gf_local(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down,
     			 m, hamiltonian_up, hamiltonian_down, gf_local_up, gf_local_lesser_up, gf_local_down, gf_local_lesser_down);
@@ -222,7 +214,6 @@ int main(int argc, char **argv)
 		} else {
 			get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_up);
 		}
-		
 		
 		get_occupation(parameters, gf_local_lesser_up, gf_local_lesser_down, spins_occup);
 

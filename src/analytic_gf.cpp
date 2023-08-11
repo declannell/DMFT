@@ -16,14 +16,14 @@ template <typename T> int sgn(T val) {
     return (T(0) < val) - (val < T(0));
 }
 
-void analytic_gf(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local){
+void analytic_gf(Parameters &parameters, MatrixVectorType &gf_local){
 
-    std::vector<Eigen::MatrixXcd> gf_analytic(parameters.steps_myid, Eigen::MatrixXcd::Zero(4, 4));
+    MatrixVectorType gf_analytic(parameters.steps_myid, MatrixType::Zero(4, 4));
     std::vector<dcomp> transmission(parameters.steps_myid, 0);
 
     double diff = 0.0;
     for (int r = 0; r < parameters.steps_myid; r++){
-        Eigen::MatrixXcd gf_analytic_inverse = Eigen::MatrixXcd::Zero(4, 4);
+        MatrixType gf_analytic_inverse = MatrixType::Zero(4, 4);
         dcomp a = parameters.energy.at(r) - parameters.onsite_cor - parameters.j1 * parameters.gamma;
         for (int i = 0; i < 4; i++){
             gf_analytic_inverse(i, i) = a;
@@ -58,7 +58,7 @@ void analytic_gf(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local
 
 
 /*
-void analytic_gf(Parameters &parameters, std::vector<Eigen::MatrixXcd> &gf_local, std::vector<dcomp> const &self_energy_left, std::vector<dcomp> const &self_energy_right){
+void analytic_gf(Parameters &parameters, MatrixVectorType &gf_local, std::vector<dcomp> const &self_energy_left, std::vector<dcomp> const &self_energy_right){
     std::vector<dcomp> gf_analytic(parameters.steps, 0);
     std::vector<dcomp> spectral(parameters.steps, 0);
     std::vector<dcomp> self_energy_analytic(parameters.steps, 0);
