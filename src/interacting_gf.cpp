@@ -333,7 +333,7 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const MatrixVectorType &
         for(int r = 0; r < parameters.steps_myid; r++) {   
             int y = r + parameters.start.at(parameters.myid);
             MatrixType embedding_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
-            get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy, r + parameters.start.at(parameters.myid), voltage_step);
+            get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy, y, voltage_step);
             for(int i = 0; i < 4 * parameters.chain_length; i++) {
                 for(int m = 0; m < 4 * parameters.chain_length; m++){//I don't need bound state correction in the wide band limit.
                     gf_lesser.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_lesser.at(m).at(r) + embedding_self_energy(m, m))
@@ -524,5 +524,15 @@ void get_local_gf_r_greater_lesser(const Parameters &parameters,
             }
         }
     }
+}
+
+void get_density_matrix(Parameters &parameters, MatrixVectorType &gf_lesser, dcomp &density_matrix, int i, int j){
+    dcomp density_element_myid = 0;
+    density_matrix = 0;
+    for (int r = 0; r < parameters.steps_myid; r++) {
+        density_element_myid += gf_lesser.at(r)(i, j);
+    }
+    MPI_Allreduce(&density_element_myid, &density_matrix, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+
 }
 

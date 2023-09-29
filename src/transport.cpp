@@ -114,11 +114,11 @@ void get_landauer_buttiker_current(const Parameters& parameters,
 	*current_up = 0;
 	*current_down = 0;
 	for (int r = 0; r < parameters.steps_myid; r++) {
-		*current_up -= (parameters.delta_energy * transmission_up.at(r) * 
+		*current_up -= 0.5 * (parameters.delta_energy * transmission_up.at(r) * 
 		(fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step], parameters)
 		- fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_r[votlage_step], parameters))).real();
 
-		*current_down -= (parameters.delta_energy * transmission_down.at(r) *
+		*current_down -= 0.5 * (parameters.delta_energy * transmission_down.at(r) *
 		(fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step], parameters)
 		- fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_r[votlage_step], parameters))).real();	
 	}
@@ -167,24 +167,139 @@ void get_meir_wingreen_current(
 	}
 }
 
-
 void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
-    MatrixVectorType& green_function,
-    MatrixVectorType& green_function_lesser, const MatrixVectorType& coupling_left,
-    const MatrixVectorType& coupling_right, const int voltage_step, dcomp* current_left, dcomp* current_right){
+    std::vector<Eigen::MatrixXcd>& green_function,
+    std::vector<Eigen::MatrixXcd>& green_function_lesser, const std::vector<Eigen::MatrixXcd>& coupling_left,
+    const std::vector<Eigen::MatrixXcd>& coupling_right, const int voltage_step, dcomp* current_left, dcomp* current_right)
+{
+
 	dcomp trace_left = 0.0, trace_right = 0.0;
 
 	for (int r = 0; r < parameters.steps_myid; r++) {
 		trace_left = 0, trace_right = 0;
 		int y = r + parameters.start.at(parameters.myid);
-		trace_left += (fermi_function(parameters.energy.at(y) - parameters.voltage_l.at(voltage_step),
-			parameters) * coupling_left.at(r) * parameters.j1 * (green_function.at(r) - (green_function.at(r)).adjoint())).trace();
-		trace_right += (fermi_function(parameters.energy.at(y) - parameters.voltage_r.at(voltage_step),
-			parameters) * coupling_right.at(r) * parameters.j1 * (green_function.at(r) - (green_function.at(r)).adjoint())).trace();
 
+		MatrixType spec_func = MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
+
+		spec_func = parameters.j1 * (green_function.at(r) - (green_function.at(r)).adjoint());
+		
+		trace_left += (fermi_function(parameters.energy.at(y) - parameters.voltage_l.at(voltage_step),
+	    	parameters) * coupling_left.at(r) * spec_func).trace();
+		trace_right += (fermi_function(parameters.energy.at(y) - parameters.voltage_r.at(voltage_step),
+	    	parameters) * coupling_right.at(r) * spec_func).trace();
+		
 		trace_left += (parameters.j1 * coupling_left.at(r) * green_function_lesser.at(r)).trace();
 		trace_right += (parameters.j1 * coupling_right.at(r) * green_function_lesser.at(r)).trace();
-	}
+
 		*current_left -= parameters.delta_energy * trace_left;
 		*current_right -= parameters.delta_energy * trace_right;
+	}
+}
+
+void get_embedding_self_energy(Parameters &parameters, const MatrixVectorType &self_energy_left, const MatrixVectorType &self_energy_right, 
+	std::vector<dcomp> &self_energy_lesser_i_j, std::vector<dcomp> &self_energy_lesser_j_i, std::vector<dcomp> &retarded_embedding_self_energy_i_j,
+    const int voltage_step, const int i, const int j) {
+
+	for (int r = 0; r < parameters.steps_myid; r++) {
+		retarded_embedding_self_energy_i_j.at(r) = self_energy_left.at(r)(i, j) + self_energy_right.at(r)(i, j);
+
+		self_energy_lesser_i_j.at(r) = - fermi_function(parameters.energy.at(r) - parameters.voltage_l[voltage_step], parameters) * 
+        (self_energy_left.at(r)(i, j) - std::conj(self_energy_left.at(r)(j, i))) 
+		- fermi_function(parameters.energy.at(r) - parameters.voltage_r[voltage_step], parameters) * 
+        (self_energy_right.at(r)(i, j) - std::conj(self_energy_right.at(r)(j, i)));
+
+		self_energy_lesser_j_i.at(r) = - std::conj(self_energy_lesser_i_j.at(r));
+	}
+}
+
+double get_k_dependent_bond_current(const Parameters &parameters, const dcomp &density_matrix, const MatrixType &hamiltonian, 
+	const std::vector<Eigen::MatrixXcd> &gf_retarded, const std::vector<Eigen::MatrixXcd> &gf_lesser,
+	const std::vector<dcomp> &self_energy_lesser_i_j, const std::vector<dcomp> &self_energy_lesser_j_i, const std::vector<dcomp> &retarded_embedding_self_energy_i_j,
+	const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const int i, const int j){
+		dcomp current_k_myid = 0, current_k = 0;
+		for (int r = 0; r < parameters.steps_myid; r++) {
+			current_k_myid += gf_retarded.at(r)(i, j) * self_energy_lesser_j_i.at(r) + gf_lesser.at(r)(i, j) * std::conj(retarded_embedding_self_energy_i_j.at(r)) 
+				- self_energy_lesser_i_j.at(r) * std::conj(gf_retarded.at(r)(i, j)) - retarded_embedding_self_energy_i_j.at(r) * gf_lesser.at(r)(j, i);
+		}
+		current_k_myid = parameters.delta_energy * current_k / (2.0 * M_PI);
+		MPI_Allreduce(&current_k_myid, &current_k, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
+		current_k += 2.0 * (hamiltonian(i, j) * density_matrix).imag();
+
+		return current_k.real();
+}
+
+void get_bond_current(Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> 
+	&self_energy_mb_lesser, const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,	const int voltage_step, double *current,
+	 const std::vector<MatrixVectorType> &hamiltonian) {
+	//this is setting up whether the orbital is to the left or right of the interface. 
+	std::vector<int> left;
+	std::vector<int> right;
+
+
+	for (int i = 0; i < parameters.chain_length; i++) {
+		if (i > 0 && i < parameters.interface) {
+			left.push_back(i);
+			left.push_back(i + parameters.chain_length);
+			left.push_back(i + 2 * parameters.chain_length);
+			left.push_back(i + 3 * parameters.chain_length);
+		} else if (parameters.interface > 0 && i < parameters.chain_length) {
+			right.push_back(i);
+			right.push_back(i + parameters.chain_length);
+			right.push_back(i + 2 * parameters.chain_length);
+			right.push_back(i + 3 * parameters.chain_length);
+		}
+	}
+
+	std::cout << left.size() << "is the number of orbitals on the left \n" << std::endl;
+	std::cout << right.size() << "is the number of orbitals on the right \n" << std::endl;
+
+	//this is implementing eq 32 of Ivan's, andrea and maria bond current approach.
+	for (std::vector<int>::size_type i = 0; i < left.size(); i++) {
+		for (std::vector<int>::size_type j = 0; j < right.size(); j++) {
+			*current += get_orbital_current(parameters, self_energy_mb, self_energy_mb_lesser, leads, voltage_step, hamiltonian, i, j);
+		}
+	}
+}
+
+double get_orbital_current(Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, 
+	const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,
+	const int voltage_step, const std::vector<MatrixVectorType> &hamiltonian, int i, int j) {
+
+    int n_x =  parameters.num_kx_points; //number of k points to take in x direction
+    int n_y =  parameters.num_ky_points; //number of k points to take in y direction
+
+	//MatrixVectorType coupling_left(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+	//MatrixVectorType coupling_right(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+	std::vector<dcomp> self_energy_lesser_i_j(parameters.steps, 0), self_energy_lesser_j_i(parameters.steps, 0), 
+		retarded_embedding_self_energy_i_j(parameters.steps, 0);
+	dcomp density_matrix_k;
+	double current_k = 0;
+
+	double num_k_points = n_x * n_y;
+	for (int kx_i = 0; kx_i < n_x; kx_i++) {
+		for (int ky_i = 0; ky_i < n_y; ky_i++) {
+			Interacting_GF gf_interacting(parameters, self_energy_mb,
+			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
+
+			MatrixVectorType gf_lesser(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+
+			get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser,
+			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+			    gf_lesser, voltage_step);
+
+			get_density_matrix(parameters, gf_lesser, density_matrix_k, j, i);
+
+			get_embedding_self_energy(parameters, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right, 
+				self_energy_lesser_i_j, self_energy_lesser_j_i, retarded_embedding_self_energy_i_j, voltage_step, i, j);
+
+
+			current_k += get_k_dependent_bond_current(parameters, density_matrix_k, hamiltonian.at(kx_i).at(ky_i), gf_interacting.interacting_gf, gf_lesser, 
+				self_energy_lesser_i_j, self_energy_lesser_j_i, retarded_embedding_self_energy_i_j, self_energy_mb, self_energy_mb_lesser, i , j);
+
+			
+		}
+	}
+
+	return current_k / num_k_points;
 }

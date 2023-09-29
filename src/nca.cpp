@@ -40,8 +40,8 @@ void get_lesser_greater_gf(const Parameters &parameters, const Pseudo_GF &boson,
 		aim_up.impurity_gf_mb_greater.at(r) = aim_up.impurity_gf_mb_greater.at(r) * z_prefactor / (2.0 * M_PI) * parameters.delta_energy;		
 	}
 
-    write_to_file(parameters, aim_up.impurity_gf_mb_lesser, "aim_up.impurity_gf_mb_lesser", 0);
-    write_to_file(parameters, aim_up.impurity_gf_mb_greater, "aim_up.impurity_gf_mb_greater", 0);   
+    //write_to_file(parameters, aim_up.impurity_gf_mb_lesser, "aim_up.impurity_gf_mb_lesser.dat", 0);
+    //write_to_file(parameters, aim_up.impurity_gf_mb_greater, "aim_up.impurity_gf_mb_greater.dat", 0);   
 }
 
 void get_difference_self_energy(const Parameters &parameters, std::vector<dcomp> &self_energy_mb_up,
@@ -318,8 +318,8 @@ void get_retarded_impurity_se(const Parameters &parameters, double z_prefactor, 
         aim_up.self_energy_mb_retarded.at(r) = (1.0 / aim_up.dynamical_field_retarded.at(r)) - 1.0 /(aim_up.impurity_gf_mb_retarded.at(r));
     }
 
-    write_to_file(parameters, aim_up.impurity_gf_mb_retarded, "aim_up.impurity_gf_mb_retarded", 0);
-    write_to_file(parameters, aim_up.self_energy_mb_retarded, "aim_up.self_energy_mb_retarded", 0);
+    //write_to_file(parameters, aim_up.impurity_gf_mb_retarded, "aim_up.impurity_gf_mb_retarded", 0);
+    //write_to_file(parameters, aim_up.self_energy_mb_retarded, "aim_up.self_energy_mb_retarded", 0);
 }
 
 void integrate_dos(const Parameters &parameters, Pseudo_GF &fermion_up, double &z_prefactor, AIM &aim_up) {

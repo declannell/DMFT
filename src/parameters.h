@@ -87,7 +87,9 @@ struct Parameters
     //4 means only second order with brute force. no mean field only. 5 means only second order with kramer-kronig. no mean field only
     double magnetic_field;//strenght of the magnetic field
     int half_metal; //if half metal == 1 then the insulating layers are replaced with half_metals.
-
+    int meir_wingreen_current; // if meir_wingreen_current == 1, the current is calculated using the mw approach.
+    int bond_current;  //if bond_current == 1, the current is calculated using the bond current approach
+    int interface; // this defines where the interface for the bond currents is going to be. 
 };
 
 

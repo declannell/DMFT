@@ -72,5 +72,5 @@ void get_noneq_test(const Parameters &parameters, const std::vector<std::vector<
     const std::vector<std::vector<EmbeddingSelfEnergy>> &leads, MatrixVectorType &gf_local, 
     MatrixVectorType &gf_local_lesser, const int voltage_step, const std::vector<MatrixVectorType> &hamiltonian);
 
-
+void get_density_matrix(Parameters &parameters, MatrixVectorType &gf_lesser, dcomp &density_matrix, int i, int j);
 

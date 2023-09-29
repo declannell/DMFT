@@ -40,7 +40,8 @@ Parameters Parameters::from_file()
 	parameters.convergence_leads = 0.0001;
 	parameters.self_consistent_steps_leads = 20;
 	parameters.half_metal = 0;
-
+	parameters.meir_wingreen_current = 1;
+	parameters.bond_current = 0;
 	while (getline(input_file, line)) {
 			//std::cout << line << '\n';
 			simple_tokenizer(line, variable, value);
@@ -160,6 +161,8 @@ Parameters Parameters::from_file()
 				parameters.convergence_leads = std::stod(value);
 			} else if (variable == "self_consistent_steps_leads") {
 				parameters.self_consistent_steps_leads = std::stod(value);
+			} else if (variable == "interface") {
+				parameters.interface = std::stoi(value);
 			}
 	}
 	input_file.close();
@@ -174,6 +177,8 @@ Parameters Parameters::from_file()
 		parameters.voltage_l.at(i) = parameters.delta_v * (double)(i);
 		parameters.voltage_r.at(i) = -parameters.delta_v * (double)(i);
 	}
+
+
 
 	if (parameters.hubbard_interaction == 0.0) {
 		parameters.interaction_order =
@@ -272,7 +277,19 @@ Parameters Parameters::from_file()
 		
 	parameters.steps_proc.at(parameters.myid) = parameters.steps_myid;
 
+	if (parameters.bond_current == 0) {
+		parameters.interface = 1;
+	}
+
 	if (parameters.myid == 0) {
+		if (parameters.interface > parameters.chain_length) {
+			std::cout << "the chosen interface is not a valid choice as it is great than the number of layers \n";
+			exit(1);
+		}
+		if ( parameters.interface < 1) {
+			std::cout << "the chosen interface is not a valid choice as it is less than one \n";
+			exit(1);
+		}
 		std::cout << std::endl;
 		std::cout << std::endl;
 		std::cout << std::endl;
@@ -289,14 +306,13 @@ Parameters Parameters::from_file()
 		parameters.spin_polarised = true;
 	}
 
+	if (parameters.delta_energy < parameters.delta_v) {
+		if (parameters.myid == 0) std::cout << "Delta voltage is less than delta energy. This gives unphysical step function "
+		             "results. Make delta_energy < parameters.delta_v" << std::endl;
+	}
 
 	return parameters;
 
-	if (parameters.delta_energy < parameters.delta_v) {
-		std::cout << "Delta voltage is less than delta energy. This gives unphysical step function "
-		             "results. Make delta_energy < parameters.delta_v"
-		          << std::endl;
-	}
 }
 
 double fermi_function(double energy, const Parameters& parameters)
@@ -365,4 +381,7 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.half_metal = " << parameters.half_metal << std::endl;
 	std::cout << "parameters.convergence_leads = " << parameters.convergence_leads << std::endl;
 	std::cout << "parameters.self_consistent_steps_leads = " << parameters.self_consistent_steps_leads << std::endl;
+	std::cout << "paramters.meir_wingreen_current  = " << parameters.meir_wingreen_current << std::endl;
+	std::cout << "parameters.bond_current = " << parameters.bond_current << std::endl;
+	std::cout << "parameters.interface =" << parameters.interface << std::endl;
 }
