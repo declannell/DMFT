@@ -149,8 +149,6 @@ Parameters Parameters::from_file()
 				parameters.interaction_order = std::stoi(value);
 			} else if (variable == "spin_polarised") {
 				std::istringstream(value) >> parameters.spin_polarised;
-			} else if (variable == "noneq_test") {
-				std::istringstream(value) >> parameters.noneq_test;
 			} else if (variable == "impurity_solver") {
                 parameters.impurity_solver = std::stoi(value);
             } else if (variable == "magnetic_field") {
@@ -163,6 +161,10 @@ Parameters Parameters::from_file()
 				parameters.self_consistent_steps_leads = std::stod(value);
 			} else if (variable == "interface") {
 				parameters.interface = std::stoi(value);
+			} else if (variable == "bond_current") {
+				parameters.bond_current = std::stoi(value);
+			} else if (variable == "meir_wingreen_current") {
+				parameters.meir_wingreen_current = std::stoi(value);
 			}
 	}
 	input_file.close();
@@ -376,7 +378,6 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.spin_down_occup = " << parameters.spin_down_occup << std::endl;
 	std::cout << "parameters.print_gf = " << parameters.print_gf << std::endl;
 	std::cout << "parameters.spin_polarised = " << parameters.spin_polarised << std::endl;
-	std::cout << "parameters.noneq_test = " << parameters.noneq_test << std::endl;
 	std::cout << "parameters.magnetic_field = " << parameters.magnetic_field << std::endl;
 	std::cout << "parameters.half_metal = " << parameters.half_metal << std::endl;
 	std::cout << "parameters.convergence_leads = " << parameters.convergence_leads << std::endl;

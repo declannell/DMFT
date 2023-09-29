@@ -81,7 +81,6 @@ struct Parameters
     MPI_Comm comm;
     bool print_gf;
     bool spin_polarised; // 1 means we do a spin polarised calculations. 0 means a spin degenerate calculation.
-    bool noneq_test;
     double delta_energy;
     int impurity_solver; //0 means mean field interaction, 1 means brute force sigma_2, 2 means kramer-kronig sigma_2, 3 means non crossing approx. 
     //4 means only second order with brute force. no mean field only. 5 means only second order with kramer-kronig. no mean field only

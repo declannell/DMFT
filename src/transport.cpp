@@ -236,13 +236,13 @@ void get_bond_current(Parameters &parameters, const std::vector<std::vector<dcom
 	std::vector<int> right;
 
 
-	for (int i = 0; i < parameters.chain_length; i++) {
-		if (i > 0 && i < parameters.interface) {
+	for (int i = 0; i < parameters.chain_length; i++) {		
+		if (i < parameters.interface) {
 			left.push_back(i);
 			left.push_back(i + parameters.chain_length);
 			left.push_back(i + 2 * parameters.chain_length);
 			left.push_back(i + 3 * parameters.chain_length);
-		} else if (parameters.interface > 0 && i < parameters.chain_length) {
+		} else if (parameters.interface <= i) {
 			right.push_back(i);
 			right.push_back(i + parameters.chain_length);
 			right.push_back(i + 2 * parameters.chain_length);
@@ -250,15 +250,26 @@ void get_bond_current(Parameters &parameters, const std::vector<std::vector<dcom
 		}
 	}
 
-	std::cout << left.size() << "is the number of orbitals on the left \n" << std::endl;
-	std::cout << right.size() << "is the number of orbitals on the right \n" << std::endl;
+	if (parameters.myid == 0) std::cout << left.size() << " is the number of orbitals on the left \n" << std::endl;
+	if (parameters.myid == 0) std::cout << right.size() << " is the number of orbitals on the right \n" << std::endl;
+
+	for (std::vector<int>::size_type i = 0; i < left.size(); i++) {
+		if (parameters.myid == 0) std::cout << left.at(i) << std::endl;
+	}
+
+	for (std::vector<int>::size_type i = 0; i < right.size(); i++) {
+		if (parameters.myid == 0) std::cout << right.at(i) << std::endl;
+	}
 
 	//this is implementing eq 32 of Ivan's, andrea and maria bond current approach.
 	for (std::vector<int>::size_type i = 0; i < left.size(); i++) {
 		for (std::vector<int>::size_type j = 0; j < right.size(); j++) {
-			*current += get_orbital_current(parameters, self_energy_mb, self_energy_mb_lesser, leads, voltage_step, hamiltonian, i, j);
+			double orbital_current = get_orbital_current(parameters, self_energy_mb, self_energy_mb_lesser, leads, voltage_step, hamiltonian, left.at(i), right.at(j));
+			if (parameters.myid == 0) std::cout << orbital_current << "(" << left.at(i) << "," << right.at(j) << ")" << std::endl;
+			*current += orbital_current;
 		}
 	}
+	if (parameters.myid == 0) std::cout << "the total bond current " << *current << std::endl;
 }
 
 double get_orbital_current(Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, 

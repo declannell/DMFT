@@ -105,7 +105,7 @@ int main(int argc, char **argv)
 		
 		std::vector<double> spins_occup(8 * parameters.chain_length); //the first 2 * chain_length is the spin up, the next 2 * chain_length is spin down.
 
-		double current_up_myid = 0.0, current_down_myid = 0.0, current_up_left_myid = 0.0, current_up_right_myid = 0.0,
+		double current_up_left_myid = 0.0, current_up_right_myid = 0.0,
 			current_down_left_myid = 0.0, current_down_right_myid = 0.0, coherent_current_up_myid = 0.0, coherent_current_down_myid = 0.0;
 				//current_noninteracting_up_myid = 0.0, current_noninteracting_down_myid = 0.0;
 
@@ -126,15 +126,11 @@ int main(int argc, char **argv)
 					get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid,
 						transmission_down, hamiltonian_down);
 					get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
-
 				//get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &current_up_myid, &current_down_myid, m);
-
-				MPI_Reduce(&current_up_myid, &current_up.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
-				MPI_Reduce(&current_down_myid, &current_down.at(m), 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);	
-
 				if (parameters.myid == 0) std::cout << "The spin up current is " << current_up.at(m) << "\n" <<
 					"The spin down current is " << current_down.at(m) << "\n" << "\n";	
 			}
+
 			double bond_current_up = 0, bond_current_down = 0;
 			if (parameters.bond_current == 1) {
 				if (parameters.spin_polarised == true) {
