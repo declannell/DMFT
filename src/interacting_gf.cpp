@@ -329,19 +329,22 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const MatrixVectorType &
         gf_lesser.at(r) = (MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
     }
 			
-    if (parameters.wbl_approx == 1) { //we don't need the diagonal elements of the lesser green function as embedding self energies are diagonal.
-        for(int r = 0; r < parameters.steps_myid; r++) {   
-            int y = r + parameters.start.at(parameters.myid);
-            MatrixType embedding_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
-            get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy, y, voltage_step);
-            for(int i = 0; i < 4 * parameters.chain_length; i++) {
-                for(int m = 0; m < 4 * parameters.chain_length; m++){//I don't need bound state correction in the wide band limit.
-                    gf_lesser.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_lesser.at(m).at(r) + embedding_self_energy(m, m))
-                        * std::conj(gf_retarded.at(r)(i, m));
-                }
-            }
-        }
-    } else {//else I need the whole lesser green function
+    //if (parameters.wbl_approx == 1) { //we don't need the diagonal elements of the lesser green function as embedding self energies are diagonal.
+    //    for(int r = 0; r < parameters.steps_myid; r++) {   
+    //        int y = r + parameters.start.at(parameters.myid);
+    //        MatrixType embedding_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
+    //        get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy, y, voltage_step);
+    //        //std::cout << embedding_self_energy(0, 0) << " " << self_energy_left.at(r)(0, 0) << std::endl;
+    //        for(int i = 0; i < 4 * parameters.chain_length; i++) {
+    //            for(int m = 0; m < 4 * parameters.chain_length; m++){//I don't need bound state correction in the wide band limit.
+    //                gf_lesser.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_lesser.at(m).at(r) + embedding_self_energy(m, m))
+    //                    * std::conj(gf_retarded.at(r)(i, m));
+    //            }
+    //            //gf_lesser.at(r)(i, i) = - 2.0 * parameters.j1 * fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)), parameters) 
+    //            //    * (gf_retarded.at(r)(i, i)).imag();
+    //        }
+    //    }
+    //} else {//else I need the whole lesser green function
         for(int r = 0; r < parameters.steps_myid; r++) {   //I need the bound state correction to get the correct occupation when not using the wide band approx.
             MatrixType embedding_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
             MatrixType mb_lesser_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
@@ -354,7 +357,7 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const MatrixVectorType &
             gf_lesser.at(r) =  gf_retarded.at(r) * (mb_lesser_self_energy + embedding_self_energy) * (gf_retarded.at(r)).adjoint()
                 + 2.0 * parameters.j1 * parameters.delta_gf * fermi_function(parameters.energy.at(y), parameters) * gf_retarded.at(r) * (gf_retarded.at(r)).adjoint();
         }
-    }
+    //}
 }
 
 void get_gf_lesser_greater_non_eq(const Parameters &parameters, const MatrixVectorType &gf_retarded, 
@@ -366,24 +369,24 @@ void get_gf_lesser_greater_non_eq(const Parameters &parameters, const MatrixVect
         gf_lesser.at(r) = (MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
         gf_greater.at(r) = (MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
     }
-			
-    if (parameters.wbl_approx == 1) { //we don't need the diagonal elements of the lesser green function as embedding self energies are diagonal.
-        for(int r = 0; r < parameters.steps_myid; r++) {   
-            MatrixType embedding_self_energy_lesser = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
-            MatrixType embedding_self_energy_greater = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
-            get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy_lesser, r + parameters.start.at(parameters.myid), voltage_step);
-            get_embedding_greater(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy_greater, r + parameters.start.at(parameters.myid), voltage_step);
-            for(int i = 0; i < 4 * parameters.chain_length; i++) {
-                for(int m = 0; m < 4 * parameters.chain_length; m++){
-                    gf_lesser.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_lesser.at(m).at(r) + embedding_self_energy_lesser(m, m))
-                        * std::conj(gf_retarded.at(r)(i, m));
-
-                    gf_greater.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_greater.at(m).at(r) + embedding_self_energy_greater(m, m))
-                        * std::conj(gf_retarded.at(r)(i, m));
-                }
-            }
-        }
-    } else {//else I need the whole lesser green function
+	//		
+    //if (parameters.wbl_approx == 1 && parameters.bond_current == 0) { //we don't need the diagonal elements of the lesser green function as embedding self energies are diagonal.
+    //    for(int r = 0; r < parameters.steps_myid; r++) {   
+    //        MatrixType embedding_self_energy_lesser = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
+    //        MatrixType embedding_self_energy_greater = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
+    //        get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy_lesser, r + parameters.start.at(parameters.myid), voltage_step);
+    //        get_embedding_greater(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy_greater, r + parameters.start.at(parameters.myid), voltage_step);
+    //        for(int i = 0; i < 4 * parameters.chain_length; i++) {
+    //            for(int m = 0; m < 4 * parameters.chain_length; m++){
+    //                gf_lesser.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_lesser.at(m).at(r) + embedding_self_energy_lesser(m, m))
+    //                    * std::conj(gf_retarded.at(r)(i, m));
+//
+    //                gf_greater.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_greater.at(m).at(r) + embedding_self_energy_greater(m, m))
+    //                    * std::conj(gf_retarded.at(r)(i, m));
+    //            }
+    //        }
+    //    }
+    //} else {//else I need the whole lesser green function
         for(int r = 0; r < parameters.steps_myid; r++) {   
             MatrixType mb_lesser_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
             MatrixType mb_greater_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
@@ -399,7 +402,7 @@ void get_gf_lesser_greater_non_eq(const Parameters &parameters, const MatrixVect
             gf_lesser.at(r) =  gf_retarded.at(r) * (mb_lesser_self_energy + embedding_self_energy_lesser) * (gf_retarded.at(r)).adjoint();
             gf_greater.at(r) =  gf_retarded.at(r) * (mb_lesser_self_energy + embedding_self_energy_greater) * (gf_retarded.at(r)).adjoint();
         }
-    }
+    //}
 }
 
 
@@ -529,10 +532,12 @@ void get_local_gf_r_greater_lesser(const Parameters &parameters,
 void get_density_matrix(Parameters &parameters, MatrixVectorType &gf_lesser, dcomp &density_matrix, int i, int j){
     dcomp density_element_myid = 0;
     density_matrix = 0;
+
+
     for (int r = 0; r < parameters.steps_myid; r++) {
         density_element_myid += gf_lesser.at(r)(i, j);
     }
+    density_element_myid = density_element_myid * parameters.delta_energy / (2.0 * M_PI * parameters.j1);
     MPI_Allreduce(&density_element_myid, &density_matrix, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
-
 }
 

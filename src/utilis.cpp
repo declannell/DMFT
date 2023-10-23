@@ -140,57 +140,59 @@ void write_to_file(const Parameters &parameters, std::vector<dcomp> &gf_up, std:
 
 void write_to_file(const Parameters &parameters, MatrixVectorType &gf_up, MatrixVectorType &gf_down, std::string filename, int voltage_step){
 	for (int i = 0; i < parameters.chain_length * 4; i++){
-		MPI_Barrier(MPI_COMM_WORLD);
-		std::vector<dcomp> vec_1_up, vec_2_up;
-		std::vector<dcomp> vec_1_down, vec_2_down;
+		for (int j = 0; j < parameters.chain_length * 4; j++) {
+			MPI_Barrier(MPI_COMM_WORLD);
+			std::vector<dcomp> vec_1_up, vec_2_up;
+			std::vector<dcomp> vec_1_down, vec_2_down;
 
-		if (parameters.myid == 0) {
-			//std::cout << "rank " << parameters.myid << " enters where parameters.myid == 0 \n";
-			vec_1_up.resize(parameters.steps);
-			vec_1_down.resize(parameters.steps);
-			for (int r = 0; r < parameters.steps_myid; r ++){
-				vec_1_up.at(r) = gf_up.at(r)(i, i);  
-				vec_1_down.at(r) = gf_down.at(r)(i, i);
+			if (parameters.myid == 0) {
+				//std::cout << "rank " << parameters.myid << " enters where parameters.myid == 0 \n";
+				vec_1_up.resize(parameters.steps);
+				vec_1_down.resize(parameters.steps);
+				for (int r = 0; r < parameters.steps_myid; r ++){
+					vec_1_up.at(r) = gf_up.at(r)(i, j);  
+					vec_1_down.at(r) = gf_down.at(r)(i, j);
+				}
+				for (int a = 1; a < parameters.size; a++){
+					MPI_Recv(&vec_1_up.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+					MPI_Recv(&vec_1_down.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, i + 100, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+					//std::cout << "I, rank 0, recieved part of vec_1 from rank " << a << std::endl; 
+					//for (int r = parameters.start.at(a); r < parameters.start.at(a) + parameters.steps_proc.at(a); r ++){
+					//	std::cout << "This part has a value of " << vec_1.at(r) << " " << r << std::endl; 
+					//}
+				}
+			} else {
+				//std::cout << "rank " << parameters.myid << " enters where parameters.myid != 0 \n";
+				vec_2_up.resize(parameters.steps_myid);
+				vec_2_down.resize(parameters.steps_myid);
+				for (int r = 0; r < parameters.steps_myid; r++) {
+					vec_2_up.at(r) = gf_up.at(r)(i, i);
+					vec_2_down.at(r) = gf_down.at(r)(i, i);
+					//std::cout << "On rank " << parameters.myid << " vector has a value of " << vec_2.at(r)  << std::endl;
+				}
+				MPI_Send(&(vec_2_up.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, i, MPI_COMM_WORLD);
+				MPI_Send(&(vec_2_down.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, i + 100, MPI_COMM_WORLD);
+				//std::cout << "I, rank " << parameters.myid << " sent my part of the GF to rank 0 \n"; 
 			}
-			for (int a = 1; a < parameters.size; a++){
-				MPI_Recv(&vec_1_up.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Recv(&vec_1_down.at(parameters.start.at(a)), parameters.steps_proc.at(a), MPI_DOUBLE_COMPLEX, a, i + 100, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				//std::cout << "I, rank 0, recieved part of vec_1 from rank " << a << std::endl; 
-				//for (int r = parameters.start.at(a); r < parameters.start.at(a) + parameters.steps_proc.at(a); r ++){
-				//	std::cout << "This part has a value of " << vec_1.at(r) << " " << r << std::endl; 
+
+			MPI_Barrier(MPI_COMM_WORLD);
+			if (parameters.myid == 0) {
+				//for (int r = 0; r < parameters.steps; r++) {
+				//	std::cout << vec_1.at(r) << std::endl;
 				//}
+				std::ostringstream ossgf;
+				ossgf << voltage_step << "." << i << "_" << j << "." << filename;
+				std::string var = ossgf.str();
+				std::ofstream gf_local_file;
+				gf_local_file.open(var);
+				for (int r = 0; r < parameters.steps; r++) {
+					gf_local_file << parameters.energy.at(r) << "  " << vec_1_up.at(r).real() << "   " << vec_1_up.at(r).imag() << " "
+						<< vec_1_down.at(r).real() << "   " << vec_1_down.at(r).imag() << "  \n";
+					              //<< gf_local_down.at(r)(i, i).real() << "   " << gf_local_down.at(r)(i, i).imag() << " \n"
+					// std::cout << leads.self_energy_left.at(r) << "\n";
+				}
+				gf_local_file.close();					
 			}
-		} else {
-			//std::cout << "rank " << parameters.myid << " enters where parameters.myid != 0 \n";
-			vec_2_up.resize(parameters.steps_myid);
-			vec_2_down.resize(parameters.steps_myid);
-			for (int r = 0; r < parameters.steps_myid; r++) {
-				vec_2_up.at(r) = gf_up.at(r)(i, i);
-				vec_2_down.at(r) = gf_down.at(r)(i, i);
-				//std::cout << "On rank " << parameters.myid << " vector has a value of " << vec_2.at(r)  << std::endl;
-			}
-			MPI_Send(&(vec_2_up.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, i, MPI_COMM_WORLD);
-			MPI_Send(&(vec_2_down.at(0)), parameters.steps_myid, MPI_DOUBLE_COMPLEX, 0, i + 100, MPI_COMM_WORLD);
-			//std::cout << "I, rank " << parameters.myid << " sent my part of the GF to rank 0 \n"; 
-		}
-
-		MPI_Barrier(MPI_COMM_WORLD);
-		if (parameters.myid == 0) {
-			//for (int r = 0; r < parameters.steps; r++) {
-			//	std::cout << vec_1.at(r) << std::endl;
-			//}
-			std::ostringstream ossgf;
-			ossgf << voltage_step << "." << i << "." << filename;
-			std::string var = ossgf.str();
-			std::ofstream gf_local_file;
-			gf_local_file.open(var);
-			for (int r = 0; r < parameters.steps; r++) {
-				gf_local_file << parameters.energy.at(r) << "  " << vec_1_up.at(r).real() << "   " << vec_1_up.at(r).imag() << " "
-					<< vec_1_down.at(r).real() << "   " << vec_1_down.at(r).imag() << "  \n";
-				              //<< gf_local_down.at(r)(i, i).real() << "   " << gf_local_down.at(r)(i, i).imag() << " \n"
-				// std::cout << leads.self_energy_left.at(r) << "\n";
-			}
-			gf_local_file.close();					
 		}
 	}
 }

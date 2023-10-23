@@ -114,11 +114,11 @@ void get_landauer_buttiker_current(const Parameters& parameters,
 	*current_up = 0;
 	*current_down = 0;
 	for (int r = 0; r < parameters.steps_myid; r++) {
-		*current_up -= 0.5 * (parameters.delta_energy * transmission_up.at(r) * 
+		*current_up -= (parameters.delta_energy * transmission_up.at(r) * 
 		(fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step], parameters)
 		- fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_r[votlage_step], parameters))).real();
 
-		*current_down -= 0.5 * (parameters.delta_energy * transmission_down.at(r) *
+		*current_down -= (parameters.delta_energy * transmission_down.at(r) *
 		(fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_l[votlage_step], parameters)
 		- fermi_function(parameters.energy.at(r + parameters.start.at(parameters.myid)) + parameters.voltage_r[votlage_step], parameters))).real();	
 	}
@@ -133,6 +133,10 @@ void get_meir_wingreen_current(
 {
     int n_x =  parameters.num_kx_points; //number of k points to take in x direction
     int n_y =  parameters.num_ky_points; //number of k points to take in y direction
+
+	for (int r = 0; r < parameters.steps_myid; r++) {
+		transmission_up.at(r) = 0.0;
+	}
 
 	MatrixVectorType coupling_left(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 	MatrixVectorType coupling_right(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
@@ -190,6 +194,8 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		
 		trace_left += (parameters.j1 * coupling_left.at(r) * green_function_lesser.at(r)).trace();
 		trace_right += (parameters.j1 * coupling_right.at(r) * green_function_lesser.at(r)).trace();
+		
+		//if (parameters.myid == 0) std::cout << (-2.0 * green_function.at(r)(0, 0)).imag() << " " << (green_function_lesser.at(r)(0,0)).imag() << " " << voltage_step << std::endl;
 
 		*current_left -= parameters.delta_energy * trace_left;
 		*current_right -= parameters.delta_energy * trace_right;
@@ -220,11 +226,14 @@ double get_k_dependent_bond_current(const Parameters &parameters, const dcomp &d
 		for (int r = 0; r < parameters.steps_myid; r++) {
 			current_k_myid += gf_retarded.at(r)(i, j) * self_energy_lesser_j_i.at(r) + gf_lesser.at(r)(i, j) * std::conj(retarded_embedding_self_energy_i_j.at(r)) 
 				- self_energy_lesser_i_j.at(r) * std::conj(gf_retarded.at(r)(i, j)) - retarded_embedding_self_energy_i_j.at(r) * gf_lesser.at(r)(j, i);
+
+			if (i == 0 && j == 1) std::cout << "gf_retarded.at(r)(i, j) = " << gf_retarded.at(r)(i, j) <<  " self_energy_lesser_j_i.at(r) = "
+				<< self_energy_lesser_j_i.at(r) << std::endl;
 		}
 		current_k_myid = parameters.delta_energy * current_k / (2.0 * M_PI);
 		MPI_Allreduce(&current_k_myid, &current_k, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
 		current_k += 2.0 * (hamiltonian(i, j) * density_matrix).imag();
-
+		//std::cout << current_k << "  " <<  (density_matrix) << " " << i << " " << j << std::endl;
 		return current_k.real();
 }
 
@@ -253,23 +262,16 @@ void get_bond_current(Parameters &parameters, const std::vector<std::vector<dcom
 	if (parameters.myid == 0) std::cout << left.size() << " is the number of orbitals on the left \n" << std::endl;
 	if (parameters.myid == 0) std::cout << right.size() << " is the number of orbitals on the right \n" << std::endl;
 
-	for (std::vector<int>::size_type i = 0; i < left.size(); i++) {
-		if (parameters.myid == 0) std::cout << left.at(i) << std::endl;
-	}
-
-	for (std::vector<int>::size_type i = 0; i < right.size(); i++) {
-		if (parameters.myid == 0) std::cout << right.at(i) << std::endl;
-	}
 
 	//this is implementing eq 32 of Ivan's, andrea and maria bond current approach.
 	for (std::vector<int>::size_type i = 0; i < left.size(); i++) {
 		for (std::vector<int>::size_type j = 0; j < right.size(); j++) {
 			double orbital_current = get_orbital_current(parameters, self_energy_mb, self_energy_mb_lesser, leads, voltage_step, hamiltonian, left.at(i), right.at(j));
-			if (parameters.myid == 0) std::cout << orbital_current << "(" << left.at(i) << "," << right.at(j) << ")" << std::endl;
+			//if (parameters.myid == 0) std::cout << orbital_current << "(" << left.at(i) << "," << right.at(j) << ")" << std::endl;
 			*current += orbital_current;
 		}
 	}
-	if (parameters.myid == 0) std::cout << "the total bond current " << *current << std::endl;
+	//if (parameters.myid == 0) std::cout << "the total bond current " << *current << std::endl;
 }
 
 double get_orbital_current(Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, 
@@ -300,17 +302,16 @@ double get_orbital_current(Parameters &parameters, const std::vector<std::vector
 			    gf_lesser, voltage_step);
 
 			get_density_matrix(parameters, gf_lesser, density_matrix_k, j, i);
+			//std::cout << "the density matrix element is " << density_matrix_k << " " << j << " " << i << std::endl;
 
 			get_embedding_self_energy(parameters, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right, 
 				self_energy_lesser_i_j, self_energy_lesser_j_i, retarded_embedding_self_energy_i_j, voltage_step, i, j);
 
-
 			current_k += get_k_dependent_bond_current(parameters, density_matrix_k, hamiltonian.at(kx_i).at(ky_i), gf_interacting.interacting_gf, gf_lesser, 
 				self_energy_lesser_i_j, self_energy_lesser_j_i, retarded_embedding_self_energy_i_j, self_energy_mb, self_energy_mb_lesser, i , j);
-
 			
 		}
 	}
 
-	return current_k / num_k_points;
+	return current_k * 2.0 * M_PI / num_k_points;
 }

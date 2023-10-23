@@ -32,8 +32,6 @@ int main(int argc, char **argv)
 	std::vector<double> kx(parameters.num_kx_points, 0), ky(parameters.num_ky_points, 0);
 	get_momentum_vectors(kx, ky, parameters);
 
-	std::vector<double> current_up(parameters.NIV_points, 0);
-	std::vector<double> current_down(parameters.NIV_points, 0);
 	std::vector<double> coherent_current_up(parameters.NIV_points, 0);
 	std::vector<double> coherent_current_down(parameters.NIV_points, 0);
 	std::vector<double> noncoherent_current_up(parameters.NIV_points, 0);
@@ -42,7 +40,8 @@ int main(int argc, char **argv)
 	std::vector<double> current_up_left(parameters.NIV_points, 0);
 	std::vector<double> current_down_right(parameters.NIV_points, 0);
 	std::vector<double> current_down_left(parameters.NIV_points, 0);
-
+	std::vector<double> bond_current_up(parameters.NIV_points, 0);
+	std::vector<double> bond_current_down(parameters.NIV_points, 0);
 
 
 	for (int m = parameters.NIV_start; m < parameters.NIV_points; m++) {
@@ -109,39 +108,37 @@ int main(int argc, char **argv)
 			current_down_left_myid = 0.0, current_down_right_myid = 0.0, coherent_current_up_myid = 0.0, coherent_current_down_myid = 0.0;
 				//current_noninteracting_up_myid = 0.0, current_noninteracting_down_myid = 0.0;
 
-			std::vector<dcomp> transmission_up(parameters.steps_myid, 0);
-			std::vector<dcomp> transmission_down(parameters.steps_myid, 0);
+		std::vector<dcomp> transmission_up(parameters.steps_myid, 0), transmission_down(parameters.steps_myid, 0);
 
 		if (parameters.hubbard_interaction == 0) {
 			if (parameters.meir_wingreen_current == 1) {
-				//we calculate the green and trc at the same time
-				//this self energies are all zero.
+				//this gets the meir-wingreen current
+				//we calculate the local gf and trc at the same time
+				//the self energies are all zero.
 				get_transmission_gf_local(parameters, self_energy_mb_up, self_energy_mb_down, leads, transmission_up, transmission_down,
     				 m, hamiltonian_up, hamiltonian_down, gf_local_up, gf_local_lesser_up, gf_local_down, gf_local_lesser_down);
 
 				if (parameters.myid == 0) std::cout << "got transmission\n";
 
-					get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, 
-						transmission_up, hamiltonian_up);
-					get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid,
-						transmission_down, hamiltonian_down);
-					get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
+				get_meir_wingreen_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m, &current_up_left_myid, &current_up_right_myid, 
+					transmission_up, hamiltonian_up);
+				get_meir_wingreen_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m, &current_down_left_myid, &current_down_right_myid,
+					transmission_down, hamiltonian_down);
+				get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &coherent_current_up_myid, &coherent_current_down_myid, m);
 				//get_landauer_buttiker_current(parameters, transmission_up, transmission_down, &current_up_myid, &current_down_myid, m);
-				if (parameters.myid == 0) std::cout << "The spin up current is " << current_up.at(m) << "\n" <<
-					"The spin down current is " << current_down.at(m) << "\n" << "\n";	
 			}
 
-			double bond_current_up = 0, bond_current_down = 0;
 			if (parameters.bond_current == 1) {
 				if (parameters.spin_polarised == true) {
-					get_bond_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m,  &bond_current_up, hamiltonian_up);
-					get_bond_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m,  &bond_current_down, hamiltonian_down);
+					if (parameters.myid == 0) std::cout << "Calulating the bond currents for a spin polarised calculation \n";
+					get_bond_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m,  &bond_current_up.at(m), hamiltonian_up);
+					get_bond_current(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, m,  &bond_current_down.at(m), hamiltonian_down);
 				} else {//spin up = spin down
-					get_bond_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m,  &bond_current_up, hamiltonian_up);
-					bond_current_up = bond_current_down;
+					if (parameters.myid == 0) std::cout << "Calulating the bond currents for a non spin polarised calculation \n";
+					get_bond_current(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, m,  &bond_current_up.at(m), hamiltonian_up);
+					bond_current_down.at(m) = bond_current_up.at(m);
 				}
 			}
-
 		} else if (parameters.hubbard_interaction != 0) {
 			if (parameters.spin_polarised == true) {	
 				set_initial_spin(parameters, self_energy_mb_up, self_energy_mb_down);
@@ -210,15 +207,16 @@ int main(int argc, char **argv)
 					 "The coherent current is " << coherent_current_down.at(m) << "\n" <<
 					 "The noncoherent current is " << noncoherent_current_down.at(m) << "\n"; 
 					 //"The noninteracting current is " << current_noninteracting_up.at(m) << "\n";
+			if (parameters.bond_current == true) {
+				std::cout << "The spin up bond current is " << bond_current_up.at(m) << "\n" <<
+					 "The spin up bond current is " << bond_current_down.at(m) << "\n";
+			}
 			std::cout << std::endl;
 		}
 			
-		std::vector<dcomp> dos_up(parameters.steps_myid, 0);
-		std::vector<dcomp> dos_down(parameters.steps_myid, 0);
-		std::vector<dcomp> dos_up_ins(parameters.steps_myid, 0);
-		std::vector<dcomp> dos_down_ins(parameters.steps_myid, 0);
-		std::vector<dcomp> dos_up_metal(parameters.steps_myid, 0);
-		std::vector<dcomp> dos_down_metal(parameters.steps_myid, 0);	
+		std::vector<dcomp> dos_up(parameters.steps_myid, 0), dos_down(parameters.steps_myid, 0);
+		std::vector<dcomp> dos_up_ins(parameters.steps_myid, 0), dos_down_ins(parameters.steps_myid, 0);
+		std::vector<dcomp> dos_up_metal(parameters.steps_myid, 0), dos_down_metal(parameters.steps_myid, 0);	
 		
 		if (parameters.spin_polarised == true) {
 			get_dos(parameters, dos_up, dos_down, dos_up_ins, dos_down_ins, dos_up_metal, dos_down_metal, gf_local_up, gf_local_down);
@@ -270,50 +268,31 @@ int main(int argc, char **argv)
 	}
 
 	if (parameters.myid == 0) {
-		if (parameters.hubbard_interaction == 0) {
-			std::ofstream current_file;
-			current_file.open(
-			    "textfiles/"
-			    "current.dat");
-			// myfile << parameters.steps << std::endl;
-			for (int m = 0; m < parameters.NIV_points; m++) {
-				//std::cout << "The spin up current is " << current_up.at(m) << "The spin down current is " << current_down.at(m) << "\n";
-
-				if (parameters.hubbard_interaction == 0.0) {
-					std::cout << "The spin up current is " << current_up.at(m) << 
-					"\n The spin down current is " << current_down.at(m) << "\n";
-				}
-
-				std::cout << "\n";
-				current_file << parameters.voltage_l[m] - parameters.voltage_r[m] << "   " << 2 * current_up_left.at(m) << "   " << 2 * current_up_right.at(m)
-				    << "   " << 2 * current_up_left.at(m) + 2 * current_up_right.at(m) << "\n";
+		std::ofstream current_file;
+		current_file.open("current.dat");
+		for (int m = 0; m < parameters.NIV_points; m++) {
+			noncoherent_current_down.at(m) = 0.5 * (current_down_left.at(m) - current_down_right.at(m)) - coherent_current_down.at(m);
+			std::cout << "The spin up left current is " << current_up_left.at(m) << "\n" <<
+				"The spin up right current is " << current_up_right.at(m) << "\n" <<
+				"The spin down left current is " << current_down_left.at(m) << "\n" <<
+				"The spin up right current is " << current_down_right.at(m) << "\n" <<
+				"The total spin down current is " << 0.5 * (current_down_left.at(m) - current_down_right.at(m)) << "\n" <<
+				"The spin down coherent current is " << coherent_current_down.at(m) << "\n" <<
+				"The spin down noncoherent current is " << noncoherent_current_down.at(m) << "\n";
+			current_file << parameters.voltage_l[m] - parameters.voltage_r[m] << "   " << current_up_left.at(m) << "   " << current_up_right.at(m) << "   "
+			             << current_down_left.at(m) << "   " << current_down_right.at(m) << "     " << 0.5 * (current_down_left.at(m) - current_down_right.at(m))
+			             << "  " << coherent_current_down.at(m) << "   " << noncoherent_current_down.at(m);
+			if (parameters.bond_current == 1) {
+				current_file << "   " << bond_current_up.at(m) << "   " << bond_current_down.at(m) << "\n";
+				std::cout <<				"The spin up bond currentis " << bond_current_up.at(m) << "\n" <<
+				"The spin down bond currentis " << bond_current_down.at(m) << "\n" ;
+			} else {
+				current_file << "\n";
 			}
-			current_file.close();
-		} else {
-			std::ofstream current_file;
-			current_file.open(
-			    "textfiles/"
-			    "current.dat");
-			for (int m = 0; m < parameters.NIV_points; m++) {
-
-				std::cout << "The spin up left current is " << current_up_left.at(m) << "\n" <<
-						 "The spin up right current is " << current_up_right.at(m) << "\n" <<
-						 "The spin down left current is " << current_down_left.at(m) << "\n" <<
-						 "The spin up right current is " << current_down_right.at(m) << "\n" <<
-						 "The total current is " << 0.5 * (current_down_left.at(m) - current_down_right.at(m)) << "\n" <<
-						 "The coherent current is " << coherent_current_down.at(m) << "\n" <<
-						 "The noncoherent current is " << noncoherent_current_down.at(m) << "\n";
-
-				std::cout << "\n";
-
-				current_file << parameters.voltage_l[m] - parameters.voltage_r[m] << "   " << current_up_left.at(m) << "   " << current_up_right.at(m) << "   "
-				             << current_down_left.at(m) << "   " << current_down_right.at(m) << "     " << 0.5 * (current_down_left.at(m) - current_down_right.at(m))
-				             << "  " << coherent_current_down.at(m) << "   " << noncoherent_current_down.at(m) << "\n";
-			}
-			current_file.close();
+			std::cout << "\n";
 		}
+		current_file.close();
 	}
-
 	MPI_Finalize();
 	return 0;
 }
