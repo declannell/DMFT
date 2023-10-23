@@ -42,8 +42,19 @@ Parameters Parameters::from_file()
 	parameters.half_metal = 0;
 	parameters.meir_wingreen_current = 1;
 	parameters.bond_current = 0;
+	std::vector<int> temp_interace;
+	bool insideInterfacesBlock = false;
 	while (getline(input_file, line)) {
-			//std::cout << line << '\n';
+
+		
+		if (line == "interfaces_start") {
+            insideInterfacesBlock = true;
+        } else if (line == "interfaces_end") {
+            insideInterfacesBlock = false;
+        } else if (insideInterfacesBlock == true) {
+            int interface_num = std::stoi(line);
+            temp_interace.push_back(interface_num);
+        } else {
 			simple_tokenizer(line, variable, value);
 			//std::cout << "The variable name is " << variable << " The value is  " << value << std::endl;
 			if (variable == "onsite_cor") {
@@ -119,8 +130,8 @@ Parameters Parameters::from_file()
 			} else if (variable == "NIV_points") {
 				parameters.NIV_points = std::stoi(value);
 			} else if (variable == "NIV_start") {
-                parameters.NIV_start = std::stoi(value);
-            } else if (variable == "delta_v") {
+        	    parameters.NIV_start = std::stoi(value);
+        	} else if (variable == "delta_v") {
 				parameters.delta_v = std::stod(value);
 			} else if (variable == "delta_leads") {
 				parameters.delta_leads = std::stod(value);
@@ -150,8 +161,8 @@ Parameters Parameters::from_file()
 			} else if (variable == "spin_polarised") {
 				std::istringstream(value) >> parameters.spin_polarised;
 			} else if (variable == "impurity_solver") {
-                parameters.impurity_solver = std::stoi(value);
-            } else if (variable == "magnetic_field") {
+        	    parameters.impurity_solver = std::stoi(value);
+        	} else if (variable == "magnetic_field") {
 				parameters.magnetic_field = std::stod(value);
 			} else if (variable == "half_metal") {
 				parameters.half_metal = std::stoi(value);
@@ -159,16 +170,19 @@ Parameters Parameters::from_file()
 				parameters.convergence_leads = std::stod(value);
 			} else if (variable == "self_consistent_steps_leads") {
 				parameters.self_consistent_steps_leads = std::stod(value);
-			} else if (variable == "interface") {
-				parameters.interface = std::stoi(value);
 			} else if (variable == "bond_current") {
 				parameters.bond_current = std::stoi(value);
 			} else if (variable == "meir_wingreen_current") {
 				parameters.meir_wingreen_current = std::stoi(value);
-			}
+			} 
+		}
 	}
 	input_file.close();
 	
+	parameters.interface.resize(temp_interace.size(), 0);
+	for (long unsigned int i = 0; i < temp_interace.size(); i++) {
+		parameters.interface.at(i) = temp_interace.at(i);
+	}
 
 	parameters.path_of_self_energy_up = "textfiles/local_se_up_1_k_points_81_energy.txt";
 	parameters.path_of_self_energy_down = "textfiles/local_se_down_1_k_points_81_energy.txt";
@@ -279,23 +293,19 @@ Parameters Parameters::from_file()
 		
 	parameters.steps_proc.at(parameters.myid) = parameters.steps_myid;
 
-	if (parameters.bond_current == 0) {
-		parameters.interface = 1;
-	}
-
-	if (parameters.myid == 0) {
-		if (parameters.interface > parameters.chain_length) {
-			std::cout << "the chosen interface is not a valid choice as it is great than the number of layers \n";
-			exit(1);
-		}
-		if ( parameters.interface < 1) {
-			std::cout << "the chosen interface is not a valid choice as it is less than one \n";
-			exit(1);
-		}
-		std::cout << std::endl;
-		std::cout << std::endl;
-		std::cout << std::endl;
-	}
+	//if (parameters.myid == 0) {
+	//	if (parameters.interface > parameters.chain_length) {
+	//		std::cout << "the chosen interface is not a valid choice as it is great than the number of layers \n";
+	//		exit(1);
+	//	}
+	//	if ( parameters.interface < 1) {
+	//		std::cout << "the chosen interface is not a valid choice as it is less than one \n";
+	//		exit(1);
+	//	}
+	//	std::cout << std::endl;
+	//	std::cout << std::endl;
+	//	std::cout << std::endl;
+	//}
 
 	for (int a = 0; a < parameters.size; a++){
 		MPI_Bcast(&parameters.start.at(a), 1, MPI_INT, a, MPI_COMM_WORLD);
@@ -384,5 +394,9 @@ void print_parameters(Parameters& parameters)
 	std::cout << "parameters.self_consistent_steps_leads = " << parameters.self_consistent_steps_leads << std::endl;
 	std::cout << "paramters.meir_wingreen_current  = " << parameters.meir_wingreen_current << std::endl;
 	std::cout << "parameters.bond_current = " << parameters.bond_current << std::endl;
-	std::cout << "parameters.interface =" << parameters.interface << std::endl;
+	std::cout << "the parameters interface are ";
+	for (long unsigned int i = 0; i < parameters.interface.size(); i++) {
+		std::cout << i << ", ";
+	}
+	std::cout << "\n";
 }

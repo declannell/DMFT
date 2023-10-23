@@ -51,7 +51,7 @@ double get_k_dependent_bond_current(const Parameters &parameters, const dcomp &d
 	const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> &self_energy_mb_lesser, const int i, const int j);
 
 void get_bond_current(Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> 
-	&self_energy_mb_lesser, const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,	const int voltage_step, double *current,
+	&self_energy_mb_lesser, const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,	const int voltage_step, std::vector<double> &current,
 	 const std::vector<MatrixVectorType> &hamiltonian);
 
 double get_orbital_current(Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, 

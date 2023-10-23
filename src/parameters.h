@@ -88,7 +88,7 @@ struct Parameters
     int half_metal; //if half metal == 1 then the insulating layers are replaced with half_metals.
     int meir_wingreen_current; // if meir_wingreen_current == 1, the current is calculated using the mw approach.
     int bond_current;  //if bond_current == 1, the current is calculated using the bond current approach
-    int interface; // this defines where the interface for the bond currents is going to be. 
+    std::vector<int> interface; // this defines where the interface for the bond currents is going to be. 
 };
 
 

@@ -227,8 +227,8 @@ double get_k_dependent_bond_current(const Parameters &parameters, const dcomp &d
 			current_k_myid += gf_retarded.at(r)(i, j) * self_energy_lesser_j_i.at(r) + gf_lesser.at(r)(i, j) * std::conj(retarded_embedding_self_energy_i_j.at(r)) 
 				- self_energy_lesser_i_j.at(r) * std::conj(gf_retarded.at(r)(i, j)) - retarded_embedding_self_energy_i_j.at(r) * gf_lesser.at(r)(j, i);
 
-			if (i == 0 && j == 1) std::cout << "gf_retarded.at(r)(i, j) = " << gf_retarded.at(r)(i, j) <<  " self_energy_lesser_j_i.at(r) = "
-				<< self_energy_lesser_j_i.at(r) << std::endl;
+			//if (i == 0 && j == 1) std::cout << "gf_retarded.at(r)(i, j) = " << gf_retarded.at(r)(i, j) <<  " self_energy_lesser_j_i.at(r) = "
+			//	<< self_energy_lesser_j_i.at(r) << std::endl;
 		}
 		current_k_myid = parameters.delta_energy * current_k / (2.0 * M_PI);
 		MPI_Allreduce(&current_k_myid, &current_k, 1, MPI_DOUBLE_COMPLEX, MPI_SUM, MPI_COMM_WORLD);
@@ -238,40 +238,46 @@ double get_k_dependent_bond_current(const Parameters &parameters, const dcomp &d
 }
 
 void get_bond_current(Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, const std::vector<std::vector<dcomp>> 
-	&self_energy_mb_lesser, const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,	const int voltage_step, double *current,
+	&self_energy_mb_lesser, const std::vector<std::vector<EmbeddingSelfEnergy>> &leads,	const int voltage_step, std::vector<double> &current,
 	 const std::vector<MatrixVectorType> &hamiltonian) {
 	//this is setting up whether the orbital is to the left or right of the interface. 
 	std::vector<int> left;
 	std::vector<int> right;
 
+	for (long unsigned int w = 0; w < parameters.interface.size(); w++) {
+		left.clear();
+		right.clear();	
+		for (int i = 0; i < parameters.chain_length; i++) {		
+			if (i < parameters.interface.at(w)) {
+				left.push_back(i);
+				left.push_back(i + parameters.chain_length);
+				left.push_back(i + 2 * parameters.chain_length);
+				left.push_back(i + 3 * parameters.chain_length);
+			} else if (parameters.interface.at(w) <= i) {
+				right.push_back(i);
+				right.push_back(i + parameters.chain_length);
+				right.push_back(i + 2 * parameters.chain_length);
+				right.push_back(i + 3 * parameters.chain_length);
+			}
+		}
 
-	for (int i = 0; i < parameters.chain_length; i++) {		
-		if (i < parameters.interface) {
-			left.push_back(i);
-			left.push_back(i + parameters.chain_length);
-			left.push_back(i + 2 * parameters.chain_length);
-			left.push_back(i + 3 * parameters.chain_length);
-		} else if (parameters.interface <= i) {
-			right.push_back(i);
-			right.push_back(i + parameters.chain_length);
-			right.push_back(i + 2 * parameters.chain_length);
-			right.push_back(i + 3 * parameters.chain_length);
+		if (parameters.myid == 0) std::cout << left.size() << " is the number of orbitals on the left \n" << std::endl;
+		if (parameters.myid == 0) std::cout << right.size() << " is the number of orbitals on the right \n" << std::endl;
+
+
+		//this is implementing eq 32 of Ivan's, andrea and maria bond current approach.
+		for (std::vector<int>::size_type i = 0; i < left.size(); i++) {
+			for (std::vector<int>::size_type j = 0; j < right.size(); j++) {
+				double orbital_current_right = get_orbital_current(parameters, self_energy_mb, self_energy_mb_lesser, leads, voltage_step,
+					hamiltonian, left.at(i), right.at(j));
+				//if (parameters.myid == 0) std::cout << orbital_current << "(" << left.at(i) << "," << right.at(j) << ")" << std::endl;
+				//double orbital_current_left = get_orbital_current(parameters, self_energy_mb, self_energy_mb_lesser, leads, voltage_step,
+				//	hamiltonian, right.at(j), left.at(i));
+				current.at(w) += orbital_current_right;
+				
+			}
 		}
 	}
-
-	if (parameters.myid == 0) std::cout << left.size() << " is the number of orbitals on the left \n" << std::endl;
-	if (parameters.myid == 0) std::cout << right.size() << " is the number of orbitals on the right \n" << std::endl;
-
-
-	//this is implementing eq 32 of Ivan's, andrea and maria bond current approach.
-	for (std::vector<int>::size_type i = 0; i < left.size(); i++) {
-		for (std::vector<int>::size_type j = 0; j < right.size(); j++) {
-			double orbital_current = get_orbital_current(parameters, self_energy_mb, self_energy_mb_lesser, leads, voltage_step, hamiltonian, left.at(i), right.at(j));
-			//if (parameters.myid == 0) std::cout << orbital_current << "(" << left.at(i) << "," << right.at(j) << ")" << std::endl;
-			*current += orbital_current;
-		}
-	}
-	//if (parameters.myid == 0) std::cout << "the total bond current " << *current << std::endl;
 }
 
 double get_orbital_current(Parameters &parameters, const std::vector<std::vector<dcomp>> &self_energy_mb, 
