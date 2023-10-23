@@ -286,10 +286,22 @@ Parameters Parameters::from_file()
 	decomp(parameters.steps, parameters.size, parameters.myid, &parameters.start.at(parameters.myid), &parameters.end.at(parameters.myid));
 	parameters.steps_myid = parameters.end.at(parameters.myid) - parameters.start.at(parameters.myid) + 1;
 
-	std::cout << std::setprecision(15) << "My myid is " << parameters.myid << " in a world of size " << parameters.size << 
-		". There are " << parameters.steps<< " energy steps in my parameters class." 
-		" The starting point and end point of my array are " << parameters.start.at(parameters.myid) << " and " << parameters.end.at(parameters.myid) << 
-		". The number of points in my process are " << parameters.steps_myid << "\n";
+    std::string message = "My myid is " + std::to_string(parameters.myid) + " in a world of size " +
+                          std::to_string(parameters.size) + ". There are " + std::to_string(parameters.steps) +
+                          " energy steps in my parameters class. The starting point and end point of my array are " +
+                          std::to_string(parameters.start.at(parameters.myid)) + " and " +
+                          std::to_string(parameters.end.at(parameters.myid)) + ". The number of points in my process are " +
+                          std::to_string(parameters.steps_myid);
+
+    for (int i = 0; i < parameters.size; i++) {
+        MPI_Barrier(MPI_COMM_WORLD); // Synchronize all processes
+
+        if (parameters.myid == i) {
+            std::cout << std::setprecision(15) << message << "\n";
+        }
+
+        MPI_Barrier(MPI_COMM_WORLD); // Synchronize all processes
+    }
 		
 	parameters.steps_proc.at(parameters.myid) = parameters.steps_myid;
 
