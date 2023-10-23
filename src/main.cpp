@@ -200,7 +200,6 @@ int main(int argc, char **argv)
 					}
 				}
 			}
-			std::cout << "got the bond current \n";
 		}
 
 
@@ -268,7 +267,7 @@ int main(int argc, char **argv)
 	if (parameters.myid == 0) {
 		std::ofstream current_file;
 		current_file.open("current.dat");
-		for (int m = 0; m < parameters.NIV_points; m++) {
+		for (int m = parameters.NIV_start; m < parameters.NIV_points; m++) {
 			noncoherent_current_down.at(m) = 0.5 * (current_down_left.at(m) - current_down_right.at(m)) - coherent_current_down.at(m);
 			std::cout << "The spin up left current is " << current_up_left.at(m) << "\n" <<
 				"The spin up right current is " << current_up_right.at(m) << "\n" <<

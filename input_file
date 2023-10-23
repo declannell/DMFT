@@ -18,21 +18,21 @@ hopping_lc            -1.0
 hopping_rc            -1.0
 hopping_ins_l_cor     -1.0
 hopping_ins_r_cor     -1.0
-num_cor               1
+num_cor               2
 num_ins_left          1
 num_ins_right         1
 ins_metal_ins         1
-num_ky_points         3
-num_kx_points         3
+num_ky_points         1
+num_kx_points         1
 chemical_potential    0.0
 temperature           0.0
-e_upper_bound         10.0
-e_lower_bound         -10.0
-hubbard_interaction   0.0
-impurity_solver       1
+e_upper_bound         50.0
+e_lower_bound         -50.0
+hubbard_interaction   2.0
+impurity_solver       2
 interaction_order     2
 voltage_step          0
-self_consistent_steps 1
+self_consistent_steps 5
 self_consistent_steps_nca 4
 self_consistent_steps_leads 50
 read_in_self_energy   0
@@ -49,11 +49,17 @@ convergence_leads     0.0001
 gamma                 -0.075
 wbl_approx            1
 kk_relation           1
-steps                 500
+steps                 3000
 print_gf              0
 spin_polarised        0
 magnetic_field        0
 half_metal            0
 meir_wingreen_current 1
 bond_current          1
-interface             2
+interface             3
+
+interfaces_start
+1
+2
+3
+interfaces_start
