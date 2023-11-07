@@ -305,6 +305,16 @@ Parameters Parameters::from_file()
 		
 	parameters.steps_proc.at(parameters.myid) = parameters.steps_myid;
 
+	if (parameters.wbl_approx == 1) {
+		parameters.num_kx_leads_self_energy = 1;
+		parameters.num_ky_leads_self_energy = 1;
+		parameters.steps_leads = 1;
+	} else {
+		parameters.num_kx_leads_self_energy = parameters.num_kx_points;
+		parameters.num_ky_leads_self_energy = parameters.num_ky_points;
+		parameters.steps_leads = parameters.steps_myid;
+	}
+
 	//if (parameters.myid == 0) {
 	//	if (parameters.interface > parameters.chain_length) {
 	//		std::cout << "the chosen interface is not a valid choice as it is great than the number of layers \n";

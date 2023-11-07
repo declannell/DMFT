@@ -89,6 +89,9 @@ struct Parameters
     int meir_wingreen_current; // if meir_wingreen_current == 1, the current is calculated using the mw approach.
     int bond_current;  //if bond_current == 1, the current is calculated using the bond current approach
     std::vector<int> interface; // this defines where the interface for the bond currents is going to be. 
+    int num_kx_leads_self_energy; //this is the number of k points for the leads self energy
+    int num_ky_leads_self_energy; //this is the number of k points for the leads self energy
+    int steps_leads; //this is the number of energy points for the leads. This will be 1 for the wideband approx as it is energy independent. 
 };
 
 

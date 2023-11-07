@@ -70,13 +70,14 @@ int main(int argc, char **argv)
 		if (parameters.myid == 0) std::cout << "hamiltonian complete" << std::endl;
 
 		std::vector<std::vector<EmbeddingSelfEnergy>> leads;
-		for (int i = 0; i < parameters.num_kx_points; i++) {
+
+		for (int i = 0; i < parameters.num_kx_leads_self_energy; i++) {
 			std::vector<EmbeddingSelfEnergy> vy;
-			for (int j = 0; j < parameters.num_ky_points; j++) {
+			for (int j = 0; j < parameters.num_ky_leads_self_energy; j++) {
 				vy.push_back(EmbeddingSelfEnergy(parameters, kx.at(i), ky.at(j), m));
 			}
 			leads.push_back(vy);
-		}
+		}			
 
 		if (parameters.myid == 0) std::cout << "leads complete" << std::endl;
 
@@ -148,6 +149,7 @@ int main(int argc, char **argv)
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, self_energy_mb_greater_down, leads,
 						 gf_local_down, gf_local_lesser_down, gf_local_greater_down, m, hamiltonian_down);	
 				} else {//only need gf_retarded and gf_lesser for sigma2
+
 					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
 					get_local_gf_r_and_lesser(parameters, self_energy_mb_down, self_energy_mb_lesser_down, leads, gf_local_down, gf_local_lesser_down, m, hamiltonian_down);	
 				}
@@ -157,6 +159,7 @@ int main(int argc, char **argv)
 					get_local_gf_r_greater_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, self_energy_mb_greater_up, leads, gf_local_up, gf_local_lesser_up,
 				 		gf_local_greater_up, m, hamiltonian_up);
 				} else {//only need gf_retarded and gf_lesser for sigma2
+
 					get_local_gf_r_and_lesser(parameters, self_energy_mb_up, self_energy_mb_lesser_up, leads, gf_local_up, gf_local_lesser_up, m, hamiltonian_up);
 				}
 			}

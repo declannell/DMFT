@@ -32,7 +32,7 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Matr
 
         for (int i = 0; i < 4 *parameters.chain_length; i++) energy(i, i) = parameters.energy.at(y) + parameters.j1 * parameters.delta_gf - self_energy_mb.at(i).at(r);
             
-        inverse_gf = energy - hamiltonian - self_energy_left.at(r) - self_energy_right.at(r);
+        inverse_gf = energy - hamiltonian - self_energy_left.at(0) - self_energy_right.at(0);
         this->interacting_gf.at(r) = inverse_gf.inverse();
     }
     //dos_file_non_int.close();
@@ -349,7 +349,7 @@ void get_gf_lesser_non_eq(const Parameters &parameters, const MatrixVectorType &
             MatrixType embedding_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
             MatrixType mb_lesser_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
 
-            get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy, r + parameters.start.at(parameters.myid), voltage_step);
+            get_embedding_lesser(parameters, self_energy_left.at(0), self_energy_right.at(0), embedding_self_energy, r + parameters.start.at(parameters.myid), voltage_step);
 
             for(int i = 0; i < 4 * parameters.chain_length; i++) mb_lesser_self_energy(i, i) = self_energy_mb_lesser.at(i).at(r);
 
@@ -369,24 +369,7 @@ void get_gf_lesser_greater_non_eq(const Parameters &parameters, const MatrixVect
         gf_lesser.at(r) = (MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
         gf_greater.at(r) = (MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
     }
-	//		
-    //if (parameters.wbl_approx == 1 && parameters.bond_current == 0) { //we don't need the diagonal elements of the lesser green function as embedding self energies are diagonal.
-    //    for(int r = 0; r < parameters.steps_myid; r++) {   
-    //        MatrixType embedding_self_energy_lesser = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
-    //        MatrixType embedding_self_energy_greater = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
-    //        get_embedding_lesser(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy_lesser, r + parameters.start.at(parameters.myid), voltage_step);
-    //        get_embedding_greater(parameters, self_energy_left.at(r), self_energy_right.at(r), embedding_self_energy_greater, r + parameters.start.at(parameters.myid), voltage_step);
-    //        for(int i = 0; i < 4 * parameters.chain_length; i++) {
-    //            for(int m = 0; m < 4 * parameters.chain_length; m++){
-    //                gf_lesser.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_lesser.at(m).at(r) + embedding_self_energy_lesser(m, m))
-    //                    * std::conj(gf_retarded.at(r)(i, m));
-//
-    //                gf_greater.at(r)(i, i) +=  gf_retarded.at(r)(i, m) * (self_energy_mb_greater.at(m).at(r) + embedding_self_energy_greater(m, m))
-    //                    * std::conj(gf_retarded.at(r)(i, m));
-    //            }
-    //        }
-    //    }
-    //} else {//else I need the whole lesser green function
+
         for(int r = 0; r < parameters.steps_myid; r++) {   
             MatrixType mb_lesser_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
             MatrixType mb_greater_self_energy = Eigen::MatrixXd::Zero(4 * parameters.chain_length, 4 * parameters.chain_length);
@@ -425,7 +408,6 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
     }
 
 
-
     int n_x = parameters.num_kx_points, n_y = parameters.num_ky_points;
 
     MatrixVectorType gf_lesser(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)); 
@@ -434,12 +416,13 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
         for(int kx_i = 0; kx_i < n_x; kx_i++) {
             for(int ky_i = 0; ky_i < n_y; ky_i++) {
                 Interacting_GF gf_interacting(parameters, self_energy_mb,
-                    leads.at(kx_i).at(ky_i).self_energy_left,
-                    leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));   
+                    leads.at(0).at(0).self_energy_left,
+                    leads.at(0).at(0).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));   
 
                 get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, 
-                    self_energy_mb_lesser, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+                    self_energy_mb_lesser, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
                     gf_lesser, voltage_step);
+
 
                 for(int r = 0; r < parameters.steps_myid; r++){
                     gf_local.at(r) += gf_interacting.interacting_gf.at(r) * (1.0 / num_k_points);
@@ -493,11 +476,11 @@ void get_local_gf_r_greater_lesser(const Parameters &parameters,
         for(int kx_i = 0; kx_i < n_x; kx_i++) {
             for(int ky_i = 0; ky_i < n_y; ky_i++) {
                 Interacting_GF gf_interacting(parameters, self_energy_mb,
-                    leads.at(kx_i).at(ky_i).self_energy_left,
-                    leads.at(kx_i).at(ky_i).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));   
+                    leads.at(0).at(0).self_energy_left,
+                    leads.at(0).at(0).self_energy_right, voltage_step, hamiltonian.at(kx_i).at(ky_i));   
 
-                get_gf_lesser_greater_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser, self_energy_mb_greater, leads.at(kx_i).at(ky_i).self_energy_left, 
-                    leads.at(kx_i).at(ky_i).self_energy_right, gf_lesser, gf_greater, voltage_step);
+                get_gf_lesser_greater_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser, self_energy_mb_greater, leads.at(0).at(0).self_energy_left, 
+                    leads.at(0).at(0).self_energy_right, gf_lesser, gf_greater, voltage_step);
 
                 for(int r = 0; r < parameters.steps_myid; r++){
                     gf_local.at(r) += gf_interacting.interacting_gf.at(r) * (1.0 / num_k_points);

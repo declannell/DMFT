@@ -14,8 +14,8 @@ void get_k_dependent_transmission(const Parameters& parameters, MatrixVectorType
 
 	double num_k_points = parameters.num_kx_points * parameters.num_ky_points;
 	for (int r = 0; r < parameters.steps_myid; r++) {
-		transmission.at(r) += 1.0 / num_k_points * (coupling_left.at(r) * green_function.at(r)
-				* coupling_right.at(r) * (green_function.at(r)).adjoint()).trace();
+		transmission.at(r) += 1.0 / num_k_points * (coupling_left.at(0) * green_function.at(r)
+				* coupling_right.at(0) * (green_function.at(r)).adjoint()).trace();
 	}
 }
 
@@ -33,6 +33,8 @@ void get_transmission_gf_local(
 	MatrixVectorType coupling_left(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 	MatrixVectorType coupling_right(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 
+	get_coupling(parameters, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right, 
+		coupling_left, coupling_right);
 
 	double num_k_points = parameters.num_kx_points * parameters.num_ky_points;
 
@@ -44,15 +46,12 @@ void get_transmission_gf_local(
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
 				Interacting_GF gf_interacting(parameters, self_energy_mb_up,
-				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
 				    voltage_step, hamiltonian_up.at(kx_i).at(ky_i));
 
     	        get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, 
-    	            self_energy_mb_up, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+    	            self_energy_mb_up, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
     	            gf_lesser_up, voltage_step);
-
-				get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right, 
-					coupling_left, coupling_right);
 
     	        for(int r = 0; r < parameters.steps_myid; r++){
     	            gf_local_up.at(r) += gf_interacting.interacting_gf.at(r) * (1.0 / num_k_points);
@@ -68,22 +67,19 @@ void get_transmission_gf_local(
 		for (int kx_i = 0; kx_i < parameters.num_kx_points; kx_i++) {
 			for (int ky_i = 0; ky_i < parameters.num_ky_points; ky_i++) {
 				Interacting_GF gf_interacting_up(parameters, self_energy_mb_up,
-				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
 				    voltage_step, hamiltonian_up.at(kx_i).at(ky_i));
 
 				Interacting_GF gf_interacting_down(parameters, self_energy_mb_up,
-				    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+				    leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
 				    voltage_step, hamiltonian_down.at(kx_i).at(ky_i));
 
-				get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right, 
-					coupling_left, coupling_right);
-
     	        get_gf_lesser_non_eq(parameters, gf_interacting_up.interacting_gf, 
-    	            self_energy_mb_up, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+    	            self_energy_mb_up, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
     	            gf_lesser_up, voltage_step);
 
     	        get_gf_lesser_non_eq(parameters, gf_interacting_down.interacting_gf, 
-    	            self_energy_mb_up, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+    	            self_energy_mb_up, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
     	            gf_lesser_down, voltage_step);
 
     	        for(int r = 0; r < parameters.steps_myid; r++){
@@ -101,7 +97,7 @@ void get_transmission_gf_local(
 
 void get_coupling(const Parameters &parameters, const MatrixVectorType &self_energy_left, const MatrixVectorType &self_energy_right, 
 	MatrixVectorType &coupling_left, MatrixVectorType &coupling_right){
-	for (int r = 0; r < parameters.steps_myid; r++) {
+	for (int r = 0; r < parameters.steps_leads; r++) {
     	coupling_left.at(r) = parameters.j1 * (self_energy_left.at(r) - (self_energy_left.at(r)).adjoint());
     	coupling_right.at(r) = parameters.j1 * (self_energy_right.at(r) - (self_energy_right.at(r)).adjoint());
 	}
@@ -138,27 +134,26 @@ void get_meir_wingreen_current(
 		transmission_up.at(r) = 0.0;
 	}
 
-	MatrixVectorType coupling_left(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
-	MatrixVectorType coupling_right(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+	MatrixVectorType coupling_left(parameters.steps_leads, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+	MatrixVectorType coupling_right(parameters.steps_leads, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+
+	get_coupling(parameters, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right, coupling_left, coupling_right);
 
 	double num_k_points = n_x * n_y;
 	for (int kx_i = 0; kx_i < n_x; kx_i++) {
 		for (int ky_i = 0; ky_i < n_y; ky_i++) {
 			Interacting_GF gf_interacting(parameters, self_energy_mb,
-			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+			    leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
 			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
 			MatrixVectorType gf_lesser(parameters.steps_myid,
 			    MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 
 			get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser,
-			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+			    leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
 			    gf_lesser, voltage_step);
 
 			dcomp current_k_resolved_left, current_k_resolved_right;
-
-			get_coupling(parameters, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right, 
-				coupling_left, coupling_right);
 
 			get_k_dependent_transmission(parameters, gf_interacting.interacting_gf, coupling_left, coupling_right, transmission_up);
 
@@ -188,12 +183,12 @@ void get_meir_wingreen_k_dependent_current(const Parameters& parameters,
 		spec_func = parameters.j1 * (green_function.at(r) - (green_function.at(r)).adjoint());
 		
 		trace_left += (fermi_function(parameters.energy.at(y) - parameters.voltage_l.at(voltage_step),
-	    	parameters) * coupling_left.at(r) * spec_func).trace();
+	    	parameters) * coupling_left.at(0) * spec_func).trace();
 		trace_right += (fermi_function(parameters.energy.at(y) - parameters.voltage_r.at(voltage_step),
-	    	parameters) * coupling_right.at(r) * spec_func).trace();
+	    	parameters) * coupling_right.at(0) * spec_func).trace();
 		
-		trace_left += (parameters.j1 * coupling_left.at(r) * green_function_lesser.at(r)).trace();
-		trace_right += (parameters.j1 * coupling_right.at(r) * green_function_lesser.at(r)).trace();
+		trace_left += (parameters.j1 * coupling_left.at(0) * green_function_lesser.at(r)).trace();
+		trace_right += (parameters.j1 * coupling_right.at(0) * green_function_lesser.at(r)).trace();
 		
 		//if (parameters.myid == 0) std::cout << (-2.0 * green_function.at(r)(0, 0)).imag() << " " << (green_function_lesser.at(r)(0,0)).imag() << " " << voltage_step << std::endl;
 
@@ -207,12 +202,12 @@ void get_embedding_self_energy(Parameters &parameters, const MatrixVectorType &s
     const int voltage_step, const int i, const int j) {
 
 	for (int r = 0; r < parameters.steps_myid; r++) {
-		retarded_embedding_self_energy_i_j.at(r) = self_energy_left.at(r)(i, j) + self_energy_right.at(r)(i, j);
+		retarded_embedding_self_energy_i_j.at(r) = self_energy_left.at(0)(i, j) + self_energy_right.at(0)(i, j);
 
 		self_energy_lesser_i_j.at(r) = - fermi_function(parameters.energy.at(r) - parameters.voltage_l[voltage_step], parameters) * 
-        (self_energy_left.at(r)(i, j) - std::conj(self_energy_left.at(r)(j, i))) 
+        (self_energy_left.at(0)(i, j) - std::conj(self_energy_left.at(0)(j, i))) 
 		- fermi_function(parameters.energy.at(r) - parameters.voltage_r[voltage_step], parameters) * 
-        (self_energy_right.at(r)(i, j) - std::conj(self_energy_right.at(r)(j, i)));
+        (self_energy_right.at(0)(i, j) - std::conj(self_energy_right.at(0)(j, i)));
 
 		self_energy_lesser_j_i.at(r) = - std::conj(self_energy_lesser_i_j.at(r));
 	}
@@ -294,24 +289,24 @@ double get_orbital_current(Parameters &parameters, const std::vector<std::vector
 	dcomp density_matrix_k;
 	double current_k = 0;
 
+	get_embedding_self_energy(parameters, leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right, 
+		self_energy_lesser_i_j, self_energy_lesser_j_i, retarded_embedding_self_energy_i_j, voltage_step, i, j);
+
 	double num_k_points = n_x * n_y;
 	for (int kx_i = 0; kx_i < n_x; kx_i++) {
 		for (int ky_i = 0; ky_i < n_y; ky_i++) {
 			Interacting_GF gf_interacting(parameters, self_energy_mb,
-			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+			    leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
 			    voltage_step, hamiltonian.at(kx_i).at(ky_i));
 
 			MatrixVectorType gf_lesser(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
 
 			get_gf_lesser_non_eq(parameters, gf_interacting.interacting_gf, self_energy_mb_lesser,
-			    leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right,
+			    leads.at(0).at(0).self_energy_left, leads.at(0).at(0).self_energy_right,
 			    gf_lesser, voltage_step);
 
 			get_density_matrix(parameters, gf_lesser, density_matrix_k, j, i);
 			//std::cout << "the density matrix element is " << density_matrix_k << " " << j << " " << i << std::endl;
-
-			get_embedding_self_energy(parameters, leads.at(kx_i).at(ky_i).self_energy_left, leads.at(kx_i).at(ky_i).self_energy_right, 
-				self_energy_lesser_i_j, self_energy_lesser_j_i, retarded_embedding_self_energy_i_j, voltage_step, i, j);
 
 			current_k += get_k_dependent_bond_current(parameters, density_matrix_k, hamiltonian.at(kx_i).at(ky_i), gf_interacting.interacting_gf, gf_lesser, 
 				self_energy_lesser_i_j, self_energy_lesser_j_i, retarded_embedding_self_energy_i_j, self_energy_mb, self_energy_mb_lesser, i , j);

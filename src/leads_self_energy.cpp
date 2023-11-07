@@ -19,19 +19,19 @@ double EmbeddingSelfEnergy::ky() const { return ky_value; }
 
 EmbeddingSelfEnergy::EmbeddingSelfEnergy(const Parameters &parameters, double kx, double ky, int voltage_step) : kx_value(kx), ky_value(ky) // type is implied, it knows this is a constructor
 {
-    this->self_energy_left.resize(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
-    this->self_energy_right.resize(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)); 
+
 
     if(parameters.wbl_approx == true){
-        for (int r = 0; r < parameters.steps_myid; r++){
-            for (int i = 0; i < 4; i++){
-                self_energy_left.at(r)(i * parameters.chain_length, i * parameters.chain_length) = parameters.j1 * parameters.gamma * 0.5;
-                self_energy_right.at(r)((i + 1) * parameters.chain_length - 1, (i + 1) * parameters.chain_length - 1) = parameters.j1 * parameters.gamma * 0.5;               
-            }
+        this->self_energy_left.resize(1, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+        this->self_energy_right.resize(1, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)); 
+        for (int i = 0; i < 4; i++){
+            self_energy_left.at(0)(i * parameters.chain_length, i * parameters.chain_length) = parameters.j1 * parameters.gamma * 0.5;
+            self_energy_right.at(0)((i + 1) * parameters.chain_length - 1, (i + 1) * parameters.chain_length - 1) = parameters.j1 * parameters.gamma * 0.5;               
         }
     } else { //this calculate the self energy via the method in sanchez paper. This is not tested.
+        this->self_energy_left.resize(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
+        this->self_energy_right.resize(parameters.steps_myid, MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length)); 
         Eigen::Matrix4cd  hamiltonian(4, 4);
-
         get_hamiltonian_for_leads(parameters, hamiltonian);
         MatrixVectorType transfer_matrix_l(parameters.steps_myid, MatrixType::Zero(4, 4));
         MatrixVectorType transfer_matrix_r(parameters.steps_myid, MatrixType::Zero(4, 4));
