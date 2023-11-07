@@ -40,18 +40,6 @@ void Interacting_GF::get_interacting_gf(const Parameters &parameters, const Matr
 
 
 void get_hamiltonian(Parameters const &parameters, const int voltage_step, const double kx, const double ky, MatrixType &hamiltonian, int spin){
-    
-    std::ofstream potential_file;
-	std::ostringstream ossgf;
-	ossgf << voltage_step << ".potential.dat";
-	std::string var = ossgf.str();
-    potential_file.open(var);
-    potential_file << -5 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
-    potential_file << -4 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
-    potential_file << -3 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
-    potential_file << -2 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
-    potential_file << -1 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
-    potential_file << 0 << "  " << parameters.voltage_l[voltage_step] <<  "\n";
 
     double voltage_i;
 
@@ -122,7 +110,6 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         if (parameters.half_metal == 1 && spin == 1) {
             for (int i = 0; i < parameters.num_ins_left; i++){
                 voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) * delta_v;
-                potential_file << i + 1 << "  " << voltage_i <<  "\n"; 
                 //this is the top left
                 hamiltonian(i, i) = parameters.onsite_cor + voltage_i + magnetic_field;
                 //this is the top right
@@ -138,7 +125,6 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         } else {
             for (int i = 0; i < parameters.num_ins_left; i++){
                 voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) * delta_v;
-                potential_file << i + 1 << "  " << voltage_i <<  "\n"; 
                 //this is the top left
                 hamiltonian(i, i) = parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l + voltage_i + magnetic_field;
                 //this is the top right
@@ -159,8 +145,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         //std::cout << "The voltage on the correlated atom is " << voltage_i << std::endl;
 
         for (int i = 0; i < parameters.num_cor; i++){
-            int j = i + parameters.num_ins_left;
-            potential_file << j + 1 << "  " << voltage_i <<  "\n";          
+            int j = i + parameters.num_ins_left;    
             hamiltonian(j, j) = parameters.onsite_cor + voltage_i + magnetic_field;
             hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
             hamiltonian(j + 2 * parameters.chain_length, j + 2 * parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
@@ -171,7 +156,6 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
             for (int i = 0; i < parameters.num_ins_right; i++){
                 int j = i + parameters.num_cor + parameters.num_ins_left;
                 voltage_i = - (double)(i + 1) * delta_v;
-                potential_file << j + 1 << "  " << voltage_i <<  "\n";  
                 hamiltonian(j, j) = parameters.onsite_cor + voltage_i + magnetic_field;
                 hamiltonian(j + parameters.chain_length, j + parameters.chain_length) =  parameters.onsite_cor
                     + voltage_i + magnetic_field;
@@ -185,7 +169,6 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
             for (int i = 0; i < parameters.num_ins_right; i++){
                 int j = i + parameters.num_cor + parameters.num_ins_left;
                 voltage_i = - (double)(i + 1) * delta_v;
-                potential_file << j + 1 << "  " << voltage_i <<  "\n";  
                 hamiltonian(j, j) = -(parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r) + voltage_i + magnetic_field;
                 hamiltonian(j + parameters.chain_length, j + parameters.chain_length) =  (parameters.onsite_ins_r - 2 * (i % 2) * parameters.onsite_ins_r)
                     + voltage_i + magnetic_field;
@@ -205,7 +188,6 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         //std::cout << "failed here 5 \n"; 
         voltage_i = parameters.voltage_l[voltage_step];
         for (int i = 0; i < parameters.num_cor; i++){
-            potential_file << i + 1 << "  " << voltage_i <<  "\n";  
             hamiltonian(i, i) = parameters.onsite_cor + voltage_i + magnetic_field;
             hamiltonian(i + parameters.chain_length, i + parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
             hamiltonian(i + 2 * parameters.chain_length, i + 2 * parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
@@ -217,8 +199,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
             for (int i = 0; i < parameters.num_ins_left; i++){
                 int j = i + parameters.num_cor;
                 voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) * delta_v;
-                //std::cout << voltage_i << std::endl;
-                potential_file << j + 1 << "  " << voltage_i <<  "\n";          
+                //std::cout << voltage_i << std::endl;       
                 hamiltonian(j, j) = parameters.onsite_cor + voltage_i + magnetic_field;
                 hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = parameters.onsite_cor + voltage_i
                     + magnetic_field;
@@ -232,7 +213,6 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
                 int j = i + parameters.num_cor;
                 voltage_i = parameters.voltage_l[voltage_step] - (double)(i + 1) * delta_v;
                 //std::cout << voltage_i << std::endl;
-                potential_file << j + 1 << "  " << voltage_i <<  "\n";          
                 hamiltonian(j, j) = parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l + voltage_i + magnetic_field;
                 hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = - (parameters.onsite_ins_l - 2 * (i % 2) * parameters.onsite_ins_l) + voltage_i
                     + magnetic_field;
@@ -247,7 +227,6 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
 
         for (int i = 0; i < parameters.num_cor; i++){
             int j = i + parameters.num_cor + parameters.num_ins_left;
-            potential_file << j + 1 << "  " << voltage_i <<  "\n";  
             hamiltonian(j, j) = parameters.onsite_cor + voltage_i + magnetic_field;
             hamiltonian(j + parameters.chain_length, j + parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
             hamiltonian(j + 2 * parameters.chain_length, j + 2 * parameters.chain_length) = parameters.onsite_cor + voltage_i + magnetic_field;
@@ -255,16 +234,7 @@ void get_hamiltonian(Parameters const &parameters, const int voltage_step, const
         }
     }
 
-    //std::cout << "The hamiltonian is " <<  std::endl;
-    //std::cout << hamiltonian << std::endl;
-    //std::cout << std::endl;
-    potential_file << parameters.chain_length + 1  << "  " << parameters.voltage_r[voltage_step] <<  "\n";
-    potential_file << parameters.chain_length + 2  << "  " << parameters.voltage_r[voltage_step] <<  "\n";
-    potential_file << parameters.chain_length + 3  << "  " << parameters.voltage_r[voltage_step] <<  "\n";
-    potential_file << parameters.chain_length + 4  << "  " << parameters.voltage_r[voltage_step] <<  "\n";
-    potential_file << parameters.chain_length + 5  << "  " << parameters.voltage_r[voltage_step] <<  "\n";
-    potential_file << parameters.chain_length + 6  << "  " << parameters.voltage_r[voltage_step] <<  "\n";
-    potential_file.close();
+
 }
 
 
@@ -407,6 +377,7 @@ void get_local_gf_r_and_lesser(const Parameters &parameters,
         gf_local_lesser.at(r) = (MatrixType::Zero(4 * parameters.chain_length, 4 * parameters.chain_length));
     }
 
+    if (parameters.myid == 0) std::cout << "calculating the lesser and retarded GF \n";
 
     int n_x = parameters.num_kx_points, n_y = parameters.num_ky_points;
 
